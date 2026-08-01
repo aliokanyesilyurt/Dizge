@@ -1,0 +1,22 @@
+﻿      body: PageView.builder(
+        controller: _pageController,
+        itemCount: 12,
+        itemBuilder: (context, monthIndex) {
+          DateTime firstDayOfMonth = DateTime(currentYear, monthIndex + 1, 1);
+          int daysInMonth = DateUtils.getDaysInMonth(currentYear, monthIndex + 1);
+          int startingWeekday = firstDayOfMonth.weekday; // 1 (Pzt) - 7 (Paz)
+          String monthName = _months[monthIndex];
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  monthName + ' ' + currentYear.toString(),
+                  style: const TextStyle(
+                      color: Colors.blueAccent,
+                      letterSpacing: 2,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),

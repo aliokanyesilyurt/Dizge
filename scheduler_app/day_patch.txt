@@ -1,0 +1,6 @@
+﻿  @override
+  Widget build(BuildContext context) {
+    String formattedDate = widget.date.day.toString() + '/' + widget.date.month.toString() + '/' + widget.date.year.toString();
+
+    return Scaffold(
+      appBar: AppBar(

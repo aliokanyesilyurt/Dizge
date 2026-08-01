@@ -1,0 +1,193 @@
+import 'dart:ui' show PointMode;
+import 'package:flutter/material.dart';
+import '../models/task.dart';
+import '../theme.dart';
+
+/// Çizim verisini tutar (editör kaydederken okunur).
+class SketchController {
+  final List<List<Offset>> strokes;
+  Size size = Size.zero;
+
+  SketchController([List<List<Offset>>? initial])
+      : strokes = initial == null
+            ? <List<Offset>>[]
+            : initial.map(List<Offset>.of).toList();
+
+  bool get isEmpty => strokes.every((s) => s.isEmpty);
+
+  Sketch toSketch(Color color) => Sketch(
+        strokes.map(List<Offset>.of).toList(),
+        size == Size.zero ? const Size(300, 180) : size,
+        color,
+      );
+}
+
+/// Parmak/kalem ile elle yazma alanı.
+class DrawingCanvas extends StatefulWidget {
+  final SketchController controller;
+  final Color color;
+
+  const DrawingCanvas(
+      {super.key, required this.controller, required this.color});
+
+  @override
+  State<DrawingCanvas> createState() => _DrawingCanvasState();
+}
+
+class _DrawingCanvasState extends State<DrawingCanvas> {
+  void _start(Offset p) {
+    setState(() => widget.controller.strokes.add(<Offset>[p]));
+  }
+
+  void _extend(Offset p) {
+    setState(() {
+      if (widget.controller.strokes.isEmpty) {
+        widget.controller.strokes.add(<Offset>[]);
+      }
+      widget.controller.strokes.last.add(p);
+    });
+  }
+
+  void _undo() {
+    if (widget.controller.strokes.isEmpty) return;
+    setState(() => widget.controller.strokes.removeLast());
+  }
+
+  void _clear() {
+    setState(() => widget.controller.strokes.clear());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AspectRatio(
+          aspectRatio: 5 / 3,
+          child: LayoutBuilder(
+            builder: (context, c) {
+              widget.controller.size = Size(c.maxWidth, c.maxHeight);
+              return Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.line),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: GestureDetector(
+                  onPanStart: (d) => _start(d.localPosition),
+                  onPanUpdate: (d) => _extend(d.localPosition),
+                  child: CustomPaint(
+                    painter: SketchPainter(
+                      strokes: widget.controller.strokes,
+                      color: widget.color,
+                      showGuide: true,
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Text('Kalemle yaz',
+                style: TextStyle(color: AppColors.inkDim, fontSize: 13)),
+            const Spacer(),
+            IconButton(
+              tooltip: 'Geri al',
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.undo, size: 20, color: AppColors.inkDim),
+              onPressed: _undo,
+            ),
+            IconButton(
+              tooltip: 'Temizle',
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.delete_outline,
+                  size: 20, color: AppColors.inkDim),
+              onPressed: _clear,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SketchPainter extends CustomPainter {
+  final List<List<Offset>> strokes;
+  final Color color;
+  final bool showGuide;
+
+  SketchPainter({
+    required this.strokes,
+    required this.color,
+    this.showGuide = false,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (showGuide) {
+      final guide = Paint()
+        ..color = AppColors.line.withValues(alpha: 0.5)
+        ..strokeWidth = 1;
+      for (double y = size.height / 3; y < size.height; y += size.height / 3) {
+        canvas.drawLine(Offset(8, y), Offset(size.width - 8, y), guide);
+      }
+    }
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
+    for (final stroke in strokes) {
+      if (stroke.isEmpty) continue;
+      if (stroke.length == 1) {
+        canvas.drawPoints(PointMode.points, stroke, paint);
+        continue;
+      }
+      final path = Path()..moveTo(stroke.first.dx, stroke.first.dy);
+      for (var i = 1; i < stroke.length; i++) {
+        path.lineTo(stroke[i].dx, stroke[i].dy);
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SketchPainter old) =>
+      old.strokes != strokes || old.color != color;
+}
+
+/// Kartlarda küçük çizim önizlemesi.
+class SketchThumbnail extends StatelessWidget {
+  final Sketch sketch;
+  final double width;
+  final double height;
+
+  const SketchThumbnail(
+      {super.key, required this.sketch, this.width = 56, this.height = 34});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: sketch.size.width,
+          height: sketch.size.height,
+          child: CustomPaint(
+            painter: SketchPainter(strokes: sketch.strokes, color: sketch.color),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,222 @@
+import 'dart:math';
+import 'package:flutter/material.dart';
+import '../models/task.dart';
+import '../theme.dart';
+
+class DayPieChart extends StatelessWidget {
+  final List<Task> tasks;
+
+  /// Grafiğin çizildiği gün (tamamlanma durumu buna göre okunur).
+  final DateTime date;
+
+  /// Seçili/vurgulanan görev (saat o görevin rengiyle öne çıkar).
+  final Task? selected;
+
+  /// Saatin bir dilimine dokununca o saat (0-23) ile çağrılır.
+  final void Function(double hour)? onHourTap;
+
+  const DayPieChart({
+    super.key,
+    required this.tasks,
+    required this.date,
+    this.selected,
+    this.onHourTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        return GestureDetector(
+          onTapUp: (details) {
+            if (onHourTap == null) return;
+            final center = Offset(size.width / 2, size.height / 2);
+            final dx = details.localPosition.dx - center.dx;
+            final dy = details.localPosition.dy - center.dy;
+            final radius = min(size.width, size.height) / 2;
+            if (sqrt(dx * dx + dy * dy) > radius) return;
+            double angle = atan2(dy, dx) + pi / 2; // 0 = üst
+            if (angle < 0) angle += 2 * pi;
+            onHourTap!((angle / (2 * pi)) * 24);
+          },
+          child: CustomPaint(
+            painter: ClockPiePainter(
+              tasks: tasks,
+              date: date,
+              selected: selected,
+            ),
+            size: size,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ClockPiePainter extends CustomPainter {
+  final List<Task> tasks;
+  final DateTime date;
+  final Task? selected;
+
+  ClockPiePainter({required this.tasks, required this.date, this.selected});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = min(size.width / 2, size.height / 2) - 20;
+    final scheduled = tasks.where((t) => t.scheduled).toList();
+    final hasSelection = selected != null;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    // Zemin: gölge + sayfadan belirgin şekilde açık disk, saat öne çıksın.
+    canvas.drawShadow(
+      Path()..addOval(Rect.fromCircle(center: center, radius: radius)),
+      Colors.black,
+      8,
+      false,
+    );
+    canvas.drawCircle(center, radius, Paint()..color = AppColors.clockFace);
+
+    for (final task in scheduled) {
+      final isSel = identical(task, selected);
+      final fade = hasSelection && !isSel;
+      final done = task.isDoneOn(date);
+      final alpha = fade ? 0.18 : (done ? 0.42 : 0.85);
+
+      final startAngle = (task.startHour! / 24) * 2 * pi - (pi / 2);
+      final duration = task.endHour! - task.startHour!;
+      final sweepAngle = (duration / 24) * 2 * pi;
+
+      canvas.drawArc(rect, startAngle, sweepAngle, true,
+          Paint()..color = task.color.withValues(alpha: alpha));
+
+      // Dilim kenarı — seçili olan beyazla öne çıkar
+      canvas.drawArc(
+        rect,
+        startAngle,
+        sweepAngle,
+        true,
+        Paint()
+          ..color = isSel ? Colors.white : AppColors.bg.withValues(alpha: 0.6)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = isSel ? 2.5 : 1,
+      );
+
+      // Rutinleri dilim üstünde ince tarama ile ayırt et
+      if (task.isRoutine && !fade) {
+        canvas.save();
+        canvas.clipPath(Path()
+          ..moveTo(center.dx, center.dy)
+          ..arcTo(rect, startAngle, sweepAngle, false)
+          ..close());
+        final hatch = Paint()
+          ..color = Colors.white.withValues(alpha: 0.18)
+          ..strokeWidth = 1;
+        for (double x = -radius * 2; x < radius * 2; x += 7) {
+          canvas.drawLine(
+            Offset(center.dx + x, center.dy - radius),
+            Offset(center.dx + x + radius * 2, center.dy + radius),
+            hatch,
+          );
+        }
+        canvas.restore();
+      }
+
+      // Etiket (yeterince büyük dilimlerde)
+      if (duration >= 1) {
+        final mid = startAngle + sweepAngle / 2;
+        final lr = radius * 0.62;
+        final lp =
+            Offset(center.dx + cos(mid) * lr, center.dy + sin(mid) * lr);
+        final tp = TextPainter(
+          text: TextSpan(
+            text: task.title,
+            style: TextStyle(
+              color: fade ? Colors.white24 : Colors.black87,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              decoration: done ? TextDecoration.lineThrough : null,
+            ),
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          ellipsis: '…',
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: radius * 0.7);
+        tp.paint(canvas, Offset(lp.dx - tp.width / 2, lp.dy - tp.height / 2));
+      }
+    }
+
+    // 24 saatlik ince ayraçlar
+    for (int i = 0; i < 24; i++) {
+      final angle = (i / 24) * 2 * pi - (pi / 2);
+      canvas.drawLine(
+        center,
+        Offset(center.dx + cos(angle) * radius,
+            center.dy + sin(angle) * radius),
+        Paint()
+          ..color = Colors.white.withValues(alpha: i % 6 == 0 ? 0.10 : 0.04)
+          ..strokeWidth = 0.8,
+      );
+    }
+
+    // Dış halka
+    canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = AppColors.line
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1);
+
+    // Şimdiki zaman ibresi (sadece bugün)
+    final now = DateTime.now();
+    if (Task.dayKey(now) == Task.dayKey(date)) {
+      final h = now.hour + now.minute / 60.0;
+      final angle = (h / 24) * 2 * pi - (pi / 2);
+      canvas.drawLine(
+        center,
+        Offset(center.dx + cos(angle) * radius,
+            center.dy + sin(angle) * radius),
+        Paint()
+          ..color = AppColors.pink
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(center, 3.5, Paint()..color = AppColors.pink);
+    } else {
+      canvas.drawCircle(center, 3, Paint()..color = AppColors.inkFaint);
+    }
+
+    // Saat çentikleri + rakamlar (her 2 saatte bir)
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
+    for (int i = 0; i < 24; i += 2) {
+      final angle = (i / 24) * 2 * pi - (pi / 2);
+      canvas.drawLine(
+          Offset(center.dx + cos(angle) * (radius - 6),
+              center.dy + sin(angle) * (radius - 6)),
+          Offset(center.dx + cos(angle) * radius,
+              center.dy + sin(angle) * radius),
+          Paint()
+            ..color = AppColors.inkFaint
+            ..strokeWidth = 1.2);
+
+      textPainter.text = TextSpan(
+        text: i.toString(),
+        style: const TextStyle(color: AppColors.inkFaint, fontSize: 10),
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(
+          center.dx + cos(angle) * (radius + 12) - textPainter.width / 2,
+          center.dy + sin(angle) * (radius + 12) - textPainter.height / 2,
+        ),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant ClockPiePainter old) => true;
+}
