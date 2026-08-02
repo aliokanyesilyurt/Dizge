@@ -8,6 +8,8 @@ import 'package:scheduler_app/main.dart';
 import 'package:scheduler_app/screens/app_shell.dart';
 import 'package:scheduler_app/screens/week_view_screen.dart';
 import 'package:scheduler_app/theme.dart';
+import 'package:scheduler_app/theme/shad_bridge.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'helpers.dart';
 
@@ -205,6 +207,54 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(container.read(themeModeProvider), ThemeMode.dark);
+    });
+  });
+
+  group('shadcn köprüsü', () {
+    test('şema paletten türer, ikinci bir renk listesi tutulmaz', () {
+      final light = shadThemeFrom(AppPalette.light).colorScheme;
+      final dark = shadThemeFrom(AppPalette.dark).colorScheme;
+
+      expect(light.background, AppPalette.light.bg);
+      expect(light.primary, AppPalette.light.accent);
+      expect(light.primaryForeground, AppPalette.light.onAccent);
+      expect(light.border, AppPalette.light.line);
+      expect(dark.background, AppPalette.dark.bg);
+      expect(dark.primary, AppPalette.dark.accent);
+    });
+
+    test('parlaklık palete bağlı kalır', () {
+      expect(shadThemeFrom(AppPalette.light).brightness, Brightness.light);
+      expect(shadThemeFrom(AppPalette.dark).brightness, Brightness.dark);
+    });
+
+    testWidgets('ShadTheme ekranların içinden okunabilir', (tester) async {
+      useScreenSize(tester, const Size(1400, 1000));
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await container.read(themeModeProvider.notifier).set(ThemeMode.light);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const SchedulerApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Asıl mesele bu: Shad bileşenleri ağacın derinliğinde, AppShell'in
+      // altında da temayı bulabilmeli.
+      final shad = ShadTheme.of(tester.element(find.byType(AppShell)));
+      expect(shad.colorScheme.primary, AppPalette.light.accent);
+
+      // Tema anahtarı her iki sistemi birden çevirir.
+      await container.read(themeModeProvider.notifier).set(ThemeMode.dark);
+      await tester.pumpAndSettle();
+
+      final swapped = ShadTheme.of(tester.element(find.byType(AppShell)));
+      expect(swapped.colorScheme.primary, AppPalette.dark.accent);
+      expect(tester.element(find.byType(AppShell)).colors, AppPalette.dark);
     });
   });
 }
