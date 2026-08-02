@@ -159,10 +159,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          child: MaterialApp(
-            theme: buildAppTheme(brightness: Brightness.light),
-            home: const AppShell(),
-          ),
+          child: testApp(home: const AppShell(), brightness: Brightness.light),
         ),
       );
       await tester.pumpAndSettle();
@@ -195,12 +192,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
-            theme: buildAppTheme(brightness: Brightness.light),
-            darkTheme: buildAppTheme(brightness: Brightness.dark),
-            themeMode: container.read(themeModeProvider),
-            home: const AppShell(),
-          ),
+          child: testApp(home: const AppShell(), brightness: Brightness.light),
         ),
       );
       await tester.pumpAndSettle();

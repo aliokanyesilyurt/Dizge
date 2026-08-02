@@ -8,7 +8,8 @@ import 'package:scheduler_app/models/task.dart';
 import 'package:scheduler_app/screens/habits_screen.dart';
 import 'package:scheduler_app/screens/notes_screen.dart';
 import 'package:scheduler_app/screens/reports_screen.dart';
-import 'package:scheduler_app/theme.dart';
+
+import 'helpers.dart';
 
 /// Verili bir store ile ekranı gerçek widget ağacında çizer; layout/paint
 /// hatalarını (heatmap, grafikler) yakalar.
@@ -22,7 +23,7 @@ Future<void> pumpScreen(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(theme: buildAppTheme(), home: screen),
+      child: testApp(home: screen),
     ),
   );
   await tester.pumpAndSettle();

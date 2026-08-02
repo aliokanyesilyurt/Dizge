@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/grid_density_controller.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
 import '../data/app_store.dart';
@@ -9,6 +10,7 @@ import '../theme.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
 import '../widgets/week_time_grid.dart';
+import 'week/week_header_bar.dart';
 
 /// Haftalık görünüm — uygulamanın ana ekranı.
 ///
@@ -45,13 +47,10 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   /// konumu (her sayfa kendi ScrollController'ını bundan besler).
   final ValueNotifier<double> _sharedScrollOffset = ValueNotifier(0);
 
-  GridDensity _density = GridDensity.cozy;
   int _page = _anchorPage;
 
   DateTime get _monday =>
       _anchorMonday.add(Duration(days: 7 * (_page - _anchorPage)));
-
-  GridMetrics get _metrics => GridMetrics(hourHeight: _density.hourHeight);
 
   @override
   void dispose() {
@@ -110,8 +109,6 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   void _resize(Task task, double duration) =>
       ref.read(appStoreProvider).resizeTask(task, duration);
 
-  void _cycleDensity() => setState(() => _density = _density.next);
-
   @override
   Widget build(BuildContext context) {
     // Store'u burada izliyoruz: alttaki sayfalar zaten bu build'in çocuğu,
@@ -120,13 +117,30 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     final today = Task.dayKey(DateTime.now());
     final c = context.colors;
 
+    // Yoğunluk artık ekranın kendi durumu değil: diske yazılan bir tercih.
+    final density = ref.watch(gridDensityProvider);
+    final metrics = GridMetrics(hourHeight: density.hourHeight);
+
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _header(c),
+            WeekHeaderBar(
+              rangeLabel: _rangeLabel(_monday),
+              offsetLabel: _page == _anchorPage
+                  ? 'Bu hafta'
+                  : '${_weekOffsetLabel()} hafta',
+              isCurrentWeek: _page == _anchorPage,
+              density: density,
+              onPrevious: () => _shift(-1),
+              onNext: () => _shift(1),
+              onToday: _goToToday,
+              onDensityChanged: (next) =>
+                  ref.read(gridDensityProvider.notifier).set(next),
+              onCreate: _createFromHeader,
+            ),
             Expanded(
               child: PageView.builder(
                 controller: _pages,
@@ -179,7 +193,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                             key: ValueKey('week-${monday.toIso8601String()}'),
                             monday: monday,
                             tasksByDay: tasksByDay,
-                            metrics: _metrics,
+                            metrics: metrics,
                             today: today,
                             scrollOffset: _sharedScrollOffset,
                             initialScrollHour: _sharedScrollOffset.value > 0
@@ -201,14 +215,9 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _quickAdd(
-          Task.dayKey(DateTime.now()),
-          snapHour(hourOfDay(DateTime.now()), minutes: 30),
-        ),
-        tooltip: 'Hızlı ekle',
-        child: const Icon(Icons.add_rounded, size: 24),
-      ),
+      // Kayan düğme yok: başlıktaki "Yeni" ile aynı işi yapıyordu ve ekranda
+      // iki birincil eylem, tasarım sözleşmesinin ihlali. Ayrıca sağ alt köşe
+      // ızgaranın en kalabalık saatlerinin üstüne oturuyordu.
     );
   }
 
@@ -216,94 +225,15 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   /// gece yarısı boşluğuna değil, gününe bakarak başlasın.
   double get _openingHour => (hourOfDay(DateTime.now()) - 1).clamp(0.0, 22.0);
 
-  Widget _header(AppPalette c) {
-    final monday = _monday;
-    final isCurrentWeek = _page == _anchorPage;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 14, 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _rangeLabel(monday),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  isCurrentWeek ? 'Bu hafta' : '${_weekOffsetLabel()} hafta',
-                  style: TextStyle(
-                    color: isCurrentWeek ? c.accent : c.inkFaint,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // "Bugün" yalnızca gerektiğinde belirir — sakin krom.
-          AnimatedSize(
-            duration: Motion.base,
-            curve: Motion.curve,
-            child: isCurrentWeek
-                ? const SizedBox(width: 0)
-                : Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _GhostButton(label: 'Bugün', onTap: _goToToday),
-                  ),
-          ),
-
-          _IconAction(
-            icon: _densityIcon,
-            tooltip: 'Yoğunluk: ${_density.label}',
-            onTap: _cycleDensity,
-          ),
-          const SizedBox(width: 4),
-
-          // Geri/ileri tek bir hap içinde: iki ayrı düğme yerine tek nesne.
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: c.surface,
-              borderRadius: R.radiusPill,
-              border: Border.all(color: c.line),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _IconAction(
-                  icon: Icons.chevron_left_rounded,
-                  tooltip: 'Önceki hafta',
-                  onTap: () => _shift(-1),
-                  bare: true,
-                ),
-                SizedBox(height: 20, child: VerticalDivider(width: 1, color: c.line)),
-                _IconAction(
-                  icon: Icons.chevron_right_rounded,
-                  tooltip: 'Sonraki hafta',
-                  onTap: () => _shift(1),
-                  bare: true,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData get _densityIcon => switch (_density) {
-        GridDensity.compact => Icons.density_small_rounded,
-        GridDensity.cozy => Icons.density_medium_rounded,
-        GridDensity.spacious => Icons.density_large_rounded,
-      };
+  /// Başlıktaki "Yeni".
+  ///
+  /// Görünen haftaya değil **bugüne** ekler; hafta geçmişteyken oraya iş
+  /// yazmak neredeyse hep yanlışlıktır. Geçmiş bir güne bilerek eklemek için
+  /// ızgarada o saate tıklamak var — o niyet açık.
+  Future<void> _createFromHeader() => _quickAdd(
+        Task.dayKey(DateTime.now()),
+        snapHour(hourOfDay(DateTime.now()), minutes: 30),
+      );
 
   String _weekOffsetLabel() {
     final delta = _page - _anchorPage;
@@ -330,77 +260,6 @@ class _Chrome extends StatelessWidget {
         boxShadow: c.shadowSm,
       ),
       child: child,
-    );
-  }
-}
-
-/// Kenarlıksız, yalnızca üzerine gelince zemin alan ikon düğmesi.
-class _IconAction extends StatelessWidget {
-  const _IconAction({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-    this.bare = false,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  /// Hap içindeyken kendi zeminini çizmez.
-  final bool bare;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: bare ? null : const CircleBorder(),
-        borderRadius: bare ? R.radiusPill : null,
-        hoverColor: c.hover,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: bare ? 10 : 9, vertical: 9),
-          child: Icon(icon, size: 20, color: c.inkDim),
-        ),
-      ),
-    );
-  }
-}
-
-/// İnce kenarlıklı, sessiz hap düğme ("Bugün").
-class _GhostButton extends StatelessWidget {
-  const _GhostButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Material(
-      color: c.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: R.radiusPill,
-        side: BorderSide(color: c.line),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: R.radiusPill,
-        hoverColor: c.hover,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: c.ink,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
