@@ -1,0 +1,213 @@
+# Esnek Plan Sistemi Planı — Havuz · Kaos · Tikler · Enerji
+
+**Durum:** onaylandı, sıraya alındı · **Tarih:** 3 Ağustos 2026
+**Başlama koşulu:** ana ekran planı (`ana-ekran-plani.md`) D7'ye kadar bitecek;
+bu plan ondan sonra Ö3'ten başlar.
+
+---
+
+## 1. Amaç
+
+Takvimi "her işi bir saate çakmak" zorunluluğundan kurtarmak. Dört özellik tek
+bir fikrin parçaları: **plan tutmadığında suçluluk üretmeyen bir sistem.**
+
+Bu plan koda dalmıyor. Önce veri modeli kararlarını ve dilimleri onaylıyoruz.
+
+---
+
+## 2. Mevcut Durum (doğrulanmış)
+
+| Ne | Nerede | Durum |
+|---|---|---|
+| `Task` modeli | `lib/models/task.dart` (402 sat.) | `date` **zorunlu**, `startHour` null olabilir, `tags`/`status`/`priority` var |
+| `Habit` modeli | `lib/models/habit.dart` (134 sat.) | Seri, haftalık hedef, ısı haritası, JSON — **tamamı hazır** |
+| Alışkanlık ekranı | `lib/screens/habits_screen.dart` (412 sat.) | Ayrı bölüm; ana ekranda görünmüyor |
+| Mutasyon/senkron | `lib/data/sync/mutation.dart` | `EntityKind { task, note, habit, category }`, LWW |
+| Saatsiz işler | `week_view_screen.dart` `_UntimedRow` | `startHour == null` ama **güne bağlı** |
+
+**Kritik bulgu:** `Ö3 (onay kutuları)` için yeni model gerekmiyor. `Habit`
+zaten istediğin şey — seri psikolojisi dahil. Eksik olan tek şey ana ekranda
+görünmemesi. Bu, dördü içinde en ucuz ve en hızlı kazanç.
+
+**İkinci bulgu:** `task.date` kod tabanında 9 dosyada, 31 yerde okunuyor.
+Havuz tasarımının tamamı bu tek gerçeğe bağlı (bkz. K1).
+
+---
+
+## 3. Mimari Kararlar
+
+### K1 — Havuz: `date` nullable **yapılmaz**, `inPool` bayrağı eklenir
+
+En doğal görünen çözüm `DateTime? date`. Reddediyorum:
+
+* 31 çağrı yerinin tamamı null denetimi ister; her biri ayrı bir hata fırsatı.
+* `occursOn`, `dayKey`, `compare`, aylık/yıllık ızgaralar sessizce bozulur.
+* Eski kayıtlarda `date` her zaman dolu — geriye dönük okuma belirsizleşir.
+
+Yerine `Task`'a tek alan:
+
+```dart
+/// Havuzda bekleyen iş: takvimde hiçbir günde görünmez.
+/// `date` silinmez — hangi günden çekildiği bilgisi "geri koy" için lazım.
+bool inPool = false;
+```
+
+Tek bir kapı yeter, çünkü **her takvim okuması `occursOn`'dan geçiyor**:
+
+```dart
+bool occursOn(DateTime day) {
+  if (inPool) return false;   // ← tek satır, 31 çağrı yeri kapsanır
+  ...
+}
+```
+
+`date`'in korunması bonus: havuzdan çekerken "eskiden Salı'daydı" önerilebilir.
+JSON'da anahtar yoksa `false` — eski kayıtlar bedelsiz açılır.
+
+### K2 — Havuza yalnız tek günlük işler girer
+
+Rutinin havuzda ne anlama geldiği tanımsız: "her gün tekrarlayan ama hiçbir gün
+görünmeyen iş" bir çelişki. Rutin için doğru eylem havuz değil, **o günü
+atlamak** (bkz. K4). Bu kural modelde `assert` değil, UI'da uygulanır —
+rutinlerde "Havuza at" eylemi hiç gösterilmez.
+
+### K3 — "Esnek" ayrı bir alan olur, `priority`'ye yüklenmez
+
+Kaos butonunun neyi taşıyıp neyi bırakacağını bilmesi gerek. `priority` (0–3)
+bu iş için yanlış: aciliyet ile **kımıldatılamazlık** aynı şey değil. Doktor
+randevusu düşük öncelikli ama sabittir; refactor yüksek öncelikli ama esnektir.
+
+```dart
+/// Kaos butonunun dokunamayacağı iş: randevu, ders, uçuş.
+/// Varsayılan `false` — çoğu iş esnektir, istisna işaretlenir.
+bool isFixed = false;
+```
+
+Varsayılanın `false` olması bilinçli: kullanıcı hiçbir şey işaretlemezse Kaos
+butonu **çalışır**. Tersi olsaydı özellik sessizce ölü doğardı.
+
+### K4 — Rutinler için `skippedOn`
+
+Kaos, günün geri kalanını temizlerken rutinlere ne yapacak? "Yarına at"
+anlamsız (rutin zaten yarın var), "havuza at" K2'ye aykırı, silmek yıkıcı.
+
+`completedOn`'a simetrik ikinci bir küme:
+
+```dart
+/// Rutinin bilerek atlandığı günler. `completedOn`'dan ayrı tutuluyor:
+/// "yapmadım" ile "bugün geçiyorum" aynı şey değil — seri istatistiği
+/// ikisini karıştırırsa sayı yalan söyler.
+final Set<DateTime> skippedOn;
+```
+
+### K5 — Enerji: kapalı bir enum, `tags` değil
+
+`tags` (`Set<String>`) hazır duruyor ama serbest metin: "Yüksek Efor",
+"yüksek efor", "YuksekEfor" üçü ayrı etiket olur. Filtre ve renk için kapalı
+küme şart:
+
+```dart
+enum Energy {
+  high('Yüksek efor'), medium('Orta efor'),
+  low('Düşük efor'), discharge('Deşarj');
+}
+```
+
+`Energy? energy` — null "belirtilmemiş" demek. Zorunlu yapmak her görev
+eklemeye bir karar daha eklerdi; hızlı eklemenin tek nefesliği bozulur.
+
+**Karar (3 Ağustos):** dört kademe. "Düşük efor" ile "Orta efor" ayrımı üç
+kademeye indirilebilirdi, ama asıl kullanım senaryosu — yorgun dönüp
+*"beynimi yakmadan ne yapabilirim"* — tam olarak bu ikisinin arasından
+seçmek. Ayrımı silmek özelliğin sebebini silerdi.
+
+### K6 — Kaos geri alınabilir olmak zorunda
+
+Tek tıkla 8 işi taşıyan bir düğme, geri alınamıyorsa kullanılmaz — kullanıcı
+basmaya korkar. Bu bir cila değil, **özelliğin çalışma şartı**. Ö2, ana ekran
+planındaki D6'nın (`ShadSonner` + geri al) üstüne kurulur.
+
+---
+
+## 4. Sıralama — karar verildi
+
+Ana ekran planının D3–D7'si hâlâ açık ve **aynı ekrana** dokunuyor. İki plan
+paralel yürürse aynı dosyalar iki kez elden geçer.
+
+**Karar (3 Ağustos): önce ana ekran planı D7'ye kadar bitecek.** Bu plan
+sonra, Ö3'ten başlayarak yürür.
+
+Bedeli açık: havuz ve Kaos gecikiyor. Karşılığı, dördünün de oturmuş bir
+görsel dile tek seferde doğru yerleşmesi — tik şeridi, havuz paneli ve enerji
+rozetleri D3–D5'te tanımlanan tipografi, jeton ve blok diline yaslanacak.
+
+---
+
+## 5. Dilimler
+
+Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit.
+
+| # | Dilim | Kapsam | Kabul ölçütü |
+|---|---|---|---|
+| **Ö3** | Günlük tikler | `DailyHabitStrip` — ana ekranın üstünde, günlük ritimli alışkanlıklar için kutucuk + seri rozeti. **Yeni model yok.** | Tik at → `Habit.doneDates` yazılır, seri artar, diske iner; boşken şerit gizli |
+| **Ö4a** | Enerji modeli | `Energy` enum, `Task.energy`, JSON + geri uyum, düzenleyicide seçici | Eski kayıt `energy: null` açılır; seçim diske iner |
+| **Ö4b** | Enerji filtresi | Başlıkta "Bugün enerjim" seçici; ızgara yüksek eforluları soluklaştırır (gizlemez) | Filtre ızgarayı süzer, tercih kalıcı |
+| **Ö1a** | Havuz modeli | `inPool`, `occursOn` kapısı, `AppStore.moveToPool` / `pullFromPool`, mutasyon kaydı | Havuzdaki iş hiçbir görünümde çıkmaz; senkron kaydı düşer |
+| **Ö1b** | Havuz paneli | "Kenarda Bekleyenler" — sağda daraltılabilir sütun; ızgaradan sürükleyip bırakma çift yönlü | Sürükle-bırak iki yönde çalışır; panel kapalıyken sayaç rozeti |
+| **Ö2** | Kaos düğmesi | `isFixed`, `skippedOn`, "Günü kurtar" eylemi + onay + **geri al** | Sabitler yerinde kalır, tamamlananlar dokunulmaz, tek tıkla geri alınır |
+
+**Sıralama gerekçesi:** Ö3 en ucuz ve en yüksek duygusal getiri — önce o.
+Ö2 en son, çünkü hem Ö1'in havuzuna hem D6'nın geri alma altyapısına yaslanıyor.
+
+---
+
+## 6. Kaos Butonunun Davranış Sözleşmesi
+
+Belirsiz bırakılırsa yıkıcı olabilecek tek özellik bu. Kuralları önden yazıyorum:
+
+| Durum | Davranış |
+|---|---|
+| Kapsam | Yalnız **bugün**, yalnız **şu andan sonrası** |
+| Tamamlanmış iş | Dokunulmaz |
+| `isFixed` iş | Dokunulmaz |
+| Tek günlük, esnek | **Havuza** taşınır (`date` korunur) — karar 3 Ağustos |
+| Rutin, esnek | Bugün için `skippedOn`'a yazılır — silinmez, seri "atlandı" sayar |
+| Hiç uygun iş yoksa | Düğme pasif; boşa basış hissi verilmez |
+| Basıldıktan sonra | "6 iş kenara alındı · Geri al" — 10 sn |
+| Onay | Sayı ≥ 5 ise önce özet gösterilir; altındaysa doğrudan uygulanır + geri al |
+
+---
+
+## 7. Riskler
+
+| Risk | Etki | Karşılık |
+|---|---|---|
+| `inPool` bir yerde unutulur, iş hem havuzda hem takvimde görünür | Yüksek | Tek kapı `occursOn`; "havuzdaki iş hiçbir görünümde yok" testi tüm ekranları gezer |
+| Kaos yanlış işi taşır, kullanıcı güvenini kaybeder | Yüksek | §6 sözleşmesi test altına alınır; geri al şart (K6) |
+| Havuz sınırsız büyür, "çöp kutusu"na döner | Orta | Ö1b'de en eski öğe yaşı gösterilir; 30 günü geçenler soluklaşır |
+| Ana ekran dört yeni öğeyle kalabalıklaşır | Orta | Havuz daraltılabilir, tik şeridi boşken gizli, enerji yalnız rozet |
+| İki plan aynı dosyalara dokunur | Orta | §4 kararı; B seçilirse Ö3 ayrı dosyada, çakışma yok |
+
+---
+
+## 8. Kararlar
+
+**Verilenler (3 Ağustos):**
+
+1. **Sıralama** — ana ekran planı önce, D7'ye kadar. (§4)
+2. **Kaos'un hedefi** — esnek havuz. "Yarın" yığını öteler, suçluluğu ertesi
+   güne taşırdı. (§6)
+3. **Enerji kademesi** — dört: Yüksek / Orta / Düşük / Deşarj. (K5)
+
+**Hâlâ açık — Ö1b'den önce gerekli:**
+
+4. **Havuz paneli nerede:** sağda daraltılabilir sütun mu, başlıkta açılır
+   katman mı? (Önerim: masaüstünde sağ sütun, telefonda açılır katman)
+
+---
+
+## 9. Kapsam Dışı
+
+Notlar, raporlar, yıllık görünüm, Pomodoro, senkron protokolü, `shadcn_ui`
+sürüm yükseltmesi. Alışkanlık ekranının kendisi de değişmiyor — Ö3 yalnız
+ana ekrana bir görünüm ekler, mevcut ekranı olduğu gibi bırakır.
