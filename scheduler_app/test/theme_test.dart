@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -255,6 +257,46 @@ void main() {
       final swapped = ShadTheme.of(tester.element(find.byType(AppShell)));
       expect(swapped.colorScheme.primary, AppPalette.dark.accent);
       expect(tester.element(find.byType(AppShell)).colors, AppPalette.dark);
+    });
+  });
+
+  group('tipografi', () {
+    test('gövde yazı tipi paketlenmiş aileden gelir', () {
+      final theme = buildAppTheme(brightness: Brightness.light);
+
+      expect(theme.textTheme.bodyMedium?.fontFamily, kFontFamily);
+      // Paketlenmiş font kendisi zaten listede olduğu için yedeklerin başına
+      // tekrar yazılması gereksiz olurdu; yedek yığını yalnız sistem aileleri.
+      expect(kFontFallback, isNot(contains(kFontFamily)));
+    });
+
+    test('Shad bileşenleri ızgarayla aynı yazı tipini kullanır', () {
+      // İki farklı yazı tipinin yan yana durması, D1'in engellemek için
+      // var olduğu tek şey.
+      final shad = shadThemeFrom(AppPalette.light).textTheme;
+
+      expect(shad.family, kFontFamily);
+      expect(shad.p.fontFamily, kFontFamily);
+      expect(shad.small.fontFamilyFallback, kFontFallback);
+    });
+
+    test('pubspec her ağırlığı gerçek bir dosyayla bildirir', () {
+      // Bu testin varlık sebebi: font dosyası silinse ya da bir ağırlık
+      // bildirilmeden kalsa Flutter sessizce yedeğe düşer — ekran görüntüsü
+      // bakılmadan fark edilmez.
+      final pubspec = File('pubspec.yaml').readAsStringSync();
+      final block = pubspec.split('- family: $kFontFamily')[1].split('- family:')[0];
+
+      for (final weight in [400, 500, 600, 700]) {
+        expect(block, contains('weight: $weight'),
+            reason: '$weight ağırlığı pubspec\'te bildirilmemiş');
+      }
+
+      for (final file in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
+        final path = 'assets/fonts/$kFontFamily-$file.ttf';
+        expect(block, contains(path));
+        expect(File(path).existsSync(), isTrue, reason: '$path yok');
+      }
     });
   });
 }

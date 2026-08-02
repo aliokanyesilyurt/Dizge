@@ -485,11 +485,18 @@ enum GridDensity {
 /// ikisi de bu sabiti kullanır.
 const double kTimeGutterWidth = 58.0;
 
-/// Web fontu indirmeye gerek kalmadan her platformda okunur duran yığın.
-/// CanvasKit bilinmeyen aileleri gömülü Roboto'ya düşürür.
-const String kFontFamily = 'Segoe UI';
+/// Gövde yazı tipi. Uygulamayla birlikte paketlenir (`assets/fonts/`), bu
+/// yüzden görünüm her platformda ve çevrimdışıyken aynı.
+///
+/// Neden Inter: ekran için tasarlanmış, rakamları dar ve dikey hizalı — saat
+/// etiketleri ile gün sayıları ızgarada kaymadan üst üste oturuyor. Önceki
+/// tercih olan `Segoe UI` yalnızca Windows'ta doğru görünüyordu.
+const String kFontFamily = 'Inter';
+
+/// Paketlenmiş font yüklenemezse (bozuk kurulum, beklenmedik platform) yazı
+/// kaybolmasın diye sistem yığını.
 const List<String> kFontFallback = [
-  'Inter',
+  'Segoe UI',
   'Roboto',
   'Helvetica Neue',
   'Arial',

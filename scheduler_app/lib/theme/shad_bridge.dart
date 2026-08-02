@@ -30,6 +30,11 @@ ShadThemeData shadThemeFrom(AppPalette p) {
     // Yuvarlaklık tek ölçekten okunur; shadcn'in kendi varsayılanı (8px)
     // devreye girerse kart ile blok arasındaki hiyerarşi bozulur.
     radius: R.radiusSm,
+    // Renkte olduğu gibi tipografide de kaynak tek. Bu satır olmasaydı Shad
+    // bileşenleri kendi varsayılan ailesinde kalır, ızgaranın hemen yanında
+    // farklı bir yazı tipiyle görünürlerdi.
+    textTheme: ShadTextTheme(family: kFontFamily)
+        .apply(fontFamilyFallback: kFontFallback),
   );
 }
 

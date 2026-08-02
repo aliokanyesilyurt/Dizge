@@ -90,6 +90,19 @@ flutter:
   uses-material-design: true
 
   fonts:
+    # Gövde yazı tipi. Statik ağırlıklar bilinçli tercih: değişken sürüm
+    # (InterVariable.ttf) her `fontWeight` için ayrıca `FontVariation`
+    # verilmesini gerektirirdi. Lisans: assets/fonts/Inter-LICENSE.txt (OFL).
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
     - family: PatrickHand
       fonts:
         - asset: assets/fonts/PatrickHand-Regular.ttf
