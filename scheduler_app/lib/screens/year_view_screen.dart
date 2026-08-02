@@ -16,31 +16,33 @@ class YearViewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final int year = this.year ?? DateTime.now().year;
     // Store'u izle: aylardan dönünce noktalar elle setState olmadan tazelenir.
     final store = ref.watch(appStoreProvider);
 
     return Scaffold(
+      backgroundColor: c.bg,
       appBar: AppBar(
         centerTitle: true,
         title: Text('$year',
-            style: const TextStyle(
-              color: AppColors.ink,
+            style: TextStyle(
+              color: c.ink,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1,
+              letterSpacing: 1.5,
               fontSize: 16,
             )),
       ),
       body: SafeArea(
         child: GridView.builder(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           // Sabit 3 sütun geniş ekranda ayları aşırı geriyordu; genişliğe göre
           // sütun sayısı belirlensin ki webde de derli toplu dursun.
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 250,
+            maxCrossAxisExtent: 260,
             childAspectRatio: 0.92,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
           ),
           itemCount: 12,
           itemBuilder: (context, index) {
@@ -63,7 +65,7 @@ class YearViewScreen extends ConsumerWidget {
   }
 }
 
-class _MiniMonth extends StatelessWidget {
+class _MiniMonth extends StatefulWidget {
   final int year;
   final int month;
   final String monthName;
@@ -79,38 +81,42 @@ class _MiniMonth extends StatelessWidget {
   });
 
   @override
+  State<_MiniMonth> createState() => _MiniMonthState();
+}
+
+class _MiniMonthState extends State<_MiniMonth> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final int daysInMonth = DateUtils.getDaysInMonth(year, month);
-    final int offset = DateTime(year, month, 1).weekday - 1;
+    final c = context.colors;
+    final int daysInMonth =
+        DateUtils.getDaysInMonth(widget.year, widget.month);
+    final int offset = DateTime(widget.year, widget.month, 1).weekday - 1;
     final DateTime today = DateTime.now();
+    final isCurrentMonth =
+        today.year == widget.year && today.month == widget.month;
 
     // Görevi olan günler (renkli nokta için)
     final Map<int, Color> markedDays = {};
     for (int d = 1; d <= daysInMonth; d++) {
-      final list = store.tasksForDate(DateTime(year, month, d));
+      final list =
+          widget.store.tasksForDate(DateTime(widget.year, widget.month, d));
       if (list.isNotEmpty) markedDays[d] = list.first.color;
     }
 
     Widget dayCell(int slot) {
       final d = slot - offset + 1;
       if (d < 1 || d > daysInMonth) return const SizedBox.shrink();
-      final isToday =
-          today.year == year && today.month == month && today.day == d;
+      final isToday = isCurrentMonth && today.day == d;
       final mark = markedDays[d];
-      final isWeekend = DateTime(year, month, d).weekday >= 6;
 
-      // Her gün, aylık görünümdeki gibi yumuşak köşeli kendi kutusunda.
       return Padding(
         padding: const EdgeInsets.all(1),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: isToday
-                ? AppColors.blue
-                : (isWeekend ? AppColors.gridWeekend : AppColors.gridDay),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: isToday ? AppColors.blue : AppColors.lineSoft,
-            ),
+            color: isToday ? c.accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -118,9 +124,7 @@ class _MiniMonth extends StatelessWidget {
               Text(
                 '$d',
                 style: TextStyle(
-                  color: isToday
-                      ? Colors.white
-                      : (isWeekend ? AppColors.pink : AppColors.ink),
+                  color: isToday ? c.onAccent : c.inkDim,
                   fontSize: 9,
                   fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                   height: 1.1,
@@ -133,7 +137,7 @@ class _MiniMonth extends StatelessWidget {
                   height: 3.5,
                   margin: const EdgeInsets.only(top: 1.5),
                   decoration: BoxDecoration(
-                    color: isToday ? Colors.white : mark,
+                    color: isToday ? c.onAccent : mark,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -143,42 +147,68 @@ class _MiniMonth extends StatelessWidget {
       );
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.lineSoft, width: 1),
-        ),
-        padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              monthName,
-              style: const TextStyle(
-                color: AppColors.ink,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: Motion.base,
+          curve: Motion.curve,
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: R.radiusMd,
+            border: Border.all(
+              color: isCurrentMonth
+                  ? c.accent.withValues(alpha: 0.45)
+                  : (_hovered ? c.line : c.lineSoft),
             ),
-            const SizedBox(height: 5),
-            Expanded(
-              child: Column(
-                children: List.generate(6, (week) {
-                  return Expanded(
-                    child: Row(
-                      children: List.generate(
-                        7,
-                        (dow) => Expanded(child: dayCell(week * 7 + dow)),
-                      ),
+            boxShadow: _hovered ? c.shadowMd : c.shadowSm,
+          ),
+          padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    widget.monthName,
+                    style: TextStyle(
+                      color: isCurrentMonth ? c.accent : c.ink,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.1,
                     ),
-                  );
-                }),
+                  ),
+                  if (isCurrentMonth) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration:
+                          BoxDecoration(color: c.accent, shape: BoxShape.circle),
+                    ),
+                  ],
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Expanded(
+                child: Column(
+                  children: List.generate(6, (week) {
+                    return Expanded(
+                      child: Row(
+                        children: List.generate(
+                          7,
+                          (dow) => Expanded(child: dayCell(week * 7 + dow)),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

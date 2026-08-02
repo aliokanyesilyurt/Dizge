@@ -111,7 +111,6 @@ Future<(LocalStore, bool)> _openStore() async {
   await memory.init();
   return (memory, true);
 }
-
 /// Yakalanmayan hataları hem konsola hem telemetriye yönlendirir.
 ///
 /// Not: hata **metni** gönderilmez — istisna mesajları kullanıcı verisi

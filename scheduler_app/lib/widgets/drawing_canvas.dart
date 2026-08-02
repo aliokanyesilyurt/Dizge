@@ -59,19 +59,22 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AspectRatio(
           aspectRatio: 5 / 3,
           child: LayoutBuilder(
-            builder: (context, c) {
-              widget.controller.size = Size(c.maxWidth, c.maxHeight);
+            builder: (context, box) {
+              widget.controller.size = Size(box.maxWidth, box.maxHeight);
               return Container(
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.line),
+                  color: c.surfaceAlt,
+                  borderRadius: R.radiusMd,
+                  border: Border.all(color: c.line),
+                  boxShadow: c.shadowSm,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: GestureDetector(
@@ -81,7 +84,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                     painter: SketchPainter(
                       strokes: widget.controller.strokes,
                       color: widget.color,
-                      showGuide: true,
+                      guideColor: c.lineSoft,
                     ),
                     child: const SizedBox.expand(),
                   ),
@@ -90,23 +93,23 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
             },
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Row(
           children: [
-            const Text('Kalemle yaz',
-                style: TextStyle(color: AppColors.inkDim, fontSize: 13)),
+            Text('Kalemle yaz',
+                style: TextStyle(color: c.inkDim, fontSize: 13)),
             const Spacer(),
             IconButton(
               tooltip: 'Geri al',
               visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.undo, size: 20, color: AppColors.inkDim),
+              icon: Icon(Icons.undo_rounded, size: 20, color: c.inkDim),
               onPressed: _undo,
             ),
             IconButton(
               tooltip: 'Temizle',
               visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.delete_outline,
-                  size: 20, color: AppColors.inkDim),
+              icon: Icon(Icons.delete_outline_rounded,
+                  size: 20, color: c.inkDim),
               onPressed: _clear,
             ),
           ],
@@ -119,22 +122,25 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 class SketchPainter extends CustomPainter {
   final List<List<Offset>> strokes;
   final Color color;
-  final bool showGuide;
+
+  /// Kılavuz çizgilerinin rengi. null ise kılavuz çizilmez (küçük önizleme).
+  final Color? guideColor;
 
   SketchPainter({
     required this.strokes,
     required this.color,
-    this.showGuide = false,
+    this.guideColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (showGuide) {
-      final guide = Paint()
-        ..color = AppColors.line.withValues(alpha: 0.5)
+    final guide = guideColor;
+    if (guide != null) {
+      final paint = Paint()
+        ..color = guide
         ..strokeWidth = 1;
       for (double y = size.height / 3; y < size.height; y += size.height / 3) {
-        canvas.drawLine(Offset(8, y), Offset(size.width - 8, y), guide);
+        canvas.drawLine(Offset(10, y), Offset(size.width - 10, y), paint);
       }
     }
 
@@ -161,7 +167,9 @@ class SketchPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant SketchPainter old) =>
-      old.strokes != strokes || old.color != color;
+      old.strokes != strokes ||
+      old.color != color ||
+      old.guideColor != guideColor;
 }
 
 /// Kartlarda küçük çizim önizlemesi.
@@ -184,7 +192,8 @@ class SketchThumbnail extends StatelessWidget {
           width: sketch.size.width,
           height: sketch.size.height,
           child: CustomPaint(
-            painter: SketchPainter(strokes: sketch.strokes, color: sketch.color),
+            painter:
+                SketchPainter(strokes: sketch.strokes, color: sketch.color),
           ),
         ),
       ),

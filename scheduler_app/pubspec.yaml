@@ -65,6 +65,7 @@ dependencies:
   # Tarih/saat seçicileri ve Material metinleri Türkçe gelsin diye.
   flutter_localizations:
     sdk: flutter
+  shadcn_ui: ^0.56.0
 
 dev_dependencies:
   flutter_test:

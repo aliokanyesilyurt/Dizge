@@ -7,6 +7,7 @@ import '../services/productivity_report.dart';
 import '../theme.dart';
 import '../widgets/report_charts.dart';
 import 'section_header.dart';
+import 'task_list_scaffold.dart' show EmptyState;
 
 /// Kullanıcı-yüzü performans raporları: tamamlanma oranı, hangi kategoriye/etikete
 /// ne kadar zaman harcandığı ve haftanın hangi gününde erteleme arttığı.
@@ -23,11 +24,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final tasks = ref.watch(appStoreProvider).tasks;
     final report = ProductivityReport.build(tasks, days: _days);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: c.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -40,12 +42,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 onChanged: (d) => setState(() => _days = d),
               ),
             ),
-            const Divider(color: AppColors.lineSoft, height: 1),
             Expanded(
               child: report.planned == 0
-                  ? const _Empty()
+                  ? const EmptyState(
+                      icon: Icons.insights_rounded,
+                      title: 'Rapor için yeterli veri yok.',
+                      text: 'Birkaç görev ekleyip tamamlayınca grafikler dolar.',
+                    )
                   : ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
                       children: [
                         _OverviewCard(report: report),
                         const SizedBox(height: 14),
@@ -65,10 +70,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           child: HBarChart(
                             rows: [
                               for (final b in report.byTag.take(6))
-                                HBarRow(
-                                    '#${b.label}',
-                                    AppColors.blue,
-                                    b.hours,
+                                HBarRow('#${b.label}', c.accent, b.hours,
                                     Task.formatDuration(b.hours)),
                             ],
                             emptyText:
@@ -87,45 +89,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 }
 
-class _Empty extends StatelessWidget {
-  const _Empty();
-  @override
-  Widget build(BuildContext context) => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.insights_outlined, size: 34, color: AppColors.inkFaint),
-            SizedBox(height: 12),
-            Text(
-              'Rapor için yeterli veri yok.\nBirkaç görev ekleyip tamamlayınca grafikler dolar.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.inkFaint,
-                fontSize: 13.5,
-                height: 1.45,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
 class _OverviewCard extends StatelessWidget {
   final ProductivityReport report;
   const _OverviewCard({required this.report});
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return _Card(
       title: 'Tamamlanma',
       child: Row(
         children: [
-          CompletionRing(
-            value: report.completionRate,
-            caption: 'zamanında',
-          ),
-          const SizedBox(width: 22),
+          CompletionRing(value: report.completionRate, caption: 'zamanında'),
+          const SizedBox(width: 24),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,19 +110,19 @@ class _OverviewCard extends StatelessWidget {
                 _Metric(
                   value: '${report.completed}',
                   label: 'tamamlanan görev',
-                  color: AppColors.blue,
+                  color: c.accent,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _Metric(
                   value: '${report.planned - report.completed}',
                   label: 'açık / kaçan',
-                  color: AppColors.pink,
+                  color: c.secondary,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _Metric(
                   value: '${report.planned}',
                   label: 'planlanan toplam',
-                  color: AppColors.inkDim,
+                  color: c.inkDim,
                 ),
               ],
             ),
@@ -171,7 +148,7 @@ class _WeekdayCard extends StatelessWidget {
       child: VBarChart(
         values: report.weekdayCompletion,
         labels: ProductivityReport.weekdayNames,
-        color: AppColors.blue,
+        color: context.colors.accent,
         highlightIndex: worst,
       ),
     );
@@ -187,6 +164,8 @@ class _Metric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
@@ -195,17 +174,22 @@ class _Metric extends StatelessWidget {
           value,
           style: TextStyle(
             color: color,
-            fontSize: 22,
+            fontSize: 23,
             fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
           ),
         ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.inkDim,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: c.inkDim,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -221,37 +205,33 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.lineSoft),
+        color: c.surface,
+        borderRadius: R.radiusMd,
+        border: Border.all(color: c.lineSoft),
+        boxShadow: c.shadowSm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
           if (subtitle != null)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: 3),
               child: Text(
                 subtitle!,
-                style: const TextStyle(
-                  color: AppColors.inkFaint,
+                style: TextStyle(
+                  color: c.inkFaint,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
           child,
         ],
       ),
@@ -266,34 +246,47 @@ class _RangePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     Widget chip(int d, String label) {
       final sel = days == d;
       return GestureDetector(
         onTap: () => onChanged(d),
-        child: Container(
-          margin: const EdgeInsets.only(left: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: sel ? AppColors.blue.withValues(alpha: 0.18) : AppColors.hover,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-                color: sel ? AppColors.blue : Colors.transparent),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: sel ? AppColors.blue : AppColors.inkDim,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: AnimatedContainer(
+            duration: Motion.fast,
+            curve: Motion.curve,
+            margin: const EdgeInsets.only(left: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+            decoration: BoxDecoration(
+              color: sel ? c.surfaceAlt : Colors.transparent,
+              borderRadius: R.radiusPill,
+              boxShadow: sel ? c.shadowSm : null,
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: sel ? c.navActiveInk : c.inkFaint,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
       );
     }
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [chip(7, '7g'), chip(30, '30g'), chip(90, '90g')],
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: c.hover,
+        borderRadius: R.radiusPill,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [chip(7, '7g'), chip(30, '30g'), chip(90, '90g')],
+      ),
     );
   }
 }

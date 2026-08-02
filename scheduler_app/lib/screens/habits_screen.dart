@@ -7,6 +7,7 @@ import '../models/task.dart' show kTaskColors;
 import '../theme.dart';
 import '../widgets/habit_heatmap.dart';
 import 'section_header.dart';
+import 'task_list_scaffold.dart' show EmptyState;
 
 /// Alışkanlık takibi: her alışkanlık için güncel seri (streak), tamamlanma
 /// oranı ve GitHub tarzı ısı haritası. Esnek ritim (her gün / haftada N) destekli.
@@ -15,15 +16,16 @@ class HabitsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final habits = ref.watch(habitsProvider);
     final store = ref.read(appStoreProvider);
     final activeStreaks = habits.where((h) => h.currentStreak > 0).length;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: c.bg,
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddHabit(context, store),
-        child: const Icon(Icons.add, size: 22),
+        child: const Icon(Icons.add_rounded, size: 24),
       ),
       body: SafeArea(
         child: Column(
@@ -35,12 +37,15 @@ class HabitsScreen extends ConsumerWidget {
                   ? 'Zinciri kurmaya başla'
                   : '${habits.length} alışkanlık · $activeStreaks aktif seri',
             ),
-            const Divider(color: AppColors.lineSoft, height: 1),
             Expanded(
               child: habits.isEmpty
-                  ? const _Empty()
+                  ? const EmptyState(
+                      icon: Icons.local_fire_department_rounded,
+                      title: 'Henüz alışkanlık yok.',
+                      text: 'Spor, gitar, kod… küçük başla, zinciri kırma.',
+                    )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
                       itemCount: habits.length,
                       itemBuilder: (_, i) => _HabitCard(habit: habits[i]),
                     ),
@@ -52,37 +57,13 @@ class HabitsScreen extends ConsumerWidget {
   }
 }
 
-class _Empty extends StatelessWidget {
-  const _Empty();
-  @override
-  Widget build(BuildContext context) => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.local_fire_department_outlined,
-                size: 34, color: AppColors.inkFaint),
-            SizedBox(height: 12),
-            Text(
-              'Henüz alışkanlık yok.\nSpor, gitar, kod… küçük başla, zinciri kırma.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.inkFaint,
-                fontSize: 13.5,
-                height: 1.45,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
 class _HabitCard extends ConsumerWidget {
   final Habit habit;
   const _HabitCard({required this.habit});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final store = ref.read(appStoreProvider);
     final today = DateTime.now();
     final doneToday = habit.isDoneOn(today);
@@ -90,12 +71,13 @@ class _HabitCard extends ConsumerWidget {
     final rate = habit.completionRate(30);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.lineSoft),
+        color: c.surface,
+        borderRadius: R.radiusMd,
+        border: Border.all(color: c.lineSoft),
+        boxShadow: c.shadowSm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +92,7 @@ class _HabitCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,18 +101,19 @@ class _HabitCard extends ConsumerWidget {
                       habit.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.ink,
+                      style: TextStyle(
+                        color: c.ink,
                         fontSize: 15.5,
                         fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                       ),
                     ),
                     Text(
                       habit.cadence == HabitCadence.daily
                           ? 'Her gün'
                           : 'Haftada ${habit.targetPerWeek}',
-                      style: const TextStyle(
-                        color: AppColors.inkFaint,
+                      style: TextStyle(
+                        color: c.inkFaint,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
                       ),
@@ -144,25 +127,24 @@ class _HabitCard extends ConsumerWidget {
                 color: habit.color,
                 onTap: () => store.toggleHabit(habit, today),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
               IconButton(
                 onPressed: () => _confirmDelete(context, store, habit),
-                icon: const Icon(Icons.more_horiz,
-                    size: 18, color: AppColors.inkFaint),
-                splashRadius: 18,
+                icon: Icon(Icons.more_horiz_rounded,
+                    size: 18, color: c.inkFaint),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           Row(
             children: [
               _Stat(
                 icon: Icons.local_fire_department_rounded,
                 value: '$streak',
-                label: streak == 1 ? 'gün seri' : 'gün seri',
-                color: streak > 0 ? AppColors.amber : AppColors.inkFaint,
+                label: 'gün seri',
+                color: streak > 0 ? c.warning : c.inkFaint,
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 24),
               _Stat(
                 icon: Icons.percent_rounded,
                 value: '${(rate * 100).round()}',
@@ -171,7 +153,7 @@ class _HabitCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           HabitHeatmap(
             habit: habit,
             onToggleDay: (day) => store.toggleHabit(habit, day),
@@ -193,7 +175,7 @@ class _HabitCard extends ConsumerWidget {
               child: const Text('Vazgeç')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sil', style: TextStyle(color: AppColors.pink)),
+            child: Text('Sil', style: TextStyle(color: ctx.colors.danger)),
           ),
         ],
       ),
@@ -211,31 +193,36 @@ class _TodayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+    final onColor = ThemeData.estimateBrightnessForColor(color) ==
+            Brightness.dark
+        ? Colors.white
+        : const Color(0xFF14161C);
+
     return GestureDetector(
       onTap: onTap,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          duration: Motion.base,
+          curve: Motion.curve,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: done ? color.withValues(alpha: 0.9) : AppColors.hover,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: done ? color : AppColors.line,
-            ),
+            color: done ? color : c.hover,
+            borderRadius: R.radiusPill,
+            border: Border.all(color: done ? color : c.line),
+            boxShadow: done ? c.shadowSm : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(done ? Icons.check_rounded : Icons.add_rounded,
-                  size: 15,
-                  color: done ? Colors.white : AppColors.inkDim),
-              const SizedBox(width: 4),
+                  size: 15, color: done ? onColor : c.inkDim),
+              const SizedBox(width: 5),
               Text(
-                done ? 'Bugün' : 'Bugün',
+                'Bugün',
                 style: TextStyle(
-                  color: done ? Colors.white : AppColors.inkDim,
+                  color: done ? onColor : c.inkDim,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                 ),
@@ -262,23 +249,26 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Row(
       children: [
         Icon(icon, size: 18, color: color),
-        const SizedBox(width: 6),
+        const SizedBox(width: 7),
         Text(
           value,
           style: TextStyle(
             color: color,
-            fontSize: 18,
+            fontSize: 19,
             fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(width: 5),
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.inkFaint,
+          style: TextStyle(
+            color: c.inkFaint,
             fontSize: 11.5,
             fontWeight: FontWeight.w500,
           ),
@@ -319,6 +309,8 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return AlertDialog(
       title: const Text('Yeni alışkanlık'),
       content: Column(
@@ -328,57 +320,54 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
           TextField(
             controller: _controller,
             autofocus: true,
-            style: const TextStyle(color: AppColors.ink),
-            decoration: const InputDecoration(
-              hintText: 'Ör. Sabah koşusu',
-              hintStyle: TextStyle(color: AppColors.inkFaint),
-            ),
+            style: TextStyle(color: c.ink),
+            decoration: const InputDecoration(hintText: 'Ör. Sabah koşusu'),
           ),
-          const SizedBox(height: 18),
-          const Text('Renk',
-              style: TextStyle(color: AppColors.inkDim, fontSize: 12.5)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+          Text('Renk', style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(height: 10),
           Wrap(
-            spacing: 8,
+            spacing: 9,
+            runSpacing: 9,
             children: [
-              for (final c in kTaskColors)
+              for (final color in kTaskColors)
                 GestureDetector(
-                  onTap: () => setState(() => _color = c),
-                  child: Container(
-                    width: 26,
-                    height: 26,
+                  onTap: () => setState(() => _color = color),
+                  child: AnimatedContainer(
+                    duration: Motion.fast,
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
-                      color: c,
+                      color: color,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: _color == c ? Colors.white : Colors.transparent,
-                        width: 2,
+                        color: _color == color ? c.ink : Colors.transparent,
+                        width: 2.5,
                       ),
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 18),
-          const Text('Ritim',
-              style: TextStyle(color: AppColors.inkDim, fontSize: 12.5)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+          Text('Ritim', style: Theme.of(context).textTheme.labelSmall),
+          const SizedBox(height: 10),
           SegmentedButton<HabitCadence>(
             segments: const [
-              ButtonSegment(
-                  value: HabitCadence.daily, label: Text('Her gün')),
+              ButtonSegment(value: HabitCadence.daily, label: Text('Her gün')),
               ButtonSegment(
                   value: HabitCadence.weekly, label: Text('Haftada N')),
             ],
             selected: {_cadence},
+            showSelectedIcon: false,
             onSelectionChanged: (s) => setState(() => _cadence = s.first),
           ),
           if (_cadence == HabitCadence.weekly) ...[
             const SizedBox(height: 12),
             Row(
               children: [
-                const Text('Hedef: ',
-                    style: TextStyle(color: AppColors.inkDim, fontSize: 13)),
+                Text('Hedef',
+                    style: TextStyle(color: c.inkDim, fontSize: 13)),
                 Expanded(
                   child: Slider(
                     value: _target.toDouble(),
@@ -390,8 +379,10 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
                   ),
                 ),
                 Text('$_target/hafta',
-                    style: const TextStyle(
-                        color: AppColors.ink, fontSize: 13)),
+                    style: TextStyle(
+                        color: c.ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
               ],
             ),
           ],

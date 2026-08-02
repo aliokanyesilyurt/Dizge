@@ -34,6 +34,10 @@ abstract class LocalStore {
   List<Map<String, dynamic>> readList(String key);
   Future<void> writeList(String key, List<Map<String, dynamic>> value);
 
+  /// Tek satırlık tercihler (tema kipi gibi). Kayıt yoksa null.
+  String? readString(String key);
+  Future<void> writeString(String key, String value);
+
   /// Tüm yerel veriyi ve şifreleme anahtarını yok eder ("cihazdan sil").
   Future<void> wipe();
 
@@ -135,6 +139,13 @@ class HiveLocalStore implements LocalStore {
       _requireBox.put(key, jsonEncode(value));
 
   @override
+  String? readString(String key) => _requireBox.get(key);
+
+  @override
+  Future<void> writeString(String key, String value) =>
+      _requireBox.put(key, value);
+
+  @override
   Future<void> wipe() async {
     await _box?.clear();
     // Kriptografik silme: anahtar gidince eski baytlar zaten çözülemez.
@@ -155,6 +166,7 @@ class HiveLocalStore implements LocalStore {
 class InMemoryStore implements LocalStore {
   Map<String, dynamic>? _snapshot;
   final Map<String, List<Map<String, dynamic>>> _lists = {};
+  final Map<String, String> _strings = {};
 
   @override
   Future<void> init() async {}
@@ -178,9 +190,18 @@ class InMemoryStore implements LocalStore {
   }
 
   @override
+  String? readString(String key) => _strings[key];
+
+  @override
+  Future<void> writeString(String key, String value) async {
+    _strings[key] = value;
+  }
+
+  @override
   Future<void> wipe() async {
     _snapshot = null;
     _lists.clear();
+    _strings.clear();
   }
 
   @override

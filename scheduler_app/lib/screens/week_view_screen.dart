@@ -12,15 +12,17 @@ import '../widgets/week_time_grid.dart';
 
 /// Haftalık görünüm — uygulamanın ana ekranı.
 ///
-/// Google Takvim'in hafta görünümündeki temel modeli izler: dikeyde saatler,
-/// yatayda günler, işler zaman blokları. Farkı, minimalist koyu palet ve
-/// gereksiz kromun (araç çubuğu, kenarlık, gölge) atılmış olması.
+/// Google Takvim'in hafta modelini izler: dikeyde saatler, yatayda günler,
+/// işler zaman blokları. Farkı, kromun tamamen sakinleştirilmiş olması.
 ///
 /// Yapı — üstten alta:
 ///   1. Başlık: tarih aralığı, hafta gezinme, yoğunluk düğmesi
-///   2. Gün başlıkları (kaydırmayla birlikte kayar, dikeyde sabit)
+///   2. Gün başlıkları (yükseltilmiş "chrome" katmanı, dikeyde sabit)
 ///   3. "Saatsiz" satırı: saati olmayan işler (Google'daki tüm gün satırı)
 ///   4. Kaydırılabilir zaman ızgarası ([WeekTimeGrid])
+///
+/// 2–3 tek bir yüzeyde toplanır ve ızgaranın üzerine hafif bir gölge düşürür;
+/// böylece kaydırılan içerik başlığın *altına* giriyor hissi oluşur.
 ///
 /// Haftalar arası geçiş [PageView] ile; sağa/sola kaydırma ya da ok tuşları.
 class WeekViewScreen extends ConsumerStatefulWidget {
@@ -37,8 +39,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   static const int _anchorPage = 10000;
 
   late final DateTime _anchorMonday = mondayOf(DateTime.now());
-  late final PageController _pages =
-      PageController(initialPage: _anchorPage);
+  late final PageController _pages = PageController(initialPage: _anchorPage);
 
   /// Haftalar arası geçerken dikey konum korunsun diye paylaşılan kaydırma
   /// konumu (her sayfa kendi ScrollController'ını bundan besler).
@@ -66,11 +67,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   ];
 
   void _goToPage(int page, {String reason = 'arrow'}) {
-    _pages.animateToPage(
-      page,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-    );
+    _pages.animateToPage(page, duration: Motion.slow, curve: Motion.curve);
     ref.read(telemetryProvider).capture(Ev.weekChanged, props: {
       'delta': page - _page,
       'reason': reason,
@@ -113,9 +110,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   void _resize(Task task, double duration) =>
       ref.read(appStoreProvider).resizeTask(task, duration);
 
-  void _cycleDensity() {
-    setState(() => _density = _density.next);
-  }
+  void _cycleDensity() => setState(() => _density = _density.next);
 
   @override
   Widget build(BuildContext context) {
@@ -123,14 +118,15 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     // her mutasyonda tüm hafta yeniden hesaplanır.
     final store = ref.watch(appStoreProvider);
     final today = Task.dayKey(DateTime.now());
+    final c = context.colors;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: c.bg,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _header(),
+            _header(c),
             Expanded(
               child: PageView.builder(
                 controller: _pages,
@@ -148,41 +144,53 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
 
                   return Column(
                     children: [
-                      _DayHeaderRow(
-                        monday: monday,
-                        today: today,
-                        labels: _weekDays,
-                        onTapDay: (day) => _quickAdd(day, null),
-                      ),
-                      _UntimedRow(
-                        monday: monday,
-                        tasksByDay: tasksByDay,
-                        onTapTask: (task, day) =>
-                            _openEditor(day, existing: task),
-                        onToggle: (task, day) => store.setTaskDone(
-                          task,
-                          day,
-                          !task.isDoneOn(day),
+                      // Gün başlıkları + saatsiz şeridi tek yükseltilmiş katman.
+                      _Chrome(
+                        child: Column(
+                          children: [
+                            _DayHeaderRow(
+                              monday: monday,
+                              today: today,
+                              labels: _weekDays,
+                              onTapDay: (day) => _quickAdd(day, null),
+                            ),
+                            _UntimedRow(
+                              monday: monday,
+                              tasksByDay: tasksByDay,
+                              onTapTask: (task, day) =>
+                                  _openEditor(day, existing: task),
+                              onToggle: (task, day) => store.setTaskDone(
+                                task,
+                                day,
+                                !task.isDoneOn(day),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const Divider(height: 1, color: AppColors.line),
+                      // Izgara, sayfa zeminine değil kendi beyaz yaprağına
+                      // çizilir: başlıkla birlikte tek bir yükseltilmiş yüzey.
                       Expanded(
-                        child: WeekTimeGrid(
-                          // Sayfa değiştikçe yeni durum kurulsun ama aynı hafta
-                          // için gereksiz yeniden kurulum olmasın.
-                          key: ValueKey('week-${monday.toIso8601String()}'),
-                          monday: monday,
-                          tasksByDay: tasksByDay,
-                          metrics: _metrics,
-                          today: today,
-                          scrollOffset: _sharedScrollOffset,
-                          initialScrollHour:
-                              _sharedScrollOffset.value > 0 ? null : _openingHour,
-                          onTapTask: (task, day) =>
-                              _openEditor(day, existing: task),
-                          onTapEmpty: _quickAdd,
-                          onMove: _move,
-                          onResize: _resize,
+                        child: ColoredBox(
+                          color: c.surface,
+                          child: WeekTimeGrid(
+                            // Sayfa değiştikçe yeni durum kurulsun ama aynı
+                            // hafta için gereksiz yeniden kurulum olmasın.
+                            key: ValueKey('week-${monday.toIso8601String()}'),
+                            monday: monday,
+                            tasksByDay: tasksByDay,
+                            metrics: _metrics,
+                            today: today,
+                            scrollOffset: _sharedScrollOffset,
+                            initialScrollHour: _sharedScrollOffset.value > 0
+                                ? null
+                                : _openingHour,
+                            onTapTask: (task, day) =>
+                                _openEditor(day, existing: task),
+                            onTapEmpty: _quickAdd,
+                            onMove: _move,
+                            onResize: _resize,
+                          ),
                         ),
                       ),
                     ],
@@ -199,22 +207,21 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
           snapHour(hourOfDay(DateTime.now()), minutes: 30),
         ),
         tooltip: 'Hızlı ekle',
-        child: const Icon(Icons.add, size: 22),
+        child: const Icon(Icons.add_rounded, size: 24),
       ),
     );
   }
 
   /// Açılışta ekranın ortalayacağı saat: şimdiden bir saat öncesi. Kullanıcı
   /// gece yarısı boşluğuna değil, gününe bakarak başlasın.
-  double get _openingHour =>
-      (hourOfDay(DateTime.now()) - 1).clamp(0.0, 22.0);
+  double get _openingHour => (hourOfDay(DateTime.now()) - 1).clamp(0.0, 22.0);
 
-  Widget _header() {
+  Widget _header(AppPalette c) {
     final monday = _monday;
     final isCurrentWeek = _page == _anchorPage;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
+      padding: const EdgeInsets.fromLTRB(20, 14, 14, 14),
       child: Row(
         children: [
           Expanded(
@@ -226,44 +233,66 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                   _rangeLabel(monday),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(height: 1),
+                const SizedBox(height: 3),
                 Text(
                   isCurrentWeek ? 'Bu hafta' : '${_weekOffsetLabel()} hafta',
-                  style: const TextStyle(
-                    color: AppColors.inkFaint,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
+                  style: TextStyle(
+                    color: isCurrentWeek ? c.accent : c.inkFaint,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.1,
                   ),
                 ),
               ],
             ),
           ),
-          if (!isCurrentWeek)
-            TextButton(
-              onPressed: _goToToday,
-              child: const Text('Bugün'),
-            ),
-          IconButton(
-            icon: Icon(_densityIcon, color: AppColors.inkDim, size: 19),
+
+          // "Bugün" yalnızca gerektiğinde belirir — sakin krom.
+          AnimatedSize(
+            duration: Motion.base,
+            curve: Motion.curve,
+            child: isCurrentWeek
+                ? const SizedBox(width: 0)
+                : Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _GhostButton(label: 'Bugün', onTap: _goToToday),
+                  ),
+          ),
+
+          _IconAction(
+            icon: _densityIcon,
             tooltip: 'Yoğunluk: ${_density.label}',
-            onPressed: _cycleDensity,
+            onTap: _cycleDensity,
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_left, color: AppColors.inkDim),
-            tooltip: 'Önceki hafta',
-            onPressed: () => _shift(-1),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, color: AppColors.inkDim),
-            tooltip: 'Sonraki hafta',
-            onPressed: () => _shift(1),
+          const SizedBox(width: 4),
+
+          // Geri/ileri tek bir hap içinde: iki ayrı düğme yerine tek nesne.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: c.surface,
+              borderRadius: R.radiusPill,
+              border: Border.all(color: c.line),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _IconAction(
+                  icon: Icons.chevron_left_rounded,
+                  tooltip: 'Önceki hafta',
+                  onTap: () => _shift(-1),
+                  bare: true,
+                ),
+                SizedBox(height: 20, child: VerticalDivider(width: 1, color: c.line)),
+                _IconAction(
+                  icon: Icons.chevron_right_rounded,
+                  tooltip: 'Sonraki hafta',
+                  onTap: () => _shift(1),
+                  bare: true,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -271,9 +300,9 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   }
 
   IconData get _densityIcon => switch (_density) {
-        GridDensity.compact => Icons.density_small,
-        GridDensity.cozy => Icons.density_medium,
-        GridDensity.spacious => Icons.density_large,
+        GridDensity.compact => Icons.density_small_rounded,
+        GridDensity.cozy => Icons.density_medium_rounded,
+        GridDensity.spacious => Icons.density_large_rounded,
       };
 
   String _weekOffsetLabel() {
@@ -281,6 +310,98 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     if (delta == -1) return 'Geçen';
     if (delta == 1) return 'Gelecek';
     return delta < 0 ? '${-delta} hafta önce,' : '$delta hafta sonra,';
+  }
+}
+
+// --- Ortak küçük parçalar ----------------------------------------------------
+
+/// Gün başlıkları + saatsiz şeridini taşıyan yükseltilmiş yüzey.
+class _Chrome extends StatelessWidget {
+  const _Chrome({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border(bottom: BorderSide(color: c.lineSoft)),
+        boxShadow: c.shadowSm,
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Kenarlıksız, yalnızca üzerine gelince zemin alan ikon düğmesi.
+class _IconAction extends StatelessWidget {
+  const _IconAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.bare = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  /// Hap içindeyken kendi zeminini çizmez.
+  final bool bare;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: bare ? null : const CircleBorder(),
+        borderRadius: bare ? R.radiusPill : null,
+        hoverColor: c.hover,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: bare ? 10 : 9, vertical: 9),
+          child: Icon(icon, size: 20, color: c.inkDim),
+        ),
+      ),
+    );
+  }
+}
+
+/// İnce kenarlıklı, sessiz hap düğme ("Bugün").
+class _GhostButton extends StatelessWidget {
+  const _GhostButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Material(
+      color: c.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: R.radiusPill,
+        side: BorderSide(color: c.line),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: R.radiusPill,
+        hoverColor: c.hover,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: c.ink,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -301,11 +422,30 @@ class _DayHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const SizedBox(width: kTimeGutterWidth),
+          // Saat sütununun hizasında duran zaman dilimi rozeti.
+          SizedBox(
+            width: kTimeGutterWidth,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 10, bottom: 4),
+              child: Text(
+                _utcOffsetLabel(),
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: c.inkFaint,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
           for (var i = 0; i < 7; i++)
             Expanded(
               child: _DayHeaderCell(
@@ -319,6 +459,17 @@ class _DayHeaderRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// "GMT+3" — Google Takvim'in sol üst köşesindeki küçük bilgi.
+  static String _utcOffsetLabel() {
+    final offset = DateTime.now().timeZoneOffset;
+    final sign = offset.isNegative ? '-' : '+';
+    final hours = offset.inHours.abs();
+    final minutes = offset.inMinutes.abs() % 60;
+    return minutes == 0
+        ? 'GMT$sign$hours'
+        : 'GMT$sign$hours:${minutes.toString().padLeft(2, '0')}';
   }
 }
 
@@ -339,42 +490,54 @@ class _DayHeaderCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: isToday
-                  ? AppColors.blue
-                  : (isWeekend ? AppColors.pink : AppColors.inkFaint),
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: isToday ? AppColors.blue : Colors.transparent,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '${day.day}',
+      borderRadius: R.radiusSm,
+      hoverColor: c.hover,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
               style: TextStyle(
-                color: isToday ? Colors.white : AppColors.ink,
-                fontSize: 14,
-                fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
+                color: isToday
+                    ? c.accent
+                    : (isWeekend ? c.inkFaint : c.inkDim),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 5),
+            AnimatedContainer(
+              duration: Motion.fast,
+              curve: Motion.curve,
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isToday ? c.accent : Colors.transparent,
+                shape: BoxShape.circle,
+                boxShadow: isToday ? c.shadowSm : null,
+              ),
+              child: Text(
+                '${day.day}',
+                style: TextStyle(
+                  color: isToday
+                      ? c.onAccent
+                      : (isWeekend ? c.inkDim : c.ink),
+                  fontSize: 15,
+                  fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -400,40 +563,44 @@ class _UntimedRow extends StatelessWidget {
   final void Function(Task, DateTime) onTapTask;
   final void Function(Task, DateTime) onToggle;
 
-  static const double _chipHeight = 22.0;
+  static const double _chipHeight = 24.0;
   static const double _maxRows = 3;
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     final untimed = [
       for (final day in tasksByDay) day.where((t) => !t.scheduled).toList(),
     ];
-    final maxCount = untimed.fold<int>(0, (m, list) => list.length > m ? list.length : m);
+    final maxCount =
+        untimed.fold<int>(0, (m, list) => list.length > m ? list.length : m);
     if (maxCount == 0) return const SizedBox.shrink();
 
     final rows = maxCount.clamp(1, _maxRows.toInt());
-    final height = rows * (_chipHeight + 3) + 6;
+    final height = rows * (_chipHeight + 4) + 10;
 
     return Container(
       height: height,
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.lineSoft)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.lineSoft)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(
+          SizedBox(
             width: kTimeGutterWidth,
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: EdgeInsets.only(right: 8, top: 6),
+                padding: const EdgeInsets.only(right: 10, top: 9),
                 child: Text(
                   'Saatsiz',
                   style: TextStyle(
-                    color: AppColors.inkFaint,
+                    color: c.inkFaint,
                     fontSize: 9.5,
                     fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ),
@@ -442,7 +609,7 @@ class _UntimedRow extends StatelessWidget {
           for (var i = 0; i < 7; i++)
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(2, 4, 2, 2),
+                padding: const EdgeInsets.fromLTRB(3, 6, 3, 4),
                 children: [
                   for (final task in untimed[i])
                     _UntimedChip(
@@ -475,42 +642,47 @@ class _UntimedChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final done = task.isDoneOn(day);
-    final style = tagStyleFor(task.color);
+    final style = c.tag(task.color);
 
     return GestureDetector(
       onTap: () => onTap(task, day),
       onLongPress: () => onToggle(task, day),
-      child: Container(
-        height: _UntimedRow._chipHeight,
-        margin: const EdgeInsets.only(bottom: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 5),
-        decoration: BoxDecoration(
-          color: style.fill.withValues(alpha: done ? 0.5 : 1),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              done ? Icons.check_circle_rounded : Icons.circle_outlined,
-              size: 11,
-              color: style.text.withValues(alpha: 0.85),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                task.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: style.text,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  decoration: done ? TextDecoration.lineThrough : null,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: Motion.fast,
+          height: _UntimedRow._chipHeight,
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          decoration: BoxDecoration(
+            color: style.fill.withValues(alpha: done ? 0.45 : 1),
+            borderRadius: R.radiusXs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                done ? Icons.check_circle_rounded : Icons.circle_outlined,
+                size: 11,
+                color: style.text.withValues(alpha: 0.85),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  task.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: style.text,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    decoration: done ? TextDecoration.lineThrough : null,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

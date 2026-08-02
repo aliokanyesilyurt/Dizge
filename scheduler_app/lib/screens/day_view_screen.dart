@@ -8,6 +8,7 @@ import '../widgets/day_pie_chart.dart';
 import '../widgets/drawing_canvas.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
+import 'task_list_scaffold.dart' show EmptyState;
 
 class DayViewScreen extends ConsumerStatefulWidget {
   final DateTime date;
@@ -53,6 +54,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     // Store'u izle: bu ekran açıkken başka bir yerden yapılan değişiklik
     // (ör. senkron ya da haftalık ızgaradaki sürükleme) anında yansır.
     final tasks = ref.watch(appStoreProvider).tasksForDate(widget.date);
@@ -62,21 +64,26 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
     final done = tasks.where((t) => t.isDoneOn(d)).length;
 
     return Scaffold(
+      backgroundColor: c.bg,
       appBar: AppBar(
-        titleSpacing: 4,
+        titleSpacing: 8,
+        toolbarHeight: 66,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('${d.day} ${_monthNames[d.month - 1]} ${d.year}',
-                style: const TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 2),
             Text(
               tasks.isEmpty
                   ? _weekdays[d.weekday - 1]
                   : '${_weekdays[d.weekday - 1]}  ·  $done/${tasks.length} tamam',
-              style: const TextStyle(color: AppColors.inkDim, fontSize: 12),
+              style: TextStyle(
+                color: c.inkFaint,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -86,7 +93,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
           Expanded(
             flex: 5,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
               child: Center(
                 child: AspectRatio(
                   aspectRatio: 1,
@@ -100,23 +107,27 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
               ),
             ),
           ),
-          const Divider(height: 1, color: AppColors.lineSoft),
+          Divider(height: 1, color: c.lineSoft),
           Expanded(
             flex: 4,
             child: tasks.isEmpty
-                ? _empty()
+                ? const EmptyState(
+                    icon: Icons.check_circle_outline_rounded,
+                    title: 'Bu gün boş.',
+                    text: 'Saatin bir dilimine dokun ya da yeni bir iş ekle.',
+                  )
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 96),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                     children: [
                       if (singles.isNotEmpty) ...[
-                        _sectionHeader(Icons.today_outlined, 'BUGÜNE ÖZEL',
-                            singles.length),
+                        _sectionHeader(
+                            c, Icons.today_rounded, 'BUGÜNE ÖZEL', singles.length),
                         ...singles.map(_card),
                       ],
                       if (routines.isNotEmpty) ...[
-                        if (singles.isNotEmpty) const SizedBox(height: 14),
+                        if (singles.isNotEmpty) const SizedBox(height: 18),
                         _sectionHeader(
-                            Icons.repeat, 'RUTİNLER', routines.length),
+                            c, Icons.repeat_rounded, 'RUTİNLER', routines.length),
                         ...routines.map(_card),
                       ],
                     ],
@@ -126,56 +137,42 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openEditor,
-        icon: const Icon(Icons.add, size: 20),
+        icon: const Icon(Icons.add_rounded, size: 20),
         label: const Text('Yeni iş'),
       ),
     );
   }
 
-  Widget _empty() => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+  /// [title] büyük harfli verilir: Dart'ın toUpperCase'i Türkçe 'i' harfini
+  /// noktalı 'İ' yapmaz.
+  Widget _sectionHeader(AppPalette c, IconData icon, String title, int count) =>
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
+        child: Row(
           children: [
-            Icon(Icons.check_circle_outline,
-                size: 30, color: AppColors.inkFaint),
-            SizedBox(height: 10),
-            Text('Bu gün boş.',
-                style: TextStyle(color: AppColors.inkDim, fontSize: 14)),
-            SizedBox(height: 4),
-            Text(
-              'Saatin bir dilimine dokun ya da yeni bir iş ekle.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.inkFaint, fontSize: 12),
+            Icon(icon, size: 14, color: c.inkFaint),
+            const SizedBox(width: 7),
+            Text(title, style: Theme.of(context).textTheme.labelSmall),
+            const SizedBox(width: 7),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: c.hover,
+                borderRadius: R.radiusPill,
+              ),
+              child: Text('$count',
+                  style: TextStyle(
+                    color: c.inkFaint,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  )),
             ),
           ],
         ),
       );
 
-  /// [title] büyük harfli verilir: Dart'ın toUpperCase'i Türkçe 'i' harfini
-  /// noktalı 'İ' yapmaz.
-  Widget _sectionHeader(IconData icon, String title, int count) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 6, 4, 8),
-        child: Row(
-          children: [
-            Icon(icon, size: 14, color: AppColors.inkFaint),
-            const SizedBox(width: 6),
-            Text(title,
-                style: const TextStyle(
-                  color: AppColors.inkFaint,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                )),
-            const SizedBox(width: 6),
-            Text('$count',
-                style: const TextStyle(
-                    color: AppColors.inkFaint, fontSize: 11)),
-          ],
-        ),
-      );
-
   Widget _card(Task task) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.only(bottom: 8),
         child: _TaskCard(
           task: task,
           date: widget.date,
@@ -211,128 +208,134 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final done = task.isDoneOn(date);
+
     return GestureDetector(
       onTap: onTap,
       onLongPress: onEdit,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.hover : AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? task.color : AppColors.lineSoft,
-            width: 1,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: Motion.base,
+          curve: Motion.curve,
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: R.radiusMd,
+            border: Border.all(
+              color: selected ? task.color : c.lineSoft,
+              width: selected ? 1.5 : 1,
+            ),
+            boxShadow: selected ? c.shadowMd : c.shadowSm,
           ),
-        ),
-        padding: const EdgeInsets.fromLTRB(10, 10, 4, 10),
-        child: Row(
-          children: [
-            _Check(
-              key: ValueKey('done-${task.id}'),
-              color: task.color,
-              done: done,
-              onTap: onToggleDone,
-            ),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 46,
-              child: task.scheduled
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+          padding: const EdgeInsets.fromLTRB(14, 13, 6, 13),
+          child: Row(
+            children: [
+              _Check(
+                key: ValueKey('done-${task.id}'),
+                color: task.color,
+                done: done,
+                onTap: onToggleDone,
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 48,
+                child: task.scheduled
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(task.startString,
+                              style: TextStyle(
+                                  color: done ? c.inkFaint : c.ink,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  letterSpacing: -0.2)),
+                          Text(task.durationString,
+                              style: TextStyle(
+                                  color: c.inkFaint, fontSize: 11)),
+                        ],
+                      )
+                    : Text('Saatsiz',
+                        style: TextStyle(color: c.inkFaint, fontSize: 11)),
+              ),
+              const SizedBox(width: 10),
+              Container(width: 1, height: 32, color: c.lineSoft),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
                       children: [
-                        Text(task.startString,
+                        Flexible(
+                          child: Text(
+                            task.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: done ? AppColors.inkFaint : AppColors.ink,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14)),
-                        Text(task.durationString,
-                            style: const TextStyle(
-                                color: AppColors.inkFaint, fontSize: 11)),
-                      ],
-                    )
-                  : const Text('Saatsiz',
-                      style:
-                          TextStyle(color: AppColors.inkFaint, fontSize: 11)),
-            ),
-            const SizedBox(width: 8),
-            Container(width: 1, height: 30, color: AppColors.lineSoft),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          task.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: done ? AppColors.inkDim : AppColors.ink,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                            decoration:
-                                done ? TextDecoration.lineThrough : null,
-                            decorationColor: AppColors.inkFaint,
+                              color: done ? c.inkDim : c.ink,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.5,
+                              letterSpacing: -0.1,
+                              decoration:
+                                  done ? TextDecoration.lineThrough : null,
+                              decorationColor: c.inkFaint,
+                            ),
                           ),
                         ),
+                        if (task.isRoutine) ...[
+                          const SizedBox(width: 6),
+                          Icon(Icons.repeat_rounded,
+                              size: 13, color: c.inkFaint),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        _MiniTag(text: task.categoryName, color: task.color),
+                        if (task.place.isNotEmpty) ...[
+                          const SizedBox(width: 7),
+                          Icon(Icons.place_rounded,
+                              size: 11, color: c.inkFaint),
+                          const SizedBox(width: 2),
+                          Flexible(
+                            child: Text(task.place,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: c.inkDim, fontSize: 11)),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (task.note.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(task.note,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: c.inkDim, fontSize: 12, height: 1.35)),
                       ),
-                      if (task.isRoutine) ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.repeat,
-                            size: 13, color: AppColors.inkFaint),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      _MiniTag(text: task.categoryName, color: task.color),
-                      if (task.place.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.place_outlined,
-                            size: 11, color: AppColors.inkFaint),
-                        const SizedBox(width: 2),
-                        Flexible(
-                          child: Text(task.place,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: AppColors.inkDim, fontSize: 11)),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (task.note.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(task.note,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: AppColors.inkDim,
-                              fontSize: 12,
-                              height: 1.25)),
-                    ),
-                  if (task.sketch != null && !task.sketch!.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: SketchThumbnail(sketch: task.sketch!),
-                    ),
-                ],
+                    if (task.sketch != null && !task.sketch!.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: SketchThumbnail(sketch: task.sketch!),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.more_horiz,
-                  size: 18, color: AppColors.inkFaint),
-              onPressed: onEdit,
-            ),
-          ],
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.more_horiz_rounded,
+                    size: 18, color: c.inkFaint),
+                onPressed: onEdit,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -353,24 +356,35 @@ class _Check extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.all(2),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            color: done ? color : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-                color: done ? color : AppColors.inkFaint, width: 1.5),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: AnimatedContainer(
+            duration: Motion.fast,
+            curve: Motion.curve,
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: done ? color : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                  color: done ? color : c.inkFaint, width: 1.5),
+            ),
+            child: done
+                ? Icon(Icons.check_rounded,
+                    size: 14,
+                    color: ThemeData.estimateBrightnessForColor(color) ==
+                            Brightness.dark
+                        ? Colors.white
+                        : const Color(0xFF14161C))
+                : null,
           ),
-          child: done
-              ? const Icon(Icons.check, size: 13, color: Color(0xFF191919))
-              : null,
         ),
       ),
     );
@@ -386,16 +400,16 @@ class _MiniTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (text.isEmpty) return const SizedBox.shrink();
-    final style = tagStyleFor(color);
+    final style = context.colors.tag(color);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: style.fill,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: R.radiusPill,
       ),
       child: Text(text,
           style: TextStyle(
-              color: style.text, fontSize: 10.5, fontWeight: FontWeight.w500)),
+              color: style.text, fontSize: 10.5, fontWeight: FontWeight.w600)),
     );
   }
 }

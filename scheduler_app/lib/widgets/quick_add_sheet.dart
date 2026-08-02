@@ -24,12 +24,8 @@ Future<bool?> showQuickAdd(
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surfaceAlt,
     // Arkadaki takvim seçilebilir kalsın diye hafif karartma.
-    barrierColor: Colors.black.withValues(alpha: 0.35),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
+    barrierColor: Colors.black.withValues(alpha: 0.32),
     builder: (_) => QuickAddSheet(date: date, startHour: startHour),
   );
 }
@@ -109,15 +105,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     // Taslak henüz depoya girmedi; editöre "yeni kayıt" olarak veriyoruz ki
     // kullanıcı vazgeçerse ortada yarım iş kalmasın.
     Navigator.pop(context, false);
-    await showTaskEditor(
-      context,
-      date: _date,
-      draft: draft,
-    );
+    await showTaskEditor(context, date: _date, draft: draft);
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
 
     return Padding(
@@ -125,26 +118,15 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 34,
-            height: 4,
-            margin: const EdgeInsets.only(top: 10, bottom: 12),
-            decoration: BoxDecoration(
-              color: AppColors.inkFaint,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+          _Grabber(),
 
           // --- Başlık satırı: renk noktası + tek satırlık alan ---
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 14, 4),
+            padding: const EdgeInsets.fromLTRB(20, 6, 16, 6),
             child: Row(
               children: [
-                _ColorDot(
-                  color: _category.color,
-                  onTap: _pickCategory,
-                ),
-                const SizedBox(width: 12),
+                _ColorDot(color: _category.color, onTap: _pickCategory),
+                const SizedBox(width: 14),
                 Expanded(
                   child: TextField(
                     controller: _title,
@@ -153,19 +135,25 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     textCapitalization: TextCapitalization.sentences,
                     onChanged: (_) => setState(() {}),
                     onSubmitted: (_) => _save(),
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 18,
+                    style: TextStyle(
+                      color: c.ink,
+                      fontSize: 19,
                       fontWeight: FontWeight.w600,
+                      letterSpacing: -0.3,
                     ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       isDense: true,
+                      filled: false,
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
                       hintText: 'Ne yapacaksın?',
                       hintStyle: TextStyle(
-                        color: AppColors.inkFaint,
-                        fontSize: 18,
+                        color: c.inkFaint,
+                        fontSize: 19,
                         fontWeight: FontWeight.w500,
+                        letterSpacing: -0.3,
                       ),
                     ),
                   ),
@@ -176,19 +164,19 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
 
           // --- Hızlı özellikler ---
           SizedBox(
-            height: 44,
+            height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               children: [
                 _Pill(
-                  icon: Icons.calendar_today_outlined,
+                  icon: Icons.calendar_today_rounded,
                   label: _dateLabel,
                   onTap: _pickDate,
                 ),
                 const SizedBox(width: 8),
                 _Pill(
-                  icon: Icons.schedule,
+                  icon: Icons.schedule_rounded,
                   label: _start == null ? 'Saatsiz' : Task.formatTime(_start!),
                   highlighted: _start != null,
                   onTap: _pickTime,
@@ -196,14 +184,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 if (_start != null) ...[
                   const SizedBox(width: 8),
                   _Pill(
-                    icon: Icons.timelapse_outlined,
+                    icon: Icons.timelapse_rounded,
                     label: Task.formatDuration(_duration),
                     onTap: _cycleDuration,
                   ),
                 ],
                 const SizedBox(width: 8),
                 _Pill(
-                  icon: Icons.sell_outlined,
+                  icon: Icons.sell_rounded,
                   label: _category.name,
                   color: _category.color,
                   onTap: _pickCategory,
@@ -212,31 +200,25 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
             ),
           ),
 
-          const Divider(height: 17, color: AppColors.lineSoft),
+          const SizedBox(height: 6),
+          Divider(height: 1, color: c.lineSoft),
 
           // --- Alt eylem çubuğu ---
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: const EdgeInsets.fromLTRB(14, 12, 16, 16),
             child: Row(
               children: [
                 TextButton.icon(
                   onPressed: _openFullEditor,
-                  icon: const Icon(Icons.tune, size: 16),
+                  icon: const Icon(Icons.tune_rounded, size: 17),
                   label: const Text('Ayrıntılar'),
                 ),
                 const Spacer(),
                 FilledButton(
                   onPressed: _canSave ? _save : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.blue,
-                    disabledBackgroundColor: AppColors.hover,
-                    foregroundColor: Colors.white,
-                    disabledForegroundColor: AppColors.inkFaint,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9),
-                    ),
+                    disabledBackgroundColor: c.hover,
+                    disabledForegroundColor: c.inkFaint,
                   ),
                   child: const Text('Ekle'),
                 ),
@@ -301,44 +283,58 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   Future<void> _pickCategory() async {
     final picked = await showModalBottomSheet<TaskCategory>(
       context: context,
-      backgroundColor: AppColors.surfaceAlt,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 14),
-            const Text('Kategori',
-                style: TextStyle(
-                    color: AppColors.ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            for (final cat in AppData.categories)
-              ListTile(
-                dense: true,
-                leading: Container(
-                  width: 14,
-                  height: 14,
-                  decoration:
-                      BoxDecoration(color: cat.color, shape: BoxShape.circle),
+      builder: (ctx) {
+        final c = ctx.colors;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _Grabber(),
+              Text('Kategori',
+                  style: Theme.of(ctx).textTheme.titleMedium),
+              const SizedBox(height: 10),
+              for (final cat in AppData.categories)
+                ListTile(
+                  dense: true,
+                  leading: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: cat.color,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  title: Text(cat.name,
+                      style: TextStyle(color: c.ink, fontSize: 14)),
+                  trailing: cat.name == _category.name
+                      ? Icon(Icons.check_rounded, size: 18, color: c.accent)
+                      : null,
+                  onTap: () => Navigator.pop(ctx, cat),
                 ),
-                title: Text(cat.name,
-                    style: const TextStyle(
-                        color: AppColors.ink, fontSize: 14)),
-                trailing: cat.name == _category.name
-                    ? const Icon(Icons.check, size: 17, color: AppColors.blue)
-                    : null,
-                onTap: () => Navigator.pop(ctx, cat),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
     );
     if (picked != null && mounted) setState(() => _category = picked);
+  }
+}
+
+/// Sheet'lerin tepesindeki tutamak.
+class _Grabber extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      width: 36,
+      height: 4,
+      margin: const EdgeInsets.only(top: 12, bottom: 14),
+      decoration: BoxDecoration(
+        color: c.line,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
   }
 }
 
@@ -352,13 +348,17 @@ class _ColorDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.18),
-          shape: BoxShape.circle,
-          border: Border.all(color: color, width: 2),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: Motion.fast,
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2.5),
+          ),
         ),
       ),
     );
@@ -382,34 +382,41 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tint = color ?? (highlighted ? AppColors.blue : AppColors.inkDim);
+    final c = context.colors;
+    final active = highlighted || color != null;
+    final tint = color ?? (highlighted ? c.accent : c.inkDim);
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: highlighted || color != null
-                ? tint.withValues(alpha: 0.55)
-                : AppColors.line,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: tint),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: tint,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: Motion.fast,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: active
+                ? tint.withValues(alpha: c.isDark ? 0.14 : 0.10)
+                : c.surface,
+            borderRadius: R.radiusPill,
+            border: Border.all(
+              color: active ? tint.withValues(alpha: 0.45) : c.line,
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: tint),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  color: active ? tint : c.inkDim,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

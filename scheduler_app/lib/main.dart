@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'bootstrap.dart';
+import 'core/theme_mode_controller.dart';
 import 'screens/app_shell.dart';
 import 'theme.dart';
 
@@ -11,14 +12,6 @@ Future<void> main() async {
   // Depo, telemetri ve senkron kurulur; hazır bir ProviderContainer döner.
   // Böylece uygulamanın ilk karesi kayıtlı verisiyle birlikte çizilir.
   final container = await bootstrap();
-
-  // Koyu arayüzle uyumlu sistem çubukları (Android'de şeffaf durum çubuğu).
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: AppColors.sidebar,
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
 
   runApp(
     // ProviderScope: tüm Riverpod state'inin kökü. Ekranlar buradan store'a
@@ -30,15 +23,19 @@ Future<void> main() async {
   );
 }
 
-class SchedulerApp extends StatelessWidget {
+class SchedulerApp extends ConsumerWidget {
   const SchedulerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'Program & Takvim',
       debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
+      theme: buildAppTheme(brightness: Brightness.light),
+      darkTheme: buildAppTheme(brightness: Brightness.dark),
+      themeMode: mode,
       // Uygulama tamamen Türkçe; sistem dili ne olursa olsun tarih/saat
       // seçicileri de Türkçe açılsın diye yerel sabitlenir.
       locale: const Locale('tr', 'TR'),
@@ -48,12 +45,29 @@ class SchedulerApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // Aşırı büyük yazı tipi ölçeği takvim ızgarasını okunmaz hâle getiriyor;
-      // erişilebilirlikten tamamen vazgeçmeden makul bir tavan koyuyoruz.
-      builder: (context, child) => MediaQuery.withClampedTextScaling(
-        maxScaleFactor: 1.3,
-        child: child ?? const SizedBox.shrink(),
-      ),
+      builder: (context, child) {
+        // Sistem çubukları temayı izler. `builder` içinde okunuyor çünkü
+        // MaterialApp'in teması ancak burada bağlamda hazır.
+        final palette = context.colors;
+        final barIcons =
+            palette.isDark ? Brightness.light : Brightness.dark;
+
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: barIcons,
+            statusBarBrightness: palette.brightness,
+            systemNavigationBarColor: palette.sidebar,
+            systemNavigationBarIconBrightness: barIcons,
+          ),
+          // Aşırı büyük yazı tipi ölçeği takvim ızgarasını okunmaz hâle
+          // getiriyor; erişilebilirlikten tamamen vazgeçmeden makul bir tavan.
+          child: MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.3,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
       home: const AppShell(),
     );
   }

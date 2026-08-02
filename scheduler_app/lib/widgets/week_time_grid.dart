@@ -305,6 +305,8 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return SingleChildScrollView(
       controller: _scroll,
       // Sürükleme sırasında ızgarayı yalnızca otomatik kaydırma hareket
@@ -333,6 +335,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                         child: CustomPaint(
                           painter: _GridPainter(
                             metrics: _m,
+                            palette: c,
                             todayIndex: _todayIndex,
                             dropDayIndex: _drag?.dayIndex,
                           ),
@@ -351,7 +354,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                       ..._buildBlocks(width),
 
                       // 4) "Şu an" çizgisi.
-                      if (_todayIndex != null) _nowIndicator(width, _todayIndex!),
+                      if (_todayIndex != null) _nowIndicator(c, width, _todayIndex!),
 
                       // 5) Sürüklenen bloğun hayaleti (en üstte).
                       if (_drag != null) _dragGhost(width, _drag!),
@@ -400,19 +403,22 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
             ? _resize!.duration
             : task.durationHours;
 
-        const gap = 2.0;
+        // Google Takvim'deki gibi bloklar sütun kenarlarına yapışmaz; aralarında
+        // ince bir nefes payı kalır.
+        const gap = 3.0;
         final left = dayIndex * columnWidth +
             slot.leftFraction * (columnWidth - gap) +
             gap / 2;
         final width =
             math.max(12.0, slot.widthFraction * (columnWidth - gap) - gap / 2);
+        final height =
+            math.max(_m.hourHeight * kMinDurationHours, duration * _m.hourHeight - 2);
 
         blocks.add(Positioned(
           left: left,
           top: _m.yFor(slot.start),
           width: width,
-          height: math.max(_m.hourHeight * kMinDurationHours,
-              duration * _m.hourHeight - 1),
+          height: height,
           child: Opacity(
             // Sürüklenen bloğun aslı soluklaşır; hayaleti parmağı takip eder.
             opacity: dragging ? 0.28 : 1,
@@ -420,7 +426,8 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
               task: task,
               day: day,
               done: task.isDoneOn(day),
-              compact: _m.hourHeight * duration < 42,
+              // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
+              compact: height < 34,
               onTap: () => widget.onTapTask(task, day),
               onLongPressStart: (d) => _onDragStart(task, dayIndex, d),
               onLongPressMoveUpdate: _onDragUpdate,
@@ -443,7 +450,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       left: drag.dayIndex * columnWidth + 2,
       top: _m.yFor(drag.startHour),
       width: columnWidth - 4,
-      height: math.max(28.0, drag.task.durationHours * _m.hourHeight - 1),
+      height: math.max(30.0, drag.task.durationHours * _m.hourHeight - 1),
       child: IgnorePointer(
         child: _DragPreview(
           task: drag.task,
@@ -453,36 +460,39 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     );
   }
 
-  Widget _nowIndicator(double canvasWidth, int todayIndex) {
+  /// Kırmızı "şu an" çizgisi: nokta bugünün sütununda, çizgi haftanın tamamında
+  /// (Google Takvim'deki davranış).
+  Widget _nowIndicator(AppPalette c, double canvasWidth, int todayIndex) {
     final columnWidth = _columnWidth(canvasWidth);
     final y = _m.yFor(hourOfDay(_now));
     if (y < 0 || y > _m.totalHeight) return const SizedBox.shrink();
 
     return Positioned(
-      top: y - 4,
+      top: y - 5,
       left: 0,
       right: 0,
-      height: 8,
+      height: 10,
       child: IgnorePointer(
-        child: Row(
+        child: Stack(
           children: [
-            SizedBox(width: todayIndex * columnWidth),
-            Container(
-              width: 7,
-              height: 7,
-              margin: const EdgeInsets.only(top: 0.5),
-              decoration: const BoxDecoration(
-                color: AppColors.nowLine,
-                shape: BoxShape.circle,
-              ),
+            Positioned(
+              top: 4.5,
+              left: 0,
+              right: 0,
+              child: Container(height: 1.5, color: c.nowLine),
             ),
-            const Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(top: 3.5),
-                child: Divider(
-                  color: AppColors.nowLine,
-                  thickness: 1.4,
-                  height: 1.4,
+            Positioned(
+              top: 0,
+              left: todayIndex * columnWidth - 1,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: c.nowLine,
+                  shape: BoxShape.circle,
+                  // Halka, altındaki ızgara yaprağının rengiyle "kesip" noktayı
+                  // çizgiden ayırır.
+                  border: Border.all(color: c.surface, width: 1.5),
                 ),
               ),
             ),
@@ -502,6 +512,7 @@ class _HourGutter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final first = metrics.dayStart.ceil();
     final last = metrics.dayEnd.floor();
 
@@ -509,14 +520,17 @@ class _HourGutter extends StatelessWidget {
       children: [
         for (var h = first; h <= last; h++)
           Positioned(
-            top: metrics.yFor(h.toDouble()) - 7,
-            right: 8,
+            // Etiket kendi çizgisinin biraz üstünde durur (Google Takvim'de
+            // olduğu gibi) — böylece saat, altındaki dilimi adlandırır.
+            top: metrics.yFor(h.toDouble()) - 6,
+            right: 10,
             child: Text(
-              // 24:00 yazmak yerine sonuncuyu gizle (Google Takvim de böyle).
-              h >= 24 ? '' : '${h.toString().padLeft(2, '0')}:00',
-              style: const TextStyle(
-                color: AppColors.inkFaint,
-                fontSize: 11,
+              // İlk ve son etiket kenara yapışıp kırpılır; Google da onları
+              // gizler.
+              (h >= 24 || h == 0) ? '' : '${h.toString().padLeft(2, '0')}:00',
+              style: TextStyle(
+                color: c.inkFaint,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.2,
               ),
@@ -532,11 +546,13 @@ class _HourGutter extends StatelessWidget {
 class _GridPainter extends CustomPainter {
   const _GridPainter({
     required this.metrics,
+    required this.palette,
     required this.todayIndex,
     required this.dropDayIndex,
   });
 
   final GridMetrics metrics;
+  final AppPalette palette;
   final int? todayIndex;
 
   /// Sürükleme sırasında hedeflenen gün — sütunu hafifçe aydınlanır.
@@ -550,29 +566,29 @@ class _GridPainter extends CustomPainter {
     if (todayIndex != null) {
       canvas.drawRect(
         Rect.fromLTWH(todayIndex! * columnWidth, 0, columnWidth, size.height),
-        Paint()..color = AppColors.gridTodayWash,
+        Paint()..color = palette.gridTodayWash,
       );
     }
     if (dropDayIndex != null) {
       canvas.drawRect(
         Rect.fromLTWH(dropDayIndex! * columnWidth, 0, columnWidth, size.height),
-        Paint()..color = AppColors.dropTarget.withValues(alpha: 0.10),
+        Paint()..color = palette.dropTarget.withValues(alpha: 0.10),
       );
     }
 
     final hourPaint = Paint()
-      ..color = AppColors.gridHourLine
+      ..color = palette.gridHourLine
       ..strokeWidth = 1;
     final halfPaint = Paint()
-      ..color = AppColors.gridHalfLine
+      ..color = palette.gridHalfLine
       ..strokeWidth = 1;
     final columnPaint = Paint()
-      ..color = AppColors.gridColumnLine
+      ..color = palette.gridColumnLine
       ..strokeWidth = 1;
 
     // Yatay: tam saatler belirgin, yarım saatler soluk. Yarım saat çizgileri
     // yalnızca yeterince yer varken çizilir; sıkışıkken görsel gürültü olur.
-    final drawHalf = metrics.hourHeight >= 48;
+    final drawHalf = metrics.hourHeight >= 64;
     for (var h = metrics.dayStart; h <= metrics.dayEnd; h += 1) {
       final y = metrics.yFor(h);
       canvas.drawLine(Offset(0, y), Offset(size.width, y), hourPaint);
@@ -592,6 +608,7 @@ class _GridPainter extends CustomPainter {
   @override
   bool shouldRepaint(_GridPainter old) =>
       old.metrics.hourHeight != metrics.hourHeight ||
+      old.palette != palette ||
       old.todayIndex != todayIndex ||
       old.dropDayIndex != dropDayIndex;
 }
@@ -617,7 +634,7 @@ class _EventBlock extends StatelessWidget {
   final DateTime day;
   final bool done;
 
-  /// Blok kısaysa yalnızca başlık gösterilir (saat satırı sığmaz).
+  /// Blok kısaysa başlık ve saat tek satırda birleşir.
   final bool compact;
 
   final VoidCallback onTap;
@@ -630,7 +647,24 @@ class _EventBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = tagStyleFor(task.color);
+    final c = context.colors;
+    final style = c.event(task.color, done: done);
+    final title = task.title.isEmpty ? 'Başlıksız' : task.title;
+
+    final titleStyle = TextStyle(
+      color: style.ink,
+      fontSize: 11.5,
+      height: 1.2,
+      fontWeight: FontWeight.w600,
+      decoration: done ? TextDecoration.lineThrough : null,
+      decorationColor: style.ink.withValues(alpha: 0.7),
+    );
+    final timeStyle = TextStyle(
+      color: style.ink.withValues(alpha: 0.82),
+      fontSize: 10.5,
+      height: 1.2,
+      fontWeight: FontWeight.w500,
+    );
 
     return Stack(
       clipBehavior: Clip.none,
@@ -641,57 +675,64 @@ class _EventBlock extends StatelessWidget {
             onLongPressStart: onLongPressStart,
             onLongPressMoveUpdate: onLongPressMoveUpdate,
             onLongPressEnd: onLongPressEnd,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(6, compact ? 2 : 4, 4, 2),
-              decoration: BoxDecoration(
-                color: done
-                    ? style.fill.withValues(alpha: 0.5)
-                    : style.fill,
-                borderRadius: BorderRadius.circular(6),
-                border: Border(
-                  left: BorderSide(color: task.color, width: 3),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(6, compact ? 1 : 3, 5, 2),
+                decoration: BoxDecoration(
+                  color: style.fill,
+                  borderRadius: R.radiusXs,
+                  // Yan yana duran aynı renkli iki blok birbirine karışmasın.
+                  border: Border.all(color: style.edge, width: 0.8),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (task.isRoutine) ...[
-                        Icon(Icons.repeat,
-                            size: 9.5,
-                            color: style.text.withValues(alpha: 0.8)),
-                        const SizedBox(width: 3),
-                      ],
-                      Expanded(
-                        child: Text(
-                          task.title.isEmpty ? 'Başlıksız' : task.title,
-                          maxLines: compact ? 1 : 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: style.text,
-                            fontSize: 11.5,
-                            height: 1.15,
-                            fontWeight: FontWeight.w600,
-                            decoration:
-                                done ? TextDecoration.lineThrough : null,
-                            decorationColor: style.text.withValues(alpha: 0.6),
+                child: compact
+                    // Kısa blok: "Başlık · 09:00" tek satır.
+                    ? Row(
+                        children: [
+                          if (task.isRoutine) ...[
+                            Icon(Icons.repeat,
+                                size: 9.5,
+                                color: style.ink.withValues(alpha: 0.85)),
+                            const SizedBox(width: 3),
+                          ],
+                          Flexible(
+                            child: Text(title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: titleStyle),
                           ),
-                        ),
+                          const SizedBox(width: 4),
+                          Text(task.startString,
+                              maxLines: 1, style: timeStyle),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              if (task.isRoutine) ...[
+                                Icon(Icons.repeat,
+                                    size: 10,
+                                    color: style.ink.withValues(alpha: 0.85)),
+                                const SizedBox(width: 3),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: titleStyle,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(task.timeString,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: timeStyle),
+                        ],
                       ),
-                    ],
-                  ),
-                  if (!compact)
-                    Text(
-                      task.startString,
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: style.text.withValues(alpha: 0.72),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                ],
               ),
             ),
           ),
@@ -730,10 +771,10 @@ class _EventBlock extends StatelessWidget {
               cursor: SystemMouseCursors.resizeUpDown,
               child: Center(
                 child: Container(
-                  width: 22,
-                  height: 3,
+                  width: 20,
+                  height: 2.5,
                   decoration: BoxDecoration(
-                    color: style.text.withValues(alpha: 0.35),
+                    color: style.ink.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -776,21 +817,16 @@ class _DragPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = tagStyleFor(task.color, selected: true);
+    final c = context.colors;
+    final style = c.event(task.color);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(7, 4, 6, 4),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(style.fill, AppColors.surfaceAlt),
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: task.color, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: style.fill,
+        borderRadius: R.radiusXs,
+        border: Border.all(color: c.surface, width: 1.5),
+        boxShadow: c.shadowLg,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,7 +835,7 @@ class _DragPreview extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: task.color,
+              color: style.ink,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.2,
@@ -812,7 +848,7 @@ class _DragPreview extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: style.text,
+                color: style.ink.withValues(alpha: 0.9),
                 fontSize: 11.5,
                 height: 1.15,
                 fontWeight: FontWeight.w600,

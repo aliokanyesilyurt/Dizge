@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../theme.dart';
+import 'section_header.dart';
 
 /// Rutinler ve Yapılacaklar ekranlarının paylaştığı liste düzeni.
 class TaskListScaffold extends StatelessWidget {
@@ -29,44 +30,20 @@ class TaskListScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: c.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: AppColors.inkFaint,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(color: AppColors.lineSoft, height: 1),
+            SectionHeader(title: title, subtitle: subtitle),
             Expanded(
               child: tasks.isEmpty
-                  ? _Empty(icon: emptyIcon, text: emptyText)
+                  ? EmptyState(icon: emptyIcon, text: emptyText)
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 90),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
                       itemCount: tasks.length,
                       itemBuilder: (_, i) => _Row(
                         task: tasks[i],
@@ -80,36 +57,76 @@ class TaskListScaffold extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: onAdd,
-        child: const Icon(Icons.add, size: 22),
+        child: const Icon(Icons.add_rounded, size: 24),
       ),
     );
   }
 }
 
-class _Empty extends StatelessWidget {
+/// Boş durum: ikonu bir daire içinde yumuşatılmış, metni ortalanmış.
+///
+/// Uygulama genelinde tek bir boş-durum dili olsun diye paylaşılıyor.
+/// [title] verilirse iki kademeli okunur: kalın bir tespit, altında soluk bir
+/// yönlendirme. Verilmezse [text] tek başına yeterlidir.
+class EmptyState extends StatelessWidget {
   final IconData icon;
+  final String? title;
   final String text;
-  const _Empty({required this.icon, required this.text});
+
+  const EmptyState({
+    super.key,
+    required this.icon,
+    required this.text,
+    this.title,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 34, color: AppColors.inkFaint),
-          const SizedBox(height: 12),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.inkFaint,
-              fontSize: 13.5,
-              height: 1.45,
-              fontWeight: FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 62,
+              height: 62,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: c.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: c.lineSoft),
+              ),
+              child: Icon(icon, size: 26, color: c.inkFaint),
             ),
-          ),
-        ],
+            const SizedBox(height: 18),
+            if (title != null) ...[
+              Text(
+                title!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: c.inkDim,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.1,
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: c.inkFaint,
+                fontSize: 13,
+                height: 1.55,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -131,6 +148,7 @@ class _RowState extends State<_Row> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final t = widget.task;
 
     return MouseRegion(
@@ -140,25 +158,28 @@ class _RowState extends State<_Row> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          duration: Motion.fast,
+          curve: Motion.curve,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
           decoration: BoxDecoration(
-            color: _hovered ? AppColors.hover : AppColors.surface,
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: AppColors.lineSoft),
+            color: c.surface,
+            borderRadius: R.radiusMd,
+            border: Border.all(color: _hovered ? c.line : c.lineSoft),
+            boxShadow: _hovered ? c.shadowMd : c.shadowSm,
           ),
           child: Row(
             children: [
+              // Kategori rengi ince bir dikey vuruş olarak; kutu değil, aksan.
               Container(
                 width: 3,
-                height: 26,
+                height: 30,
                 decoration: BoxDecoration(
                   color: t.color,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,24 +188,25 @@ class _RowState extends State<_Row> {
                       t.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.ink,
+                      style: TextStyle(
+                        color: c.ink,
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,
+                        letterSpacing: -0.1,
                       ),
                     ),
                     if (t.categoryName.isNotEmpty || t.scheduled)
                       Padding(
-                        padding: const EdgeInsets.only(top: 2),
+                        padding: const EdgeInsets.only(top: 3),
                         child: Text(
                           [
                             if (t.scheduled) t.timeString,
                             if (t.categoryName.isNotEmpty) t.categoryName,
-                          ].join(' · '),
+                          ].join('  ·  '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.inkFaint,
+                          style: TextStyle(
+                            color: c.inkFaint,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -196,8 +218,8 @@ class _RowState extends State<_Row> {
               const SizedBox(width: 10),
               Text(
                 widget.trailing,
-                style: const TextStyle(
-                  color: AppColors.inkDim,
+                style: TextStyle(
+                  color: c.inkDim,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
