@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/connectivity.dart';
+import '../core/navigation_controller.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
 import '../theme.dart';
@@ -15,20 +16,6 @@ import 'routines_screen.dart';
 import 'todos_screen.dart';
 import 'week_view_screen.dart';
 import 'year_view_screen.dart';
-
-/// Kenar çubuğunun açtığı bölümler.
-enum AppSection {
-  year,
-  month,
-  week,
-  hour,
-  routines,
-  todos,
-  notes,
-  habits,
-  reports,
-  account,
-}
 
 class _NavItem {
   final AppSection section;
@@ -65,9 +52,6 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  /// Açılış bölümü: haftalık görünüm. Uygulamanın ana ekranı budur — kullanıcı
-  /// açtığında "bu hafta ne var" sorusunun cevabıyla karşılaşır.
-  AppSection _section = AppSection.week;
   bool _collapsed = false;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -77,31 +61,31 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _trackScreen(_section);
+      if (mounted) _trackScreen(ref.read(navigationProvider).section);
     });
   }
 
   void _trackScreen(AppSection s) => ref.read(telemetryProvider).screen(s.name);
 
   void _select(AppSection s) {
-    if (s != _section) _trackScreen(s);
-    setState(() => _section = s);
+    if (s != ref.read(navigationProvider).section) _trackScreen(s);
+    ref.read(navigationProvider.notifier).go(s);
     // Drawer açıksa (dar ekran) seçimden sonra kapansın.
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       Navigator.of(context).pop();
     }
   }
 
-  Widget _contentFor(AppSection s) {
-    switch (s) {
+  Widget _contentFor(NavState nav) {
+    switch (nav.section) {
       case AppSection.year:
         return const YearViewScreen();
       case AppSection.month:
-        return const MonthlyViewScreen();
+        return MonthlyViewScreen(initialMonth: nav.month);
       case AppSection.week:
         return const WeekViewScreen();
       case AppSection.hour:
-        return DayViewScreen(date: DateTime.now());
+        return DayViewScreen(date: nav.day ?? DateTime.now());
       case AppSection.routines:
         return const RoutinesScreen();
       case AppSection.todos:
@@ -121,6 +105,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final wide = MediaQuery.sizeOf(context).width >= _breakpoint;
+    final nav = ref.watch(navigationProvider);
 
     final content = AnimatedSwitcher(
       duration: Motion.slow,
@@ -137,8 +122,11 @@ class _AppShellState extends ConsumerState<AppShell> {
         ),
       ),
       child: KeyedSubtree(
-        key: ValueKey(_section),
-        child: _contentFor(_section),
+        // Anahtar bölümü *ve* hedefi taşıyor: yıl görünümünden başka bir aya
+        // geçmek aynı bölümde kalır, anahtar yalnız bölüm olsaydı ay ekranı
+        // eski ayıyla ayakta kalırdı.
+        key: ValueKey(nav),
+        child: _contentFor(nav),
       ),
     );
 
@@ -154,7 +142,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   right: Radius.circular(R.lg),
                 ),
               ),
-              child: _Sidebar(selected: _section, onSelect: _select),
+              child: _Sidebar(selected: nav.section, onSelect: _select),
             ),
       appBar: wide
           ? null
@@ -167,7 +155,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         children: [
           if (wide)
             _Sidebar(
-              selected: _section,
+              selected: nav.section,
               onSelect: _select,
               collapsed: _collapsed,
               onToggleCollapse: () => setState(() => _collapsed = !_collapsed),

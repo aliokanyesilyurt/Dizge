@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/navigation_controller.dart';
 import '../data/app_store.dart';
 import '../theme.dart';
-import 'monthly_view_screen.dart';
 
 class YearViewScreen extends ConsumerWidget {
   final int? year;
@@ -51,12 +51,11 @@ class YearViewScreen extends ConsumerWidget {
               month: index + 1,
               monthName: _months[index],
               store: store,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MonthlyViewScreen(initialMonth: index),
-                ),
-              ),
+              // Rota itmiyoruz: yeni rota kabuğun üstüne biner ve kenar çubuğu
+              // kaybolurdu. Ay, yılın *üstü* değil aynı takvimin bir kademe
+              // yakını — kabuğun bölümü değişiyor, çerçeve yerinde kalıyor.
+              onTap: () =>
+                  ref.read(navigationProvider.notifier).openMonth(index),
             );
           },
         ),

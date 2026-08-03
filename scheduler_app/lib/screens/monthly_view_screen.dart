@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/navigation_controller.dart';
 import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
-import 'day_view_screen.dart';
-import 'year_view_screen.dart';
 
 class MonthlyViewScreen extends ConsumerStatefulWidget {
   /// Açılışta gösterilecek ay (0 = Ocak). Boşsa içinde bulunulan ay.
@@ -44,10 +43,9 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
     }
   }
 
-  Future<void> _openDay(DateTime date) => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => DayViewScreen(date: date)),
-      );
+  // Gün de ayın üstüne binen bir rota değil, kabuğun bir alt kademesi.
+  void _openDay(DateTime date) =>
+      ref.read(navigationProvider.notifier).openDay(date);
 
   Future<void> _openRoutines() => showModalBottomSheet(
         context: context,
@@ -119,13 +117,8 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
           IconButton(
             icon: Icon(Icons.grid_view_rounded, color: c.inkDim, size: 19),
             tooltip: '12 ay',
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => YearViewScreen(year: year)),
-              );
-              if (mounted) setState(() {});
-            },
+            onPressed: () =>
+                ref.read(navigationProvider.notifier).go(AppSection.year),
           ),
           Expanded(
             child: Column(
