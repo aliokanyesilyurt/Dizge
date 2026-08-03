@@ -529,7 +529,10 @@ class _HourGutter extends StatelessWidget {
               // gizler.
               (h >= 24 || h == 0) ? '' : '${h.toString().padLeft(2, '0')}:00',
               style: TextStyle(
-                color: c.inkFaint,
+                // `inkFaint` değil: 10.5px'te zemine karşı 3.2:1 kalıyordu ve
+                // saat sütunu dekorasyon değil, saati oradan okuyorsun.
+                // `inkDim` hâlâ ikincil ama AA'yı iki temada da geçiyor.
+                color: c.inkDim,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.2,

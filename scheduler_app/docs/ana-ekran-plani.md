@@ -1,6 +1,6 @@
 # Ana Ekran Planı — Haftalık Zaman Izgarası
 
-**Durum:** uygulanıyor — D0 · D1 · D2 · D3 bitti, sıradaki **D4** ·
+**Durum:** uygulanıyor — D0 · D1 · D2 · D3 · D4 bitti, sıradaki **D5** ·
 **Tarih:** 2 Ağustos 2026 (son güncelleme 3 Ağustos 2026)
 **Yöntem:** `frontend-ui-engineering` + `incremental-implementation`
 **Dal:** `ana-ekran-shadcn`
@@ -150,7 +150,7 @@ ShadApp.custom
          ├─ UntimedRow                  (mevcut)
          │  └─ ShadBadge.secondary      (saatsiz iş çipleri)
          └─ WeekTimeGrid                (iç mantık değişmez)
-            ├─ _HourGutter              → ShadTheme.textTheme.muted
+            ├─ _HourGutter              → inkDim (muted değil: 10.5px'te AA)
             ├─ _GridPainter             → colorScheme.border
             ├─ _EventBlock              → + ShadContextMenu (sağ tık)
             │                             + ShadTooltip (kısa bloklarda tam ad)
@@ -198,8 +198,15 @@ Sağ: yoğunluk seçici + "+ Yeni". Bugünün ağır başlık kutusu hafifler.
 Tam gün / saati belirsiz işler yatay çip şeridi.
 
 **Katman 4 — Izgara (kalan yükseklik, kaydırılabilir)**
-Sol oluk 56px, saatler sağa hizalı muted. Tam saat çizgisi `border`, yarım saat
-daha soluk. Dikey gün çizgileri en soluk. "Şimdi" çizgisi `primary`, solda 6px nokta.
+Sol oluk 56px, saatler sağa hizalı ve ikincil ağırlıkta. "Şimdi" çizgisi
+`primary`, solda 6px nokta.
+
+Çizgi hiyerarşisi (D4'te ölçülüp düzeltildi): **tam saat > dikey gün ayracı >
+yarım saat**. Planın ilk hâli gün ayracını en soluk diyordu; yanlıştı — gün
+sınırı, yarım saat tikinden daha güçlü bir bölme. Tersi olsaydı alt bölme ana
+bölmeden baskın çıkardı. Üç ağırlık da tema başına elle ayarlı kalıyor: koyu
+temada okunur bir aralık için açık temadakinden belirgin biçimde geniş bir
+yayılım gerekiyor, tek bir opaklık merdiveni ikisine birden hizmet etmiyor.
 
 **Katman 5 — Etkinlik bloğu**
 Radius `xs`(6). Sol kenarda 3px renk şeridi; gövde o rengin çok düşük opaklıkta
@@ -260,7 +267,7 @@ Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit
 | **D1** | Tipografi | Gövde yazı tipi paketlenir, `kFontFamily` güncellenir | Ekran görüntüsü karşılaştırması; taşma testleri geçer |
 | **D2** | Başlık | `WeekHeaderBar` + ShadButton/ShadSelect | Yoğunluk seçimi çalışır ve diske yazılır; yeni test |
 | **D3** | Gün başlıkları | Tipografi, bugün dairesi, `ShadBadge` sayaç | 390px'te taşma yok; hafta sonu ayrımı ≥3:1 |
-| **D4** | Izgara jetonları | `_GridPainter` + `_HourGutter` → shad jetonları | Çizim testleri geçer; iki temada da okunur |
+| **D4** | Izgara jetonları | `_GridPainter` + `_HourGutter` okunabilirliği ve çizgi hiyerarşisi teste bağlanır | Çizim testleri geçer; iki temada da okunur |
 | **D5** | Etkinlik bloğu | Şerit + soluk zemin, ✓ ikonu, `ShadTooltip` | Kontrast testi; tamamlanan blok testi genişletilir |
 | **D6** | Katmanlar | `ShadPopover`, `ShadContextMenu`, `ShadSonner` geri al | Geri alma testi (yeni) |
 | **D7** | Cila | Boş hafta `ShadCard`, klavye gezinme, Semantics, font temizliği | Erişilebilirlik kontrol listesi tam |

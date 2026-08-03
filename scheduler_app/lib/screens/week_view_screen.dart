@@ -400,7 +400,10 @@ class _DayHeaderCell extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.clip,
                   style: TextStyle(
-                    color: isToday ? c.accent : c.inkFaint,
+                    // `inkFaint` 11px'te zemine karşı 3.2:1 kalıyordu. Gün adı
+                    // hangi sütunun hangi güne ait olduğunu söyleyen tek yazı;
+                    // sessiz kalmalı ama okunmalı — `inkDim` ikisini de verir.
+                    color: isToday ? c.accent : c.inkDim,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,

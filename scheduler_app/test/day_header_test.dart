@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scheduler_app/models/task.dart';
@@ -8,14 +6,6 @@ import 'package:scheduler_app/theme.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'helpers.dart';
-
-/// WCAG 2.1 göreli parlaklık oranı. `computeLuminance` zaten sRGB'yi
-/// doğrusallaştırıyor; kalan tek iş formülün kendisi.
-double contrastRatio(Color a, Color b) {
-  final la = a.computeLuminance();
-  final lb = b.computeLuminance();
-  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
-}
 
 void main() {
   setUp(TaskRepository.all.clear);
@@ -121,6 +111,40 @@ void main() {
       }
       expect(tester.takeException(), isNull);
     });
+  });
+
+  group('gün adı okunabilirliği', () {
+    for (final (name, palette, brightness) in [
+      ('açık tema', AppPalette.light, Brightness.light),
+      ('koyu tema', AppPalette.dark, Brightness.dark),
+    ]) {
+      testWidgets('$name: PZT etiketi 4.5:1 kontrastı geçer', (tester) async {
+        useScreenSize(tester, const Size(1400, 1000));
+
+        await pumpApp(tester, const WeekViewScreen(), brightness: brightness);
+
+        // Bugün vurgulu renk kullanır; ölçmek istediğimiz sessiz hâli. Bu
+        // yüzden hedef gün "bugün olmayan" olarak hesaplanıyor — sabit bir
+        // etiket seçilseydi test haftada bir gün kendiliğinden düşerdi.
+        const weekdays = ['PZT', 'SAL', 'ÇAR', 'PER', 'CUM'];
+        final todayIndex = Task.dayKey(DateTime.now()).weekday - 1;
+        final label = tester.widget<Text>(
+          find.text(weekdays[(todayIndex + 1) % weekdays.length]),
+        );
+        final color = label.style!.color!;
+
+        // 11px etiket "büyük yazı" değil. Gün adı, hangi sütunun hangi güne
+        // ait olduğunu söyleyen tek yazı — dekorasyon sayılamaz. İki zemin de
+        // ölçülüyor: açık temada hafta sonu tonu, koyuda düz yüzey daha zorlu.
+        for (final bg in [palette.surface, palette.gridWeekend]) {
+          expect(
+            contrastRatio(color, bg),
+            greaterThanOrEqualTo(4.5),
+            reason: '$name gün adı okunmuyor',
+          );
+        }
+      });
+    }
   });
 
   group('hafta sonu ayrımı', () {

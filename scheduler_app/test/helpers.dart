@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,6 +55,7 @@ Future<ProviderContainer> pumpApp(
   Widget home, {
   void Function(AppStore store)? seed,
   List<Override> overrides = const [],
+  Brightness brightness = Brightness.dark,
 }) async {
   final container = ProviderContainer(overrides: overrides);
   addTearDown(container.dispose);
@@ -62,7 +65,7 @@ Future<ProviderContainer> pumpApp(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: testApp(home: home),
+      child: testApp(home: home, brightness: brightness),
     ),
   );
   await tester.pumpAndSettle();
@@ -74,4 +77,15 @@ void useScreenSize(WidgetTester tester, Size size) {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
+}
+
+/// WCAG 2.1 kontrast oranı (1:1 – 21:1).
+///
+/// `computeLuminance` sRGB'yi zaten doğrusallaştırıyor; kalan tek iş formülün
+/// kendisi. Palet jetonları opak olduğu için alfa harmanlaması gerekmiyor —
+/// yarı saydam bir jeton ölçülecekse önce zeminle harmanlanmalı.
+double contrastRatio(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }
