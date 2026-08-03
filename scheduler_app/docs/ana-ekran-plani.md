@@ -1,8 +1,9 @@
 # Ana Ekran Planı — Haftalık Zaman Izgarası
 
-**Durum:** onay bekliyor · **Tarih:** 2 Ağustos 2026
+**Durum:** uygulanıyor — D0 · D1 · D2 · D3 bitti, sıradaki **D4** ·
+**Tarih:** 2 Ağustos 2026 (son güncelleme 3 Ağustos 2026)
 **Yöntem:** `frontend-ui-engineering` + `incremental-implementation`
-**Onay sonrası:** `/build` ile D0'dan başlanır.
+**Dal:** `ana-ekran-shadcn`
 
 ---
 

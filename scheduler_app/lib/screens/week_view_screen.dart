@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../core/grid_density_controller.dart';
 import '../core/telemetry.dart';
@@ -166,6 +167,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                               monday: monday,
                               today: today,
                               labels: _weekDays,
+                              tasksByDay: tasksByDay,
                               onTapDay: (day) => _quickAdd(day, null),
                             ),
                             _UntimedRow(
@@ -271,20 +273,31 @@ class _DayHeaderRow extends StatelessWidget {
     required this.monday,
     required this.today,
     required this.labels,
+    required this.tasksByDay,
     required this.onTapDay,
   });
 
   final DateTime monday;
   final DateTime today;
   final List<String> labels;
+
+  /// Gün başına iş sayısı rozetini beslemek için. Izgaranın kendisi zaten bu
+  /// listeyi alıyor; başlık ikinci bir sorgu açmıyor.
+  final List<List<Task>> tasksByDay;
+
   final ValueChanged<DateTime> onTapDay;
+
+  /// Bu genişliğin altında sayaç rozeti düşer. 390px'te bir gün sütunu ~47px;
+  /// rozet oraya sığmıyor ve sığdırmaya çalışmak gün sayısını kırpardı.
+  static const double _badgeMinWidth = 700;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final showBadges = MediaQuery.sizeOf(context).width >= _badgeMinWidth;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      padding: const EdgeInsets.only(top: 6, bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -292,7 +305,7 @@ class _DayHeaderRow extends StatelessWidget {
           SizedBox(
             width: kTimeGutterWidth,
             child: Padding(
-              padding: const EdgeInsets.only(right: 10, bottom: 4),
+              padding: const EdgeInsets.only(right: 10, bottom: 6),
               child: Text(
                 _utcOffsetLabel(),
                 textAlign: TextAlign.right,
@@ -312,6 +325,7 @@ class _DayHeaderRow extends StatelessWidget {
                 label: labels[i],
                 isToday: monday.add(Duration(days: i)) == today,
                 isWeekend: i >= 5,
+                taskCount: showBadges ? tasksByDay[i].length : 0,
                 onTap: () => onTapDay(monday.add(Duration(days: i))),
               ),
             ),
@@ -338,6 +352,7 @@ class _DayHeaderCell extends StatelessWidget {
     required this.label,
     required this.isToday,
     required this.isWeekend,
+    required this.taskCount,
     required this.onTap,
   });
 
@@ -345,60 +360,112 @@ class _DayHeaderCell extends StatelessWidget {
   final String label;
   final bool isToday;
   final bool isWeekend;
+
+  /// 0 ise rozet çizilmez — hem boş gün sessiz kalır hem dar ekranda
+  /// [_DayHeaderRow] sayacı bu değeri sıfırlayarak rozeti düşürür.
+  final int taskCount;
+
   final VoidCallback onTap;
+
+  /// Bugünün sayı dairesi. 34px, 20px yazıyı 1.3 ölçeğe kadar taşır.
+  static const double _circle = 34;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: R.radiusSm,
-      hoverColor: c.hover,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: isToday
-                    ? c.accent
-                    : (isWeekend ? c.inkFaint : c.inkDim),
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-              ),
-            ),
-            const SizedBox(height: 5),
-            AnimatedContainer(
-              duration: Motion.fast,
-              curve: Motion.curve,
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isToday ? c.accent : Colors.transparent,
-                shape: BoxShape.circle,
-                boxShadow: isToday ? c.shadowSm : null,
-              ),
-              child: Text(
-                '${day.day}',
-                style: TextStyle(
-                  color: isToday
-                      ? c.onAccent
-                      : (isWeekend ? c.inkDim : c.ink),
-                  fontSize: 15,
-                  fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
-                  letterSpacing: -0.2,
+    return Semantics(
+      button: true,
+      // Ekran okuyucu "3" değil, ne olduğunu duysun.
+      label: _semanticLabel(),
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: R.radiusSm,
+        hoverColor: c.hover,
+        child: DecoratedBox(
+          // Hafta sonu ayrımı yalnız zeminde ve çok hafif. Yazıyı soluklaştırıp
+          // renkle bağırmak, cumartesiyi okunmaz yapıp hiçbir şey kazandırmaz.
+          decoration: BoxDecoration(
+            color: isWeekend ? c.gridWeekend : Colors.transparent,
+            borderRadius: R.radiusSm,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                  style: TextStyle(
+                    color: isToday ? c.accent : c.inkFaint,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                // Rozet sayının *yanında* duruyor, üstünde değil: üstte olsaydı
+                // ya satır yüksekliğini büyütürdü ya gün adını iterdi.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedContainer(
+                      duration: Motion.fast,
+                      curve: Motion.curve,
+                      width: _circle,
+                      height: _circle,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isToday ? c.accent : Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${day.day}',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: isToday ? c.onAccent : c.ink,
+                          fontSize: 20,
+                          fontWeight:
+                              isToday ? FontWeight.w600 : FontWeight.w500,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                    ),
+                    if (taskCount > 0) ...[
+                      const SizedBox(width: 4),
+                      ShadBadge.secondary(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        child: Text(
+                          '$taskCount',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  String _semanticLabel() {
+    final buffer = StringBuffer('$label ${day.day}');
+    if (isToday) buffer.write(', bugün');
+    if (taskCount > 0) buffer.write(', $taskCount iş');
+    return buffer.toString();
   }
 }
 
