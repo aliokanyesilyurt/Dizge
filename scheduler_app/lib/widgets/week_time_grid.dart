@@ -100,8 +100,9 @@ class _ResizeState {
 }
 
 class _WeekTimeGridState extends State<WeekTimeGrid> {
-  late final ScrollController _scroll =
-      ScrollController(initialScrollOffset: _initialOffset());
+  late final ScrollController _scroll = ScrollController(
+    initialScrollOffset: _initialOffset(),
+  );
 
   final GlobalKey _canvasKey = GlobalKey();
 
@@ -183,7 +184,10 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       _drag = _DragState(
         task: task,
         sourceDayIndex: dayIndex,
-        grabDy: (local.dy - blockTop).clamp(0.0, _m.hourHeight * task.durationHours),
+        grabDy: (local.dy - blockTop).clamp(
+          0.0,
+          _m.hourHeight * task.durationHours,
+        ),
         dayIndex: dayIndex,
         startHour: start,
       );
@@ -244,8 +248,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     if (local.dy < _edgeZone) {
       velocity = -(1 - local.dy / _edgeZone) * _maxAutoScrollPerTick;
     } else if (local.dy > height - _edgeZone) {
-      velocity =
-          (1 - (height - local.dy) / _edgeZone) * _maxAutoScrollPerTick;
+      velocity = (1 - (height - local.dy) / _edgeZone) * _maxAutoScrollPerTick;
     }
 
     _autoScrollVelocity = velocity;
@@ -261,8 +264,10 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
 
   void _tickAutoScroll() {
     if (!_scroll.hasClients || _drag == null) return _stopAutoScroll();
-    final target = (_scroll.offset + _autoScrollVelocity)
-        .clamp(0.0, _scroll.position.maxScrollExtent);
+    final target = (_scroll.offset + _autoScrollVelocity).clamp(
+      0.0,
+      _scroll.position.maxScrollExtent,
+    );
     if (target == _scroll.offset) return;
     _scroll.jumpTo(target);
   }
@@ -277,15 +282,18 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
 
   void _onResizeStart(Task task) {
     HapticFeedback.selectionClick();
-    setState(() => _resize = _ResizeState(task: task, duration: task.durationHours));
+    setState(
+      () => _resize = _ResizeState(task: task, duration: task.durationHours),
+    );
   }
 
   void _onResizeUpdate(DragUpdateDetails details) {
     final resize = _resize;
     if (resize == null) return;
     final start = resize.task.startHour ?? 0;
-    final next = snapHour(resize.duration + details.delta.dy / _m.hourHeight)
-        .clamp(kMinDurationHours, _m.dayEnd - start);
+    final next = snapHour(
+      resize.duration + details.delta.dy / _m.hourHeight,
+    ).clamp(kMinDurationHours, _m.dayEnd - start);
     if (next != resize.duration) {
       setState(() => resize.duration = next);
     }
@@ -361,7 +369,8 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                       ..._buildBlocks(width),
 
                       // 4) "Şu an" çizgisi.
-                      if (_todayIndex != null) _nowIndicator(c, width, _todayIndex!),
+                      if (_todayIndex != null)
+                        _nowIndicator(c, width, _todayIndex!),
 
                       // 5) Sürüklenen bloğun hayaleti (en üstte).
                       if (_drag != null) _dragGhost(width, _drag!),
@@ -378,9 +387,11 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
 
   /// Bugünün hafta içindeki sırası (0-6); bu haftada değilse null.
   int? get _todayIndex {
-    final diff = DateTime(widget.today.year, widget.today.month, widget.today.day)
-        .difference(widget.monday)
-        .inDays;
+    final diff = DateTime(
+      widget.today.year,
+      widget.today.month,
+      widget.today.day,
+    ).difference(widget.monday).inDays;
     return (diff >= 0 && diff < 7) ? diff : null;
   }
 
@@ -390,8 +401,9 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
 
     for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
       final day = _dayAt(dayIndex);
-      final scheduled =
-          widget.tasksByDay[dayIndex].where((t) => t.scheduled).toList();
+      final scheduled = widget.tasksByDay[dayIndex]
+          .where((t) => t.scheduled)
+          .toList();
       if (scheduled.isEmpty) continue;
 
       // Çakışanları sütunlara paylaştır (saf mantık, core/time_grid.dart).
@@ -413,40 +425,47 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
         // Google Takvim'deki gibi bloklar sütun kenarlarına yapışmaz; aralarında
         // ince bir nefes payı kalır.
         const gap = 3.0;
-        final left = dayIndex * columnWidth +
+        final left =
+            dayIndex * columnWidth +
             slot.leftFraction * (columnWidth - gap) +
             gap / 2;
-        final width =
-            math.max(12.0, slot.widthFraction * (columnWidth - gap) - gap / 2);
-        final height =
-            math.max(_m.hourHeight * kMinDurationHours, duration * _m.hourHeight - 2);
+        final width = math.max(
+          12.0,
+          slot.widthFraction * (columnWidth - gap) - gap / 2,
+        );
+        final height = math.max(
+          _m.hourHeight * kMinDurationHours,
+          duration * _m.hourHeight - 2,
+        );
 
-        blocks.add(Positioned(
-          left: left,
-          top: _m.yFor(slot.start),
-          width: width,
-          height: height,
-          child: Opacity(
-            // Sürüklenen bloğun aslı soluklaşır; hayaleti parmağı takip eder.
-            opacity: dragging ? 0.28 : 1,
-            child: _EventBlock(
-              task: task,
-              day: day,
-              done: task.isDoneOn(day),
-              // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
-              compact: height < 34,
-              onEdit: () => widget.onTapTask(task, day),
-              onDuplicate: () => widget.onDuplicate(task, day),
-              onDelete: () => widget.onDelete(task),
-              onLongPressStart: (d) => _onDragStart(task, dayIndex, d),
-              onLongPressMoveUpdate: _onDragUpdate,
-              onLongPressEnd: (_) => _onDragEnd(),
-              onResizeStart: () => _onResizeStart(task),
-              onResizeUpdate: _onResizeUpdate,
-              onResizeEnd: _onResizeEnd,
+        blocks.add(
+          Positioned(
+            left: left,
+            top: _m.yFor(slot.start),
+            width: width,
+            height: height,
+            child: Opacity(
+              // Sürüklenen bloğun aslı soluklaşır; hayaleti parmağı takip eder.
+              opacity: dragging ? 0.28 : 1,
+              child: _EventBlock(
+                task: task,
+                day: day,
+                done: task.isDoneOn(day),
+                // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
+                compact: height < 34,
+                onEdit: () => widget.onTapTask(task, day),
+                onDuplicate: () => widget.onDuplicate(task, day),
+                onDelete: () => widget.onDelete(task),
+                onLongPressStart: (d) => _onDragStart(task, dayIndex, d),
+                onLongPressMoveUpdate: _onDragUpdate,
+                onLongPressEnd: (_) => _onDragEnd(),
+                onResizeStart: () => _onResizeStart(task),
+                onResizeUpdate: _onResizeUpdate,
+                onResizeEnd: _onResizeEnd,
+              ),
             ),
           ),
-        ));
+        );
       }
     }
     return blocks;
@@ -674,11 +693,68 @@ class _EventBlockState extends State<_EventBlock> {
   /// izlemek gerekirdi.
   final _preview = ShadPopoverController();
 
+  /// Klavye odağı. Düğüm açıkça tutuluyor: `Focus`'un kendi ürettiği düğüme
+  /// dışarıdan erişilemiyor ve blok, ızgaranın tek klavye hedefi.
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: 'blok-${widget.task.id}',
+  );
+
+  bool _focused = false;
+
   @override
   void dispose() {
+    _focusNode.dispose();
     _preview.dispose();
     super.dispose();
   }
+
+  /// Odaklıyken Enter düzenler, Delete/Backspace siler.
+  ///
+  /// Fare olmadan bir bloğa erişmenin başka yolu yoktu: ızgara tamamen jest
+  /// üzerine kuruluydu ve klavyeyle yalnız başlık çubuğuna ulaşılabiliyordu.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.enter:
+      case LogicalKeyboardKey.numpadEnter:
+        widget.onEdit();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.delete:
+      case LogicalKeyboardKey.backspace:
+        widget.onDelete();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.space:
+        _preview.toggle();
+        return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  /// Ekran okuyucunun duyduğu cümle: "Toplantı, Salı 14:00 – 15:30, tamamlandı".
+  ///
+  /// Blok içindeki parçalar `excludeSemantics` ile susturuluyor; yoksa okuyucu
+  /// başlığı, saati ve ikonları ayrı ayrı, bağlamsız okurdu.
+  String get _semanticLabel {
+    final task = widget.task;
+    final parts = <String>[
+      task.title.isEmpty ? 'Başlıksız' : task.title,
+      '${_weekdayNames[widget.day.weekday - 1]} ${task.timeString}',
+      if (task.isRoutine) 'rutin',
+      if (widget.done) 'tamamlandı',
+    ];
+    return parts.join(', ');
+  }
+
+  static const _weekdayNames = [
+    'Pazartesi',
+    'Salı',
+    'Çarşamba',
+    'Perşembe',
+    'Cuma',
+    'Cumartesi',
+    'Pazar',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -706,12 +782,13 @@ class _EventBlockState extends State<_EventBlock> {
 
     // Tamamlandı yalnız renge/çizgiye dayanmaz: ✓ ikonu da var (WCAG 1.4.1).
     final marks = <Widget>[
-      if (done)
-        Icon(Icons.check, size: compact ? 10 : 11, color: style.ink),
+      if (done) Icon(Icons.check, size: compact ? 10 : 11, color: style.ink),
       if (task.isRoutine)
-        Icon(Icons.repeat,
-            size: compact ? 9.5 : 10,
-            color: style.ink.withValues(alpha: 0.85)),
+        Icon(
+          Icons.repeat,
+          size: compact ? 9.5 : 10,
+          color: style.ink.withValues(alpha: 0.85),
+        ),
     ];
 
     final body = Container(
@@ -722,10 +799,12 @@ class _EventBlockState extends State<_EventBlock> {
               children: [
                 for (final mark in marks) ...[mark, const SizedBox(width: 3)],
                 Flexible(
-                  child: Text(title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: titleStyle),
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
                 ),
                 const SizedBox(width: 4),
                 Text(task.startString, maxLines: 1, style: timeStyle),
@@ -750,10 +829,12 @@ class _EventBlockState extends State<_EventBlock> {
                     ),
                   ],
                 ),
-                Text(task.timeString,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: timeStyle),
+                Text(
+                  task.timeString,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: timeStyle,
+                ),
               ],
             ),
     );
@@ -762,80 +843,105 @@ class _EventBlockState extends State<_EventBlock> {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          // Önizleme en dışta: bloğun tamamına çapalanır, böylece açılan kart
-          // bloğun kenarından çıkar, içindeki bir metnin yanından değil.
-          child: ShadPopover(
-            controller: _preview,
-            popover: (context) => _Preview(
-              task: task,
-              day: widget.day,
-              done: done,
-              onEdit: () {
-                _preview.hide();
-                widget.onEdit();
-              },
-            ),
-            // Sağ tık menüsü: içerideki uzun basma sürükleme başlatıyor ve
-            // `longPressEnabled` açık olsaydı taşımaya çalışan her el hareketi
-            // menüyü açardı. Menü yalnız sağ tıkla gelir.
-            child: ShadContextMenuRegion(
-              longPressEnabled: false,
-              items: [
-                ShadContextMenuItem(
-                  leading: const Icon(Icons.edit_outlined, size: 16),
-                  onPressed: widget.onEdit,
-                  child: const Text('Düzenle'),
-                ),
-                ShadContextMenuItem(
-                  leading: const Icon(Icons.copy_outlined, size: 16),
-                  onPressed: widget.onDuplicate,
-                  child: const Text('Kopyala'),
-                ),
-                ShadContextMenuItem(
-                  leading: const Icon(Icons.delete_outline, size: 16),
-                  onPressed: widget.onDelete,
-                  child: const Text('Sil'),
-                ),
-              ],
-              child: GestureDetector(
-                onTap: _preview.toggle,
-                onLongPressStart: widget.onLongPressStart,
-                onLongPressMoveUpdate: widget.onLongPressMoveUpdate,
-                onLongPressEnd: widget.onLongPressEnd,
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: style.fill,
-                    borderRadius: R.radiusXs,
-                    // Yan yana aynı renkli iki blok birbirine karışmasın.
-                    border: Border.all(color: style.edge, width: 0.8),
+          child: Semantics(
+            button: true,
+            label: _semanticLabel,
+            excludeSemantics: true,
+            onTap: widget.onEdit,
+            child: Focus(
+              key: ValueKey('focus-${task.id}'),
+              focusNode: _focusNode,
+              onKeyEvent: _onKey,
+              onFocusChange: (has) => setState(() => _focused = has),
+              child: DecoratedBox(
+                // Odak halkası bloğun *dışına* çiziliyor: içeri çizilseydi
+                // 15 dakikalık bir blokta yazının üstüne binerdi.
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(R.xs + 2),
+                  border: Border.all(
+                    color: _focused ? c.accent : Colors.transparent,
+                    width: 2,
                   ),
-                  child: ClipRRect(
-                    borderRadius: R.radiusXs,
-                    child: Row(
-                      // Şerit bloğun tam boyunca inmeli; stretch olmazsa
-                      // içeriğin yüksekliği kadar kalıp yarım şerit gibi durur.
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(
-                          width: 3,
-                          child: ColoredBox(color: style.stripe),
+                ),
+                position: DecorationPosition.foreground,
+                // Önizleme burada: bloğun tamamına çapalanır, böylece açılan
+                // kart bloğun kenarından çıkar, içindeki bir metnin yanından
+                // değil.
+                child: ShadPopover(
+                  controller: _preview,
+                  popover: (context) => _Preview(
+                    task: task,
+                    day: widget.day,
+                    done: done,
+                    onEdit: () {
+                      _preview.hide();
+                      widget.onEdit();
+                    },
+                  ),
+                  // Sağ tık menüsü: içerideki uzun basma sürükleme başlatıyor ve
+                  // `longPressEnabled` açık olsaydı taşımaya çalışan her el hareketi
+                  // menüyü açardı. Menü yalnız sağ tıkla gelir.
+                  child: ShadContextMenuRegion(
+                    longPressEnabled: false,
+                    items: [
+                      ShadContextMenuItem(
+                        leading: const Icon(Icons.edit_outlined, size: 16),
+                        onPressed: widget.onEdit,
+                        child: const Text('Düzenle'),
+                      ),
+                      ShadContextMenuItem(
+                        leading: const Icon(Icons.copy_outlined, size: 16),
+                        onPressed: widget.onDuplicate,
+                        child: const Text('Kopyala'),
+                      ),
+                      ShadContextMenuItem(
+                        leading: const Icon(Icons.delete_outline, size: 16),
+                        onPressed: widget.onDelete,
+                        child: const Text('Sil'),
+                      ),
+                    ],
+                    child: GestureDetector(
+                      onTap: _preview.toggle,
+                      onLongPressStart: widget.onLongPressStart,
+                      onLongPressMoveUpdate: widget.onLongPressMoveUpdate,
+                      onLongPressEnd: widget.onLongPressEnd,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: style.fill,
+                            borderRadius: R.radiusXs,
+                            // Yan yana aynı renkli iki blok birbirine karışmasın.
+                            border: Border.all(color: style.edge, width: 0.8),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: R.radiusXs,
+                            child: Row(
+                              // Şerit bloğun tam boyunca inmeli; stretch olmazsa
+                              // içeriğin yüksekliği kadar kalıp yarım şerit gibi durur.
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(
+                                  width: 3,
+                                  child: ColoredBox(color: style.stripe),
+                                ),
+                                Expanded(
+                                  child: compact
+                                      // Kısa blokta başlık kırpılıyor; tam adı yalnız
+                                      // burada tooltip veriyor. Uzun blokta zaten
+                                      // görünüyor, orada tooltip gürültü olurdu.
+                                      ? ShadTooltip(
+                                          builder: (context) => Text(title),
+                                          child: body,
+                                        )
+                                      : body,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        Expanded(
-                          child: compact
-                              // Kısa blokta başlık kırpılıyor; tam adı yalnız
-                              // burada tooltip veriyor. Uzun blokta zaten
-                              // görünüyor, orada tooltip gürültü olurdu.
-                              ? ShadTooltip(
-                                  builder: (context) => Text(title),
-                                  child: body,
-                                )
-                              : body,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
                   ),
                 ),
               ),
@@ -860,17 +966,15 @@ class _EventBlockState extends State<_EventBlock> {
             gestures: {
               _EagerVerticalDragRecognizer:
                   GestureRecognizerFactoryWithHandlers<
-                      _EagerVerticalDragRecognizer>(
-                _EagerVerticalDragRecognizer.new,
-                (recognizer) {
-                  // Not: burada cascade (`..`) kullanılamaz — ok gövdeli
-                  // lambda içinde cascade geri çağırıma bağlanır.
-                  recognizer.onStart = (_) => widget.onResizeStart();
-                  recognizer.onUpdate = widget.onResizeUpdate;
-                  recognizer.onEnd = (_) => widget.onResizeEnd();
-                  recognizer.onCancel = widget.onResizeEnd;
-                },
-              ),
+                    _EagerVerticalDragRecognizer
+                  >(_EagerVerticalDragRecognizer.new, (recognizer) {
+                    // Not: burada cascade (`..`) kullanılamaz — ok gövdeli
+                    // lambda içinde cascade geri çağırıma bağlanır.
+                    recognizer.onStart = (_) => widget.onResizeStart();
+                    recognizer.onUpdate = widget.onResizeUpdate;
+                    recognizer.onEnd = (_) => widget.onResizeEnd();
+                    recognizer.onCancel = widget.onResizeEnd;
+                  }),
             },
             child: MouseRegion(
               cursor: SystemMouseCursors.resizeUpDown,
@@ -921,7 +1025,8 @@ class _Preview extends StatelessWidget {
       (Icons.schedule, task.timeString),
       if (task.repeat.type != RepeatType.once)
         (Icons.repeat, task.repeat.describe(task.date)),
-      if (task.categoryName.isNotEmpty) (Icons.label_outline, task.categoryName),
+      if (task.categoryName.isNotEmpty)
+        (Icons.label_outline, task.categoryName),
       if (task.place.isNotEmpty) (Icons.place_outlined, task.place),
       if (task.note.isNotEmpty) (Icons.notes, task.note),
     ];

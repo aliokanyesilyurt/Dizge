@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -62,16 +63,28 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
 
   static const _weekDays = ['PZT', 'SAL', 'ÇAR', 'PER', 'CUM', 'CMT', 'PAZ'];
   static const _months = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
   ];
 
   void _goToPage(int page, {String reason = 'arrow'}) {
     _pages.animateToPage(page, duration: Motion.slow, curve: Motion.curve);
-    ref.read(telemetryProvider).capture(Ev.weekChanged, props: {
-      'delta': page - _page,
-      'reason': reason,
-    });
+    ref
+        .read(telemetryProvider)
+        .capture(
+          Ev.weekChanged,
+          props: {'delta': page - _page, 'reason': reason},
+        );
   }
 
   void _shift(int weeks) => _goToPage(_page + weeks);
@@ -101,11 +114,9 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
 
   void _move(Task task, DateTime toDay, double newStartHour) {
     final undo = _snapshot(task);
-    ref.read(appStoreProvider).moveTask(
-          task,
-          toDay: toDay,
-          newStartHour: newStartHour,
-        );
+    ref
+        .read(appStoreProvider)
+        .moveTask(task, toDay: toDay, newStartHour: newStartHour);
     _offerUndo('İş taşındı', undo);
   }
 
@@ -189,101 +200,151 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     final density = ref.watch(gridDensityProvider);
     final metrics = GridMetrics(hourHeight: density.hourHeight);
 
-    return Scaffold(
-      backgroundColor: c.bg,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            WeekHeaderBar(
-              rangeLabel: _rangeLabel(_monday),
-              offsetLabel: _page == _anchorPage
-                  ? 'Bu hafta'
-                  : '${_weekOffsetLabel()} hafta',
-              isCurrentWeek: _page == _anchorPage,
-              density: density,
-              onPrevious: () => _shift(-1),
-              onNext: () => _shift(1),
-              onToday: _goToToday,
-              onDensityChanged: (next) =>
-                  ref.read(gridDensityProvider.notifier).set(next),
-              onCreate: _createFromHeader,
-            ),
-            Expanded(
-              child: PageView.builder(
-                controller: _pages,
-                onPageChanged: (page) {
-                  setState(() => _page = page);
-                  ref.read(telemetryProvider).capture(Ev.weekChanged, props: {
-                    'delta': 0,
-                    'reason': 'swipe',
-                  });
-                },
-                itemBuilder: (context, page) {
-                  final monday =
-                      _anchorMonday.add(Duration(days: 7 * (page - _anchorPage)));
-                  final tasksByDay = store.tasksForWeek(monday);
+    // Sol/sağ ok hafta değiştirir. Buradaki `Shortcuts`, odağa uygulamanın
+    // kendi varsayılan ok tuşu kısayollarından (yön tabanlı odak gezinme) daha
+    // yakın olduğu için o kazanır. Düzenleyici/hızlı ekleme ayrı bir rota
+    // olduğundan metin alanlarındaki ok tuşları buraya hiç ulaşmaz.
+    return Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.arrowLeft): _ShiftWeekIntent(-1),
+        SingleActivator(LogicalKeyboardKey.arrowRight): _ShiftWeekIntent(1),
+      },
+      child: Actions(
+        actions: {
+          _ShiftWeekIntent: CallbackAction<_ShiftWeekIntent>(
+            onInvoke: (intent) {
+              _shift(intent.weeks);
+              return null;
+            },
+          ),
+        },
+        // Odak zincirine bir giriş noktası: `Shortcuts` yalnız odaklanmış
+        // düğümün atalarında aranır, ekranda hiçbir şey odaklı değilse ok
+        // tuşları buraya hiç ulaşmazdı.
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            backgroundColor: c.bg,
+            body: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  WeekHeaderBar(
+                    rangeLabel: _rangeLabel(_monday),
+                    offsetLabel: _page == _anchorPage
+                        ? 'Bu hafta'
+                        : '${_weekOffsetLabel()} hafta',
+                    isCurrentWeek: _page == _anchorPage,
+                    density: density,
+                    onPrevious: () => _shift(-1),
+                    onNext: () => _shift(1),
+                    onToday: _goToToday,
+                    onDensityChanged: (next) =>
+                        ref.read(gridDensityProvider.notifier).set(next),
+                    onCreate: _createFromHeader,
+                  ),
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pages,
+                      onPageChanged: (page) {
+                        setState(() => _page = page);
+                        ref
+                            .read(telemetryProvider)
+                            .capture(
+                              Ev.weekChanged,
+                              props: {'delta': 0, 'reason': 'swipe'},
+                            );
+                      },
+                      itemBuilder: (context, page) {
+                        final monday = _anchorMonday.add(
+                          Duration(days: 7 * (page - _anchorPage)),
+                        );
+                        final tasksByDay = store.tasksForWeek(monday);
 
-                  return Column(
-                    children: [
-                      // Gün başlıkları + saatsiz şeridi tek yükseltilmiş katman.
-                      _Chrome(
-                        child: Column(
+                        return Column(
                           children: [
-                            _DayHeaderRow(
-                              monday: monday,
-                              today: today,
-                              labels: _weekDays,
-                              tasksByDay: tasksByDay,
-                              onTapDay: (day) => _quickAdd(day, null),
+                            // Gün başlıkları + saatsiz şeridi tek yükseltilmiş katman.
+                            _Chrome(
+                              child: Column(
+                                children: [
+                                  _DayHeaderRow(
+                                    monday: monday,
+                                    today: today,
+                                    labels: _weekDays,
+                                    tasksByDay: tasksByDay,
+                                    onTapDay: (day) => _quickAdd(day, null),
+                                  ),
+                                  _UntimedRow(
+                                    monday: monday,
+                                    tasksByDay: tasksByDay,
+                                    onTapTask: (task, day) =>
+                                        _openEditor(day, existing: task),
+                                    onToggle: (task, day) => store.setTaskDone(
+                                      task,
+                                      day,
+                                      !task.isDoneOn(day),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            _UntimedRow(
-                              monday: monday,
-                              tasksByDay: tasksByDay,
-                              onTapTask: (task, day) =>
-                                  _openEditor(day, existing: task),
-                              onToggle: (task, day) => store.setTaskDone(
-                                task,
-                                day,
-                                !task.isDoneOn(day),
+                            // Izgara, sayfa zeminine değil kendi beyaz yaprağına
+                            // çizilir: başlıkla birlikte tek bir yükseltilmiş yüzey.
+                            Expanded(
+                              child: ColoredBox(
+                                color: c.surface,
+                                child: Stack(
+                                  children: [
+                                    WeekTimeGrid(
+                                      // Sayfa değiştikçe yeni durum kurulsun ama aynı
+                                      // hafta için gereksiz yeniden kurulum olmasın.
+                                      key: ValueKey(
+                                        'week-${monday.toIso8601String()}',
+                                      ),
+                                      monday: monday,
+                                      tasksByDay: tasksByDay,
+                                      metrics: metrics,
+                                      today: today,
+                                      scrollOffset: _sharedScrollOffset,
+                                      initialScrollHour:
+                                          _sharedScrollOffset.value > 0
+                                          ? null
+                                          : _openingHour,
+                                      onTapTask: (task, day) =>
+                                          _openEditor(day, existing: task),
+                                      onTapEmpty: _quickAdd,
+                                      onMove: _move,
+                                      onResize: _resize,
+                                      onDuplicate: _duplicate,
+                                      onDelete: _delete,
+                                    ),
+                                    // Boş hafta kartı ızgaranın *üstünde* ama yalnız
+                                    // kendi alanını kaplıyor: kalan her yer hâlâ
+                                    // tıklanabilir, yani "boş alana dokun → ekle"
+                                    // yolu kapanmıyor.
+                                    if (tasksByDay.every((day) => day.isEmpty))
+                                      Align(
+                                        alignment: const Alignment(0, -0.35),
+                                        child: _EmptyWeekCard(
+                                          onCreate: () => _quickAdd(
+                                            monday.add(const Duration(days: 3)),
+                                            9,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      // Izgara, sayfa zeminine değil kendi beyaz yaprağına
-                      // çizilir: başlıkla birlikte tek bir yükseltilmiş yüzey.
-                      Expanded(
-                        child: ColoredBox(
-                          color: c.surface,
-                          child: WeekTimeGrid(
-                            // Sayfa değiştikçe yeni durum kurulsun ama aynı
-                            // hafta için gereksiz yeniden kurulum olmasın.
-                            key: ValueKey('week-${monday.toIso8601String()}'),
-                            monday: monday,
-                            tasksByDay: tasksByDay,
-                            metrics: metrics,
-                            today: today,
-                            scrollOffset: _sharedScrollOffset,
-                            initialScrollHour: _sharedScrollOffset.value > 0
-                                ? null
-                                : _openingHour,
-                            onTapTask: (task, day) =>
-                                _openEditor(day, existing: task),
-                            onTapEmpty: _quickAdd,
-                            onMove: _move,
-                            onResize: _resize,
-                            onDuplicate: _duplicate,
-                            onDelete: _delete,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
       // Kayan düğme yok: başlıktaki "Yeni" ile aynı işi yapıyordu ve ekranda
@@ -302,9 +363,9 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   /// yazmak neredeyse hep yanlışlıktır. Geçmiş bir güne bilerek eklemek için
   /// ızgarada o saate tıklamak var — o niyet açık.
   Future<void> _createFromHeader() => _quickAdd(
-        Task.dayKey(DateTime.now()),
-        snapHour(hourOfDay(DateTime.now()), minutes: 30),
-      );
+    Task.dayKey(DateTime.now()),
+    snapHour(hourOfDay(DateTime.now()), minutes: 30),
+  );
 
   String _weekOffsetLabel() {
     final delta = _page - _anchorPage;
@@ -314,6 +375,58 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   }
 }
 
+/// Hafta değiştirme niyeti; sol/sağ ok tuşlarına bağlı.
+class _ShiftWeekIntent extends Intent {
+  const _ShiftWeekIntent(this.weeks);
+  final int weeks;
+}
+
+/// Hiç işi olmayan haftada görünen kart.
+///
+/// Boş ızgara tek başına "burada bir şey yok" demiyordu — kullanıcı veriyi mi
+/// kaybettiğini yoksa haftanın gerçekten boş mu olduğunu ayırt edemiyordu.
+class _EmptyWeekCard extends StatelessWidget {
+  const _EmptyWeekCard({required this.onCreate});
+
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: ShadCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bu hafta boş',
+              style: TextStyle(
+                color: c.ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Izgarada boş bir saate dokunarak ya da aşağıdan hızlıca iş '
+              'ekleyebilirsin.',
+              style: TextStyle(color: c.inkDim, fontSize: 12.5, height: 1.35),
+            ),
+            const SizedBox(height: 12),
+            ShadButton(
+              size: ShadButtonSize.sm,
+              onPressed: onCreate,
+              child: const Text('Yeni iş'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 // --- Ortak küçük parçalar ----------------------------------------------------
 
 /// Gün başlıkları + saatsiz şeridini taşıyan yükseltilmiş yüzey.
@@ -501,8 +614,9 @@ class _DayHeaderCell extends StatelessWidget {
                         style: TextStyle(
                           color: isToday ? c.onAccent : c.ink,
                           fontSize: 20,
-                          fontWeight:
-                              isToday ? FontWeight.w600 : FontWeight.w500,
+                          fontWeight: isToday
+                              ? FontWeight.w600
+                              : FontWeight.w500,
                           letterSpacing: -0.4,
                         ),
                       ),
@@ -571,8 +685,10 @@ class _UntimedRow extends StatelessWidget {
     final untimed = [
       for (final day in tasksByDay) day.where((t) => !t.scheduled).toList(),
     ];
-    final maxCount =
-        untimed.fold<int>(0, (m, list) => list.length > m ? list.length : m);
+    final maxCount = untimed.fold<int>(
+      0,
+      (m, list) => list.length > m ? list.length : m,
+    );
     if (maxCount == 0) return const SizedBox.shrink();
 
     final rows = maxCount.clamp(1, _maxRows.toInt());

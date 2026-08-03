@@ -103,12 +103,9 @@ flutter:
           weight: 600
         - asset: assets/fonts/Inter-Bold.ttf
           weight: 700
-    - family: PatrickHand
-      fonts:
-        - asset: assets/fonts/PatrickHand-Regular.ttf
-    - family: PermanentMarker
-      fonts:
-        - asset: assets/fonts/PermanentMarker-Regular.ttf
+    # PatrickHand ve PermanentMarker kaldırıldı (D7): paketleniyorlardı ama
+    # `lib/` içinde hiç kullanılmıyorlardı — her kuruluma ~283 KB ölü yük.
+    # El yazısı notlar gerçekten gelirse `git show` ile geri dönmek tek adım.
 
   # To add assets to your application, add an assets section, like this:
   # assets:

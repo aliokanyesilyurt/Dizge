@@ -1,6 +1,6 @@
 # Ana Ekran Planı — Haftalık Zaman Izgarası
 
-**Durum:** uygulanıyor — D0 · D1 · D2 · D3 · D4 · D5 · D6 bitti, sıradaki **D7** ·
+**Durum:** ✅ **tamamlandı** — D0'dan D7'ye sekiz dilimin hepsi indi ·
 **Tarih:** 2 Ağustos 2026 (son güncelleme 3 Ağustos 2026)
 **Yöntem:** `frontend-ui-engineering` + `incremental-implementation`
 **Dal:** `ana-ekran-shadcn`
@@ -291,12 +291,33 @@ Orada patlarsa hiçbir görsel işe yatırım yapmadan öğreniriz.
 
 ---
 
-## 13. Senin Kararına Bırakılanlar
+## 13. Kararlar
 
-1. **Yazı tipi:** Inter mi, Geist mi? (D1'den önce)
-2. **`PatrickHand` / `PermanentMarker`:** kalsın mı, kaldırılsın mı? (D7)
-3. **Telefon düzeni:** tek gün sütunu mu, 3 günlük kaydırmalı pencere mi? (D3'ten önce)
+1. ~~**Yazı tipi:** Inter mi, Geist mi?~~ → **Inter** (D1).
+2. ~~**`PatrickHand` / `PermanentMarker`:** kalsın mı?~~ → **Kaldırıldı** (D7).
+   Hiç kullanılmıyorlardı, her kuruluma ~283 KB ölü yük biniyordu. Geri dönmek
+   `git show` ile tek adım; bir test yeniden sızmalarını engelliyor.
+3. **Telefon düzeni:** tek gün sütunu mu, 3 günlük kaydırmalı pencere mi?
+   **Hâlâ açık.** D3 bunu beklemeden indi ve şu an 390px'te 7 sütunu koruyup
+   yalnız sayaç rozetini düşürüyor. Bu bir varsayım, karar değil — telefon
+   ciddiye alınacaksa D3'e dönmek gerekir.
 4. **Uygulama adı:** Öztürkçe ad seçilince tek satır değişir — acelesi yok.
+
+---
+
+## 15. Kapanış Notu
+
+Sekiz dilim de indi. Plandan sapılan üç yer, hepsi ölçümle:
+
+* **Çizgi hiyerarşisi** (D4) — plan gün ayracını "en soluk" diyordu; gün sınırı
+  yarım saat tikinden daha güçlü bir bölme olduğu için kodun sırası korundu.
+* **`_HourGutter → textTheme.muted`** (D4) — `muted` `inkFaint`'e bağlı ve
+  10.5px'te 3.2:1 kalıyordu; `inkDim`'e alındı.
+* **`ShadPopover` / sürükleme çakışması** (D6) — gerçekleşmedi; kaçış planına
+  gerek kalmadı.
+
+Ayrıca planın öngörmediği iki kontrast kusuru (saat etiketi, gün adı) ve
+klavyeyle ızgaraya hiç erişilememesi yol boyunca bulunup kapatıldı.
 
 ---
 
