@@ -100,15 +100,82 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
       showQuickAdd(context, date: day, startHour: hour);
 
   void _move(Task task, DateTime toDay, double newStartHour) {
+    final undo = _snapshot(task);
     ref.read(appStoreProvider).moveTask(
           task,
           toDay: toDay,
           newStartHour: newStartHour,
         );
+    _offerUndo('İş taşındı', undo);
   }
 
-  void _resize(Task task, double duration) =>
-      ref.read(appStoreProvider).resizeTask(task, duration);
+  void _resize(Task task, double duration) {
+    final undo = _snapshot(task);
+    ref.read(appStoreProvider).resizeTask(task, duration);
+    _offerUndo('Süre değişti', undo);
+  }
+
+  void _delete(Task task) {
+    final store = ref.read(appStoreProvider);
+    store.removeTask(task);
+    _offerUndo('İş silindi', () => store.restoreTask(task));
+  }
+
+  Future<void> _duplicate(Task task, DateTime day) async {
+    final copy = task.duplicateTo(day);
+    ref.read(appStoreProvider).addTask(copy);
+    // Kopya doğrudan düzenleyiciye açılıyor: birebir aynı iki blok yan yana
+    // durursa hangisinin kopya olduğu anlaşılmaz.
+    await _openEditor(day, existing: copy);
+  }
+
+  /// Bir görevin ızgarada değişebilen alanlarının anlık kopyası; geri çağrıldığında
+  /// eski hâli yerine koyar.
+  ///
+  /// Neden tam bir "undo yığını" değil: geri alma tek adımlık ve bildirim
+  /// süresince yaşıyor. Kalıcı bir geçmiş, senkron kaydıyla birlikte tasarlanması
+  /// gereken ayrı bir iş.
+  VoidCallback _snapshot(Task task) {
+    final date = task.date;
+    final startHour = task.startHour;
+    final duration = task.durationHours;
+    final repeat = task.repeat;
+
+    return () {
+      task
+        ..date = date
+        ..startHour = startHour
+        ..durationHours = duration
+        ..repeat = repeat;
+      ref.read(appStoreProvider).updateTask(task);
+    };
+  }
+
+  /// Mutasyondan sonra "Geri al" bildirimi gösterir.
+  void _offerUndo(String label, VoidCallback undo) {
+    final sonner = ShadSonner.maybeOf(context);
+    // Toaster yoksa (ör. ekranı tek başına kuran bir test) sessizce geç:
+    // geri alma bir kolaylık, mutasyonun kendisi zaten gerçekleşti.
+    if (sonner == null) return;
+
+    final id = UniqueKey();
+    sonner.show(
+      ShadToast(
+        id: id,
+        title: Text(label),
+        duration: const Duration(seconds: 5),
+        action: ShadButton.ghost(
+          child: const Text('Geri al'),
+          onPressed: () {
+            undo();
+            // Bildirim kendini kapatmıyor; geri alındıktan sonra ekranda
+            // kalması "hâlâ geri alınabilir" izlenimi verirdi.
+            sonner.hide(id);
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,6 +273,8 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                             onTapEmpty: _quickAdd,
                             onMove: _move,
                             onResize: _resize,
+                            onDuplicate: _duplicate,
+                            onDelete: _delete,
                           ),
                         ),
                       ),

@@ -60,6 +60,8 @@ void main() {
             onTapEmpty: (d, h) => rec.emptyTap = (d, h),
             onMove: (t, d, h) => rec.moved = (t, d, h),
             onResize: (t, dur) => rec.resized = (t, dur),
+            onDuplicate: (t, d) => rec.duplicated = (t, d),
+            onDelete: (t) => rec.deleted = t,
           ),
         ),
       ),
@@ -105,12 +107,34 @@ void main() {
     expect(find.text('Saatsiz iş'), findsNothing);
   });
 
-  testWidgets('bloğa dokunmak düzenleme çağırır', (tester) async {
+  testWidgets('bloğa dokunmak önce önizleme açar, düzenleyiciyi değil',
+      (tester) async {
+    // Yer, blokta hiç görünmüyor — önizlemenin gerçekten açıldığını bu
+    // kanıtlar; saat gibi blokta da olan bir alan hiçbir şey ayırt etmezdi.
+    final toplanti = Task(
+      title: 'Toplantı',
+      color: const Color(0xFF4FC3F7),
+      date: monday,
+      startHour: 1.0,
+      durationHours: 2.0,
+      place: 'Oda 3',
+    );
     final rec = await pumpGrid(tester, byDay: {
-      0: [task('Toplantı')],
+      0: [toplanti],
     });
 
+    expect(find.text('Oda 3'), findsNothing);
+
     await tester.tap(find.text('Toplantı'));
+    await tester.pumpAndSettle();
+
+    // Bir işe *bakmak*, onu değiştirmekten çok daha sık. Tık artık ekranı
+    // kaplayan sheet'i açmıyor; hafta arkada durmaya devam ediyor.
+    expect(rec.tapped, isNull, reason: 'tık doğrudan düzenleyici açmamalı');
+    expect(find.text('Oda 3'), findsOneWidget);
+    expect(find.text('Düzenle'), findsOneWidget);
+
+    await tester.tap(find.text('Düzenle'));
     await tester.pumpAndSettle();
 
     expect(rec.tapped, isNotNull);
@@ -275,4 +299,6 @@ class _Recorder {
   (DateTime, double)? emptyTap;
   (Task, DateTime, double)? moved;
   (Task, double)? resized;
+  (Task, DateTime)? duplicated;
+  Task? deleted;
 }

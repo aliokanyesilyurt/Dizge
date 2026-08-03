@@ -273,6 +273,27 @@ class Task implements Node {
         updatedAt: updatedAt,
       );
 
+  /// Kullanıcının "Kopyala" dediğinde ürettiği yeni iş.
+  ///
+  /// [copy]'den farkı bilinçli: yeni bir kimlik alır (aksi hâlde iki blok aynı
+  /// görevi gösterirdi) ve tamamlanma geçmişini devralmaz — kopya henüz
+  /// yapılmadı, kaynağın geçmişi ona ait değil.
+  Task duplicateTo(DateTime day) => Task(
+        title: title,
+        note: note,
+        place: place,
+        sketch: sketch,
+        startHour: startHour,
+        durationHours: durationHours,
+        color: color,
+        categoryName: categoryName,
+        repeat: repeat,
+        date: day,
+        tags: {...tags},
+        status: status,
+        priority: priority,
+      );
+
   @override
   Map<String, dynamic> toJson() => {
         'kind': 'task',

@@ -37,6 +37,8 @@ void main() {
               onTapEmpty: (day, hour) {},
               onMove: (task, day, hour) {},
               onResize: (task, duration) {},
+              onDuplicate: (task, day) {},
+              onDelete: (task) {},
             ),
           ),
         ));

@@ -205,6 +205,18 @@ class AppStore extends ChangeNotifier {
     _touched();
   }
 
+  /// Geri alma: silinen bir görevi eski hâliyle geri koyar.
+  ///
+  /// [addTask] değil çünkü bu bir *oluşturma* değil. Aynı yolu kullansaydık
+  /// her "geri al" bir `taskCreated` olayı üretir, oluşturma sayıları geri
+  /// alınan silmelerle şişerdi. Senkron kaydı yine düşüyor — diğer cihaz
+  /// görevin geri geldiğini görmeli.
+  void restoreTask(Task task) {
+    TaskRepository.add(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    _touched();
+  }
+
   void endRoutineBefore(Task task, DateTime day) {
     TaskRepository.endRoutineBefore(task, day);
     // Rutin ya kısaldı ya tamamen silindi; hangisi olduğunu repodan doğrula.

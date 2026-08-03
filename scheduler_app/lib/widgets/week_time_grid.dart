@@ -33,6 +33,8 @@ class WeekTimeGrid extends StatefulWidget {
     required this.onTapEmpty,
     required this.onMove,
     required this.onResize,
+    required this.onDuplicate,
+    required this.onDelete,
     this.scrollOffset,
     this.initialScrollHour,
   }) : assert(tasksByDay.length == 7, 'Haftalık ızgara tam 7 gün bekler');
@@ -53,6 +55,10 @@ class WeekTimeGrid extends StatefulWidget {
   final void Function(DateTime day, double hour) onTapEmpty;
   final void Function(Task task, DateTime toDay, double newStartHour) onMove;
   final void Function(Task task, double newDurationHours) onResize;
+
+  /// Sağ tık menüsünün eylemleri.
+  final void Function(Task task, DateTime day) onDuplicate;
+  final void Function(Task task) onDelete;
 
   /// Haftalar arasında geçerken dikey kaydırma konumunu koruyan paylaşımlı
   /// değer. Her sayfa kendi controller'ını buradan besler.
@@ -429,7 +435,9 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
               done: task.isDoneOn(day),
               // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
               compact: height < 34,
-              onTap: () => widget.onTapTask(task, day),
+              onEdit: () => widget.onTapTask(task, day),
+              onDuplicate: () => widget.onDuplicate(task, day),
+              onDelete: () => widget.onDelete(task),
               onLongPressStart: (d) => _onDragStart(task, dayIndex, d),
               onLongPressMoveUpdate: _onDragUpdate,
               onLongPressEnd: (_) => _onDragEnd(),
@@ -619,13 +627,15 @@ class _GridPainter extends CustomPainter {
 
 // --- Etkinlik bloğu ----------------------------------------------------------
 
-class _EventBlock extends StatelessWidget {
+class _EventBlock extends StatefulWidget {
   const _EventBlock({
     required this.task,
     required this.day,
     required this.done,
     required this.compact,
-    required this.onTap,
+    required this.onEdit,
+    required this.onDuplicate,
+    required this.onDelete,
     required this.onLongPressStart,
     required this.onLongPressMoveUpdate,
     required this.onLongPressEnd,
@@ -641,7 +651,12 @@ class _EventBlock extends StatelessWidget {
   /// Blok kısaysa başlık ve saat tek satırda birleşir.
   final bool compact;
 
-  final VoidCallback onTap;
+  /// Tam düzenleyiciyi açar. Bloğa tıklamak artık doğrudan buraya gitmiyor —
+  /// önce hafif bir önizleme açılıyor, "Düzenle" oradan çağırıyor.
+  final VoidCallback onEdit;
+  final VoidCallback onDuplicate;
+  final VoidCallback onDelete;
+
   final void Function(LongPressStartDetails) onLongPressStart;
   final void Function(LongPressMoveUpdateDetails) onLongPressMoveUpdate;
   final void Function(LongPressEndDetails) onLongPressEnd;
@@ -650,7 +665,26 @@ class _EventBlock extends StatelessWidget {
   final VoidCallback onResizeEnd;
 
   @override
+  State<_EventBlock> createState() => _EventBlockState();
+}
+
+class _EventBlockState extends State<_EventBlock> {
+  /// Bloğa tıklayınca açılan önizleme. Her blok kendi denetleyicisini tutuyor;
+  /// ızgara ortak bir tane taşısaydı hangi bloğun açık olduğunu ayrıca
+  /// izlemek gerekirdi.
+  final _preview = ShadPopoverController();
+
+  @override
+  void dispose() {
+    _preview.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final task = widget.task;
+    final done = widget.done;
+    final compact = widget.compact;
     final c = context.colors;
     final style = c.event(task.color, done: done);
     final title = task.title.isEmpty ? 'Başlıksız' : task.title;
@@ -728,43 +762,80 @@ class _EventBlock extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: GestureDetector(
-            onTap: onTap,
-            onLongPressStart: onLongPressStart,
-            onLongPressMoveUpdate: onLongPressMoveUpdate,
-            onLongPressEnd: onLongPressEnd,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: style.fill,
-                  borderRadius: R.radiusXs,
-                  // Yan yana duran aynı renkli iki blok birbirine karışmasın.
-                  border: Border.all(color: style.edge, width: 0.8),
+          // Önizleme en dışta: bloğun tamamına çapalanır, böylece açılan kart
+          // bloğun kenarından çıkar, içindeki bir metnin yanından değil.
+          child: ShadPopover(
+            controller: _preview,
+            popover: (context) => _Preview(
+              task: task,
+              day: widget.day,
+              done: done,
+              onEdit: () {
+                _preview.hide();
+                widget.onEdit();
+              },
+            ),
+            // Sağ tık menüsü: içerideki uzun basma sürükleme başlatıyor ve
+            // `longPressEnabled` açık olsaydı taşımaya çalışan her el hareketi
+            // menüyü açardı. Menü yalnız sağ tıkla gelir.
+            child: ShadContextMenuRegion(
+              longPressEnabled: false,
+              items: [
+                ShadContextMenuItem(
+                  leading: const Icon(Icons.edit_outlined, size: 16),
+                  onPressed: widget.onEdit,
+                  child: const Text('Düzenle'),
                 ),
-                child: ClipRRect(
-                  borderRadius: R.radiusXs,
-                  child: Row(
-                    // Şerit bloğun tam boyunca inmeli; stretch olmazsa
-                    // içeriğin yüksekliği kadar kalıp yarım şerit gibi durur.
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(
-                        width: 3,
-                        child: ColoredBox(color: style.stripe),
-                      ),
-                      Expanded(
-                        child: compact
-                            // Kısa blokta başlık kırpılıyor; tam adı yalnız
-                            // burada tooltip veriyor. Uzun blokta zaten
-                            // görünüyor, orada tooltip gürültü olurdu.
-                            ? ShadTooltip(
-                                builder: (context) => Text(title),
-                                child: body,
-                              )
-                            : body,
-                      ),
-                    ],
+                ShadContextMenuItem(
+                  leading: const Icon(Icons.copy_outlined, size: 16),
+                  onPressed: widget.onDuplicate,
+                  child: const Text('Kopyala'),
+                ),
+                ShadContextMenuItem(
+                  leading: const Icon(Icons.delete_outline, size: 16),
+                  onPressed: widget.onDelete,
+                  child: const Text('Sil'),
+                ),
+              ],
+              child: GestureDetector(
+                onTap: _preview.toggle,
+                onLongPressStart: widget.onLongPressStart,
+                onLongPressMoveUpdate: widget.onLongPressMoveUpdate,
+                onLongPressEnd: widget.onLongPressEnd,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: style.fill,
+                    borderRadius: R.radiusXs,
+                    // Yan yana aynı renkli iki blok birbirine karışmasın.
+                    border: Border.all(color: style.edge, width: 0.8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: R.radiusXs,
+                    child: Row(
+                      // Şerit bloğun tam boyunca inmeli; stretch olmazsa
+                      // içeriğin yüksekliği kadar kalıp yarım şerit gibi durur.
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: 3,
+                          child: ColoredBox(color: style.stripe),
+                        ),
+                        Expanded(
+                          child: compact
+                              // Kısa blokta başlık kırpılıyor; tam adı yalnız
+                              // burada tooltip veriyor. Uzun blokta zaten
+                              // görünüyor, orada tooltip gürültü olurdu.
+                              ? ShadTooltip(
+                                  builder: (context) => Text(title),
+                                  child: body,
+                                )
+                              : body,
+                        ),
+                      ],
+                    ),
+                  ),
                   ),
                 ),
               ),
@@ -794,10 +865,10 @@ class _EventBlock extends StatelessWidget {
                 (recognizer) {
                   // Not: burada cascade (`..`) kullanılamaz — ok gövdeli
                   // lambda içinde cascade geri çağırıma bağlanır.
-                  recognizer.onStart = (_) => onResizeStart();
-                  recognizer.onUpdate = onResizeUpdate;
-                  recognizer.onEnd = (_) => onResizeEnd();
-                  recognizer.onCancel = onResizeEnd;
+                  recognizer.onStart = (_) => widget.onResizeStart();
+                  recognizer.onUpdate = widget.onResizeUpdate;
+                  recognizer.onEnd = (_) => widget.onResizeEnd();
+                  recognizer.onCancel = widget.onResizeEnd;
                 },
               ),
             },
@@ -817,6 +888,114 @@ class _EventBlock extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Bloğa tıklayınca açılan hafif önizleme.
+///
+/// Neden doğrudan düzenleyici değil: bir işin ne olduğuna bakmak, onu
+/// değiştirmekten çok daha sık yapılan bir şey. Tam sheet ekranı kaplayıp
+/// takvimi gizliyordu; burada hafta arkada durmaya devam ediyor. Düzenlemek
+/// isteyen tek tıkla oraya geçiyor.
+class _Preview extends StatelessWidget {
+  const _Preview({
+    required this.task,
+    required this.day,
+    required this.done,
+    required this.onEdit,
+  });
+
+  final Task task;
+  final DateTime day;
+  final bool done;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final style = c.event(task.color, done: done);
+
+    // Bloğun kendisinde yer yok diye kırpılan alanlar burada tam görünür.
+    final details = <(IconData, String)>[
+      (Icons.schedule, task.timeString),
+      if (task.repeat.type != RepeatType.once)
+        (Icons.repeat, task.repeat.describe(task.date)),
+      if (task.categoryName.isNotEmpty) (Icons.label_outline, task.categoryName),
+      if (task.place.isNotEmpty) (Icons.place_outlined, task.place),
+      if (task.note.isNotEmpty) (Icons.notes, task.note),
+    ];
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 260),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Bloktaki şeridin küçük yankısı: hangi bloğu açtığın belli olsun.
+              Container(
+                width: 3,
+                height: 16,
+                margin: const EdgeInsets.only(top: 2, right: 8),
+                decoration: BoxDecoration(
+                  color: style.stripe,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  task.title.isEmpty ? 'Başlıksız' : task.title,
+                  style: TextStyle(
+                    color: c.ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                    decoration: done ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+              ),
+              if (done)
+                Icon(Icons.check_circle_outline, size: 16, color: c.inkDim),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final (icon, text) in details)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 13, color: c.inkFaint),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      text,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: c.inkDim,
+                        fontSize: 12,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ShadButton.outline(
+              size: ShadButtonSize.sm,
+              onPressed: onEdit,
+              child: const Text('Düzenle'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

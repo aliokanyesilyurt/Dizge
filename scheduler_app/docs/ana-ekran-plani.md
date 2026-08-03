@@ -1,6 +1,6 @@
 # Ana Ekran Planı — Haftalık Zaman Izgarası
 
-**Durum:** uygulanıyor — D0 · D1 · D2 · D3 · D4 · D5 bitti, sıradaki **D6** ·
+**Durum:** uygulanıyor — D0 · D1 · D2 · D3 · D4 · D5 · D6 bitti, sıradaki **D7** ·
 **Tarih:** 2 Ağustos 2026 (son güncelleme 3 Ağustos 2026)
 **Yöntem:** `frontend-ui-engineering` + `incremental-implementation`
 **Dal:** `ana-ekran-shadcn`
@@ -286,7 +286,7 @@ Orada patlarsa hiçbir görsel işe yatırım yapmadan öğreniriz.
 | `ShadApp.custom` + `MaterialApp` iç içe, tema kipi çakışması | Yüksek | D0 tek başına, görsel değişiklik olmadan doğrulanır |
 | shadcn'in kendi radius/gölge varsayılanları mevcut dili bozar | Orta | `shadThemeFrom` içinde `radius` ve `decoration` açıkça `R`'ye bağlanır |
 | Yazı tipi değişimi ızgara ölçülerini kaydırır | Orta | D1 ayrı dilim; taşma testleri kapıda |
-| `ShadPopover`'ın sürükleme jestiyle çakışması | Orta | D6'da; çakışırsa popover'dan vazgeçip doğrudan sheet'e döneriz |
+| ~~`ShadPopover`'ın sürükleme jestiyle çakışması~~ | — | **Gerçekleşmedi.** Popover tıkla açılıyor, sürükleme uzun basmayla başlıyor; jest arenasında uzun basma tıkı zaten yutuyor. Sağ tık menüsünde `longPressEnabled: false` gerekti — açık kalsaydı taşımaya çalışan her el hareketi menüyü açardı |
 | Paket 0.x — kırıcı sürüm riski | Düşük | `pubspec.lock` sabit; sürüm yükseltmesi bu planın dışında |
 
 ---

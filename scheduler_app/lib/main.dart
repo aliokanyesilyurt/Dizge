@@ -79,7 +79,13 @@ class SchedulerApp extends ConsumerWidget {
           // getiriyor; erişilebilirlikten tamamen vazgeçmeden makul bir tavan.
           child: MediaQuery.withClampedTextScaling(
             maxScaleFactor: 1.3,
-            child: child ?? const SizedBox.shrink(),
+            // `ShadApp.custom` toaster'ı kendisi sarmıyor — o sarmalama
+            // yalnızca ShadApp'in kendi (shadcn-only) kipinde var. Geri alma
+            // bildirimlerinin bir yuvası olsun diye burada elle kuruluyor.
+            //
+            // Yeri bilinçli: MaterialApp'in `builder`'ı içinde, yani
+            // Directionality ve yerelleştirme hazırken ama ekranların üstünde.
+            child: ShadSonner(child: child ?? const SizedBox.shrink()),
           ),
         );
       },

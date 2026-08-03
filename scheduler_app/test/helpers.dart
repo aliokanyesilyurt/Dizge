@@ -34,6 +34,11 @@ Widget testApp({
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // Uygulamadaki `builder` ile aynı: `ShadApp.custom` toaster'ı kendisi
+      // sarmıyor, geri alma bildirimleri buraya iniyor. Testte de olmalı ki
+      // "geri al" akışı gerçek ağaçtaki gibi koşsun.
+      builder: (context, child) =>
+          ShadSonner(child: child ?? const SizedBox.shrink()),
       home: home,
     ),
   );
