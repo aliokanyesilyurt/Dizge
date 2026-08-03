@@ -7,6 +7,7 @@ import 'package:scheduler_app/core/theme_mode_controller.dart';
 import 'package:scheduler_app/data/local_store.dart';
 import 'package:scheduler_app/data/persistence_providers.dart';
 import 'package:scheduler_app/main.dart';
+import 'package:scheduler_app/models/task.dart' show kTaskColors;
 import 'package:scheduler_app/screens/app_shell.dart';
 import 'package:scheduler_app/screens/week_view_screen.dart';
 import 'package:scheduler_app/theme.dart';
@@ -62,14 +63,41 @@ void main() {
       expect(seen, AppPalette.dark);
     });
 
-    test('etkinlik bloğunun yazısı zemine göre kontrast seçer', () {
-      // Açık sarı üstünde beyaz yazı okunmaz; koyu mürekkep gelmeli.
-      final onYellow = AppPalette.light.event(const Color(0xFFFFF176)).ink;
-      final onIndigo = AppPalette.light.event(const Color(0xFF3F51B5)).ink;
+    for (final (themeName, p) in [
+      ('açık tema', AppPalette.light),
+      ('koyu tema', AppPalette.dark),
+    ]) {
+      test('$themeName: her kategori rengi blok içinde okunur kalır', () {
+        // Tek tek renk seçmek yerine paletin tamamı taranıyor: kurala uymayan
+        // bir renk ileride eklenirse test onu yakalar, gözden kaçmaz.
+        for (final color in kTaskColors) {
+          final style = p.event(color);
+          expect(
+            contrastRatio(style.ink, style.fill),
+            greaterThanOrEqualTo(4.5),
+            reason: '$themeName ${color.toARGB32().toRadixString(16)} okunmuyor',
+          );
+        }
+      });
 
-      expect(onYellow.computeLuminance(), lessThan(0.2));
-      expect(onIndigo.computeLuminance(), greaterThan(0.8));
-    });
+      test('$themeName: gövde sakin, renk kimliği şeritte', () {
+        for (final color in kTaskColors) {
+          final style = p.event(color);
+
+          // Şerit ham kategori rengi — bloğu bir bakışta o tanıtıyor.
+          expect(style.stripe, color);
+
+          // Gövde ise yaprağa yakın durur. Dolu renk olsaydı yan yana altı
+          // blok ızgarayı okunmaz bir renk cümbüşüne çevirirdi.
+          expect(
+            contrastRatio(style.fill, p.surface),
+            lessThan(1.9),
+            reason: '$themeName ${color.toARGB32().toRadixString(16)} '
+                'gövdesi fazla doygun',
+          );
+        }
+      });
+    }
 
     test('tamamlanan blok soluklaşır ve ikincil yazıya döner', () {
       const color = Color(0xFF4FC3F7);
@@ -78,6 +106,16 @@ void main() {
 
       expect(done.fill, isNot(open.fill));
       expect(done.ink, AppPalette.light.inkDim);
+
+      // Tamamlanan blok geri çekilir: zemini de şeridi de açık hâlinden soluk.
+      expect(
+        contrastRatio(done.fill, AppPalette.light.surface),
+        lessThan(contrastRatio(open.fill, AppPalette.light.surface)),
+      );
+      expect(
+        contrastRatio(done.stripe, AppPalette.light.surface),
+        lessThan(contrastRatio(open.stripe, AppPalette.light.surface)),
+      );
     });
   });
 

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../core/time_grid.dart';
 import '../models/task.dart';
@@ -669,6 +670,60 @@ class _EventBlock extends StatelessWidget {
       fontWeight: FontWeight.w500,
     );
 
+    // Tamamlandı yalnız renge/çizgiye dayanmaz: ✓ ikonu da var (WCAG 1.4.1).
+    final marks = <Widget>[
+      if (done)
+        Icon(Icons.check, size: compact ? 10 : 11, color: style.ink),
+      if (task.isRoutine)
+        Icon(Icons.repeat,
+            size: compact ? 9.5 : 10,
+            color: style.ink.withValues(alpha: 0.85)),
+    ];
+
+    final body = Container(
+      padding: EdgeInsets.fromLTRB(5, compact ? 1 : 3, 5, 2),
+      child: compact
+          // Kısa blok: "Başlık · 09:00" tek satır.
+          ? Row(
+              children: [
+                for (final mark in marks) ...[mark, const SizedBox(width: 3)],
+                Flexible(
+                  child: Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: titleStyle),
+                ),
+                const SizedBox(width: 4),
+                Text(task.startString, maxLines: 1, style: timeStyle),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    for (final mark in marks) ...[
+                      mark,
+                      const SizedBox(width: 3),
+                    ],
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: titleStyle,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(task.timeString,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: timeStyle),
+              ],
+            ),
+    );
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -680,62 +735,38 @@ class _EventBlock extends StatelessWidget {
             onLongPressEnd: onLongPressEnd,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
-              child: Container(
-                padding: EdgeInsets.fromLTRB(6, compact ? 1 : 3, 5, 2),
+              child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: style.fill,
                   borderRadius: R.radiusXs,
                   // Yan yana duran aynı renkli iki blok birbirine karışmasın.
                   border: Border.all(color: style.edge, width: 0.8),
                 ),
-                child: compact
-                    // Kısa blok: "Başlık · 09:00" tek satır.
-                    ? Row(
-                        children: [
-                          if (task.isRoutine) ...[
-                            Icon(Icons.repeat,
-                                size: 9.5,
-                                color: style.ink.withValues(alpha: 0.85)),
-                            const SizedBox(width: 3),
-                          ],
-                          Flexible(
-                            child: Text(title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: titleStyle),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(task.startString,
-                              maxLines: 1, style: timeStyle),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              if (task.isRoutine) ...[
-                                Icon(Icons.repeat,
-                                    size: 10,
-                                    color: style.ink.withValues(alpha: 0.85)),
-                                const SizedBox(width: 3),
-                              ],
-                              Expanded(
-                                child: Text(
-                                  title,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: titleStyle,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Text(task.timeString,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: timeStyle),
-                        ],
+                child: ClipRRect(
+                  borderRadius: R.radiusXs,
+                  child: Row(
+                    // Şerit bloğun tam boyunca inmeli; stretch olmazsa
+                    // içeriğin yüksekliği kadar kalıp yarım şerit gibi durur.
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: 3,
+                        child: ColoredBox(color: style.stripe),
                       ),
+                      Expanded(
+                        child: compact
+                            // Kısa blokta başlık kırpılıyor; tam adı yalnız
+                            // burada tooltip veriyor. Uzun blokta zaten
+                            // görünüyor, orada tooltip gürültü olurdu.
+                            ? ShadTooltip(
+                                builder: (context) => Text(title),
+                                child: body,
+                              )
+                            : body,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -823,42 +854,61 @@ class _DragPreview extends StatelessWidget {
     final c = context.colors;
     final style = c.event(task.color);
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(7, 4, 6, 4),
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: style.fill,
         borderRadius: R.radiusXs,
         border: Border.all(color: c.surface, width: 1.5),
         boxShadow: c.shadowLg,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: style.ink,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Flexible(
-            child: Text(
-              task.title.isEmpty ? 'Başlıksız' : task.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: style.ink.withValues(alpha: 0.9),
-                fontSize: 11.5,
-                height: 1.15,
-                fontWeight: FontWeight.w600,
+      // Sürüklenen kopya da yerdeki blokla aynı dili konuşur: solda şerit,
+      // gövdede aynı soluk zemin. Farklı görünseydi parmağın altındaki şeyin
+      // bırakılınca neye dönüşeceği belirsiz kalırdı.
+      child: ClipRRect(
+        borderRadius: R.radiusXs,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: 3, child: ColoredBox(color: style.stripe)),
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: style.ink,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Flexible(
+                        child: Text(
+                          task.title.isEmpty ? 'Başlıksız' : task.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: style.ink.withValues(alpha: 0.9),
+                            fontSize: 11.5,
+                            height: 1.15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

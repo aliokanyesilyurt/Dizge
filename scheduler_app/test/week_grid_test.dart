@@ -5,6 +5,9 @@ import 'package:scheduler_app/core/time_grid.dart';
 import 'package:scheduler_app/models/task.dart';
 import 'package:scheduler_app/theme.dart';
 import 'package:scheduler_app/widgets/week_time_grid.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import 'helpers.dart';
 
 /// Izgaranın **jest sözleşmesi**: basılı tutup sürükleme doğru gün/saati,
 /// alt kenardan çekme doğru süreyi bildiriyor mu?
@@ -44,8 +47,9 @@ void main() {
 
     final rec = _Recorder();
     await tester.pumpWidget(
-      MaterialApp(
-        theme: buildAppTheme(),
+      // Doğrudan `MaterialApp` değil: blok artık `ShadTooltip` kullanıyor ve
+      // ShadTheme ağaçta yoksa gerçek uygulamada sorun yokken test patlar.
+      testApp(
         home: Scaffold(
           body: WeekTimeGrid(
             monday: monday,
@@ -198,6 +202,50 @@ void main() {
 
     expect(rec.resized, isNotNull, reason: 'tutamak onResize tetiklemeli');
     expect(rec.resized!.$2, closeTo(2.0, 1e-9), reason: '1 sa → 2 sa');
+  });
+
+  testWidgets('tamamlanan blok yalnız renge dayanmaz: ✓ + üstü çizili',
+      (tester) async {
+    final bitti = task('Biten iş');
+    bitti.setDone(monday, true);
+
+    await pumpGrid(tester, byDay: {
+      0: [bitti],
+      1: [task('Süren iş', date: monday.add(const Duration(days: 1)))],
+    });
+
+    // WCAG 1.4.1: durum yalnız renkle anlatılamaz. Soluk zemin renk körü bir
+    // kullanıcıya hiçbir şey söylemez; ikon ve üstü çizili yazı söyler.
+    expect(find.byIcon(Icons.check), findsOneWidget);
+
+    final done = tester.widget<Text>(find.text('Biten iş'));
+    final open = tester.widget<Text>(find.text('Süren iş'));
+    expect(done.style!.decoration, TextDecoration.lineThrough);
+    expect(open.style!.decoration, isNot(TextDecoration.lineThrough));
+  });
+
+  testWidgets('kısa blokta kırpılan başlık için tooltip var, uzun blokta yok',
+      (tester) async {
+    await pumpGrid(tester, byDay: {
+      // 15 dk: başlık kesin kırpılır. 3 saat: başlık zaten görünür.
+      0: [task('Kısa iş', start: 1.0, duration: 0.25)],
+      1: [
+        task('Uzun iş',
+            start: 1.0,
+            duration: 3.0,
+            date: monday.add(const Duration(days: 1))),
+      ],
+    });
+
+    // Tooltip kırpılmayı telafi eder; kırpılma yokken sadece gürültü olurdu.
+    expect(find.byType(ShadTooltip), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(ShadTooltip),
+        matching: find.text('Kısa iş'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('çakışan işler yan yana çizilir ve ikisi de görünür',

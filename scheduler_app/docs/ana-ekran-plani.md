@@ -1,6 +1,6 @@
 # Ana Ekran Planı — Haftalık Zaman Izgarası
 
-**Durum:** uygulanıyor — D0 · D1 · D2 · D3 · D4 bitti, sıradaki **D5** ·
+**Durum:** uygulanıyor — D0 · D1 · D2 · D3 · D4 · D5 bitti, sıradaki **D6** ·
 **Tarih:** 2 Ağustos 2026 (son güncelleme 3 Ağustos 2026)
 **Yöntem:** `frontend-ui-engineering` + `incremental-implementation`
 **Dal:** `ana-ekran-shadcn`
@@ -238,8 +238,10 @@ paylaşımı olduğu gibi kalır. Yoğunluk tercihi `ThemeModeController` deseni
 - Her etkinlik bloğu `Semantics` ile: *"Toplantı, Salı 14:00–15:30, tamamlandı"*.
 - Klavye: `Tab` ile bloklar arası, `Enter` düzenle, `Delete` sil, `←/→` hafta değiştir.
 - Odak halkası `colorScheme.ring` — tüm etkileşimli öğelerde görünür.
-- Kontrast: gövde 4.5:1, blok içi yazı `AppPalette.event().ink` ile zemine göre
-  seçiliyor (bu kural zaten test altında).
+- Kontrast: gövde 4.5:1, blok içi yazı `AppPalette.readableOn()` ile üretiliyor —
+  kategori rengi AA eşiğini geçene dek gövde mürekkebine çekiliyor. Kural bir test
+  temennisi değil, rengi üreten kodun kendisi; palete yeni renk eklendiğinde
+  kendiliğinden tutar.
 - Durum asla yalnız renkle anlatılmaz (tamamlandı → ✓ + üstü çizili).
 - `MediaQuery.withClampedTextScaling(1.3)` korunur.
 

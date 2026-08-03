@@ -262,36 +262,76 @@ class AppPalette extends ThemeExtension<AppPalette> {
     );
   }
 
-  /// Takvim ızgarasındaki etkinlik bloğu — **dolu** renk + otomatik kontrastlı
-  /// yazı.
+  /// Takvim ızgarasındaki etkinlik bloğu — sakin **renkli kart**.
   ///
-  /// Sarı gibi açık kategori renklerinde beyaz yazı okunmadığı için yazı rengi
-  /// zeminin parlaklığından hesaplanır.
+  /// Dolu renk bloklar yerine: sol kenarda doygun bir şerit ([EventStyle.stripe])
+  /// + gövdede aynı rengin çok düşük opaklıkta zemini. Yan yana duran altı dolu
+  /// blok ekranı renk cümbüşüne çeviriyor, ızgaranın kendisi okunmuyordu. Renk
+  /// kimliği şeritte yaşar; gövde sakin kalır.
   EventStyle event(Color color, {bool done = false}) {
-    // Bloklar ızgara yaprağının (surface) üstünde durur; soluklaştırma ve
-    // karıştırma o zemine göre yapılır.
-    final fill = isDark ? Color.lerp(color, surface, 0.18)! : color;
+    // Bloklar ızgara yaprağının (surface) üstünde durur; harmanlama o zemine
+    // göre yapılır. Koyu tema daha çok opaklık ister — aynı oran orada
+    // zeminden ayrışmıyor.
+    final tintAlpha = isDark ? 0.20 : 0.13;
+    final fill = Color.alphaBlend(color.withValues(alpha: tintAlpha), surface);
 
     if (done) {
-      // Tamamlanan iş geri çekilir: soluk zemin, ikincil yazı.
+      // Tamamlanan iş geri çekilir: zemin neredeyse yaprağa döner, şerit
+      // solar, yazı ikincil olur. Üstü çizili başlık ve ✓ ikonu blokta.
       return EventStyle(
-        fill: Color.lerp(fill, surface, isDark ? 0.72 : 0.80)!,
+        fill: Color.lerp(fill, surface, 0.6)!,
         ink: inkDim,
-        edge: Color.lerp(color, surface, 0.55)!,
+        stripe: Color.lerp(color, surface, 0.55)!,
+        edge: Color.lerp(fill, surface, 0.35)!,
       );
     }
 
-    final onFill = ThemeData.estimateBrightnessForColor(fill) == Brightness.dark
-        ? Colors.white
-        : const Color(0xFF14161C);
-
     return EventStyle(
       fill: fill,
-      ink: onFill,
-      // Aynı renkli komşu bloklar birbirine akmasın diye ince ayrım.
-      edge: Color.lerp(fill, Colors.black, isDark ? 0.28 : 0.14)!,
+      ink: readableOn(color, fill),
+      stripe: color,
+      // Aynı renkli komşu bloklar birbirine akmasın diye ince ayrım: aynı
+      // tonun bir kademe koyusu.
+      edge: Color.alphaBlend(color.withValues(alpha: tintAlpha * 2), surface),
     );
   }
+
+  /// [color]'ı [background] üzerinde okunur olana dek gövde mürekkebine doğru
+  /// çeker ve AA eşiğini (4.5:1) geçen ilk tonu verir.
+  ///
+  /// Kategori rengini yazıda da kullanmak istiyoruz — bloğun rengini yalnız
+  /// şeritten değil yazıdan da tanıyabilmek için. Ama pastel bir sarı, kendi
+  /// soluk zemininde okunmaz. Sabit bir koyulaştırma oranı seçmek yerine eşiği
+  /// hedefliyoruz: koyu bir mor zaten ilk adımda geçer, açık sarı birkaç adım
+  /// daha iner. Böylece palete yeni bir renk eklendiğinde kural kendiliğinden
+  /// tutar.
+  ///
+  /// Sonuç önbelleğe alınır: her etkinlik bloğu bunu her yeniden çiziminde
+  /// çağırıyor ve sürükleme sırasında bu saniyede 60 kez oluyor. Girdiler
+  /// (kategori paleti + tema) sonlu olduğundan önbellek birkaç girdide doyar.
+  Color readableOn(Color color, Color background) {
+    final key = Object.hash(color, background, ink);
+    final cached = _readableCache[key];
+    if (cached != null) return cached;
+
+    // Zeminin parlaklığı döngü boyunca sabit — bir kez hesaplanır.
+    final bgLuminance = background.computeLuminance();
+
+    var result = ink;
+    for (var step = 0; step <= 20; step++) {
+      final candidate = Color.lerp(color, ink, step / 20)!;
+      final l = candidate.computeLuminance();
+      final ratio = ((l > bgLuminance ? l : bgLuminance) + 0.05) /
+          ((l < bgLuminance ? l : bgLuminance) + 0.05);
+      if (ratio >= 4.5) {
+        result = candidate;
+        break;
+      }
+    }
+    return _readableCache[key] = result;
+  }
+
+  static final Map<int, Color> _readableCache = {};
 
   // --- ThemeExtension --------------------------------------------------------
 
@@ -419,10 +459,34 @@ class TagStyle {
 
 /// Takvim bloğunun dolgusu, yazı rengi ve kenar tonu.
 class EventStyle {
-  const EventStyle({required this.fill, required this.ink, required this.edge});
+  const EventStyle({
+    required this.fill,
+    required this.ink,
+    required this.stripe,
+    required this.edge,
+  });
+
+  /// Gövde zemini — kategori renginin çok düşük opaklıkta izi.
   final Color fill;
+
+  /// Blok içi yazı. [fill] üzerinde AA'yı geçmesi garanti.
   final Color ink;
+
+  /// Sol kenardaki 3px doygun şerit — bloğun renk kimliği burada.
+  final Color stripe;
+
+  /// Kenarlık; yan yana duran aynı renkli iki bloğu ayırır.
   final Color edge;
+}
+
+/// WCAG 2.1 kontrast oranı (1:1 – 21:1).
+///
+/// Palette'in kendi içinde duruyor çünkü [AppPalette.readableOn] buna dayanıyor:
+/// blok yazısının okunurluğu bir test kuralı değil, rengi üreten kodun parçası.
+double contrastRatio(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  return ((la > lb ? la : lb) + 0.05) / ((la < lb ? la : lb) + 0.05);
 }
 
 // --- Biçim belirteçleri ------------------------------------------------------
