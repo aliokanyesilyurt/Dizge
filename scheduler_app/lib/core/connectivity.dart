@@ -16,7 +16,7 @@ enum NetworkStatus { online, offline }
 /// [Connectivity] dışarıdan verilebilir.
 class ConnectivityService {
   ConnectivityService({Connectivity? connectivity})
-      : _connectivity = connectivity ?? Connectivity();
+    : _connectivity = connectivity ?? Connectivity();
 
   final Connectivity _connectivity;
 
@@ -46,8 +46,9 @@ class ConnectivityService {
   }
 }
 
-final connectivityServiceProvider =
-    Provider<ConnectivityService>((ref) => ConnectivityService());
+final connectivityServiceProvider = Provider<ConnectivityService>(
+  (ref) => ConnectivityService(),
+);
 
 /// UI'nin izleyebileceği bağlantı durumu. İlk değeri gelene kadar `offline`
 /// varsayılır (iyimser "online" gösterip sonra düzeltmek titremeye yol açar).

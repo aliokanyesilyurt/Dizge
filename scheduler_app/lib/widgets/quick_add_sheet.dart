@@ -57,9 +57,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _focus.requestFocus();
-        ref.read(telemetryProvider).capture(Ev.quickAddOpened, props: {
-          'from_grid': widget.startHour != null,
-        });
+        ref
+            .read(telemetryProvider)
+            .capture(
+              Ev.quickAddOpened,
+              props: {'from_grid': widget.startHour != null},
+            );
       }
     });
   }
@@ -233,8 +236,18 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   // --- Özellik seçiciler -----------------------------------------------------
 
   static const _months = [
-    'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
-    'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'
+    'Oca',
+    'Şub',
+    'Mar',
+    'Nis',
+    'May',
+    'Haz',
+    'Tem',
+    'Ağu',
+    'Eyl',
+    'Eki',
+    'Kas',
+    'Ara',
   ];
 
   String get _dateLabel {
@@ -290,8 +303,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _Grabber(),
-              Text('Kategori',
-                  style: Theme.of(ctx).textTheme.titleMedium),
+              Text('Kategori', style: Theme.of(ctx).textTheme.titleMedium),
               const SizedBox(height: 10),
               for (final cat in AppData.categories)
                 ListTile(
@@ -304,8 +316,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  title: Text(cat.name,
-                      style: TextStyle(color: c.ink, fontSize: 14)),
+                  title: Text(
+                    cat.name,
+                    style: TextStyle(color: c.ink, fontSize: 14),
+                  ),
                   trailing: cat.name == _category.name
                       ? Icon(Icons.check_rounded, size: 18, color: c.accent)
                       : null,

@@ -29,7 +29,9 @@ class LinkIndex {
 
   /// Gövdedeki `[[...]]` kalıplarını yakalar. Boşluk/case'e toleranslı; `|` ile
   /// verilen görünen ad (alias) desteklenir: `[[Hedef|görünen]]`.
-  static final RegExp _linkPattern = RegExp(r'\[\[([^\[\]|]+)(?:\|[^\[\]]*)?\]\]');
+  static final RegExp _linkPattern = RegExp(
+    r'\[\[([^\[\]|]+)(?:\|[^\[\]]*)?\]\]',
+  );
 
   /// Bir metindeki tüm bağlantı hedeflerini (normalize edilmemiş, ham başlık)
   /// döndürür. Editör/parser burayı tek noktadan kullanmalı.

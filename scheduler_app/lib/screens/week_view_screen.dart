@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../core/energy_filter_controller.dart';
 import '../core/grid_density_controller.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
@@ -201,6 +202,9 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     final density = ref.watch(gridDensityProvider);
     final metrics = GridMetrics(hourHeight: density.hourHeight);
 
+    // "Bugün enerjim": ızgara bunun üstündeki eforları soluklaştırır.
+    final energy = ref.watch(energyFilterProvider);
+
     // Sol/sağ ok hafta değiştirir. Buradaki `Shortcuts`, odağa uygulamanın
     // kendi varsayılan ok tuşu kısayollarından (yön tabanlı odak gezinme) daha
     // yakın olduğu için o kazanır. Düzenleyici/hızlı ekleme ayrı bir rota
@@ -237,11 +241,14 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                         : '${_weekOffsetLabel()} hafta',
                     isCurrentWeek: _page == _anchorPage,
                     density: density,
+                    energy: energy,
                     onPrevious: () => _shift(-1),
                     onNext: () => _shift(1),
                     onToday: _goToToday,
                     onDensityChanged: (next) =>
                         ref.read(gridDensityProvider.notifier).set(next),
+                    onEnergyChanged: (next) =>
+                        ref.read(energyFilterProvider.notifier).set(next),
                     onCreate: _createFromHeader,
                   ),
                   // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
@@ -286,6 +293,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                                   _UntimedRow(
                                     monday: monday,
                                     tasksByDay: tasksByDay,
+                                    energyLimit: energy,
                                     onTapTask: (task, day) =>
                                         _openEditor(day, existing: task),
                                     onToggle: (task, day) => store.setTaskDone(
@@ -322,6 +330,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                                       onTapTask: (task, day) =>
                                           _openEditor(day, existing: task),
                                       onTapEmpty: _quickAdd,
+                                      energyLimit: energy,
                                       onMove: _move,
                                       onResize: _resize,
                                       onDuplicate: _duplicate,
@@ -675,12 +684,17 @@ class _UntimedRow extends StatelessWidget {
   const _UntimedRow({
     required this.monday,
     required this.tasksByDay,
+    required this.energyLimit,
     required this.onTapTask,
     required this.onToggle,
   });
 
   final DateTime monday;
   final List<List<Task>> tasksByDay;
+
+  /// Izgarayla aynı kural: enerjinin üstündeki işler burada da soluklaşır.
+  /// Saatsiz olmak işi kolaylaştırmıyor.
+  final Energy? energyLimit;
   final void Function(Task, DateTime) onTapTask;
   final void Function(Task, DateTime) onToggle;
 
@@ -738,6 +752,7 @@ class _UntimedRow extends StatelessWidget {
                     _UntimedChip(
                       task: task,
                       day: monday.add(Duration(days: i)),
+                      dimmed: task.exceedsEnergy(energyLimit),
                       onTap: onTapTask,
                       onToggle: onToggle,
                     ),
@@ -754,12 +769,14 @@ class _UntimedChip extends StatelessWidget {
   const _UntimedChip({
     required this.task,
     required this.day,
+    required this.dimmed,
     required this.onTap,
     required this.onToggle,
   });
 
   final Task task;
   final DateTime day;
+  final bool dimmed;
   final void Function(Task, DateTime) onTap;
   final void Function(Task, DateTime) onToggle;
 
@@ -774,37 +791,40 @@ class _UntimedChip extends StatelessWidget {
       onLongPress: () => onToggle(task, day),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        child: AnimatedContainer(
-          duration: Motion.fast,
-          height: _UntimedRow._chipHeight,
-          margin: const EdgeInsets.only(bottom: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 7),
-          decoration: BoxDecoration(
-            color: style.fill.withValues(alpha: done ? 0.45 : 1),
-            borderRadius: R.radiusXs,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                done ? Icons.check_circle_rounded : Icons.circle_outlined,
-                size: 11,
-                color: style.text.withValues(alpha: 0.85),
-              ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  task.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: style.text,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    decoration: done ? TextDecoration.lineThrough : null,
+        child: Opacity(
+          opacity: dimmed ? 0.4 : 1,
+          child: AnimatedContainer(
+            duration: Motion.fast,
+            height: _UntimedRow._chipHeight,
+            margin: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 7),
+            decoration: BoxDecoration(
+              color: style.fill.withValues(alpha: done ? 0.45 : 1),
+              borderRadius: R.radiusXs,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  done ? Icons.check_circle_rounded : Icons.circle_outlined,
+                  size: 11,
+                  color: style.text.withValues(alpha: 0.85),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    task.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: style.text,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      decoration: done ? TextDecoration.lineThrough : null,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

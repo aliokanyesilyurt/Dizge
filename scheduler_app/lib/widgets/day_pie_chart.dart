@@ -100,8 +100,13 @@ class ClockPiePainter extends CustomPainter {
       final duration = task.endHour! - task.startHour!;
       final sweepAngle = (duration / 24) * 2 * pi;
 
-      canvas.drawArc(rect, startAngle, sweepAngle, true,
-          Paint()..color = task.color.withValues(alpha: alpha));
+      canvas.drawArc(
+        rect,
+        startAngle,
+        sweepAngle,
+        true,
+        Paint()..color = task.color.withValues(alpha: alpha),
+      );
 
       // Dilim kenarı — seçili olan vurgu rengiyle öne çıkar.
       canvas.drawArc(
@@ -120,13 +125,16 @@ class ClockPiePainter extends CustomPainter {
       // Rutinleri dilim üstünde ince tarama ile ayırt et.
       if (task.isRoutine && !fade) {
         canvas.save();
-        canvas.clipPath(Path()
-          ..moveTo(center.dx, center.dy)
-          ..arcTo(rect, startAngle, sweepAngle, false)
-          ..close());
+        canvas.clipPath(
+          Path()
+            ..moveTo(center.dx, center.dy)
+            ..arcTo(rect, startAngle, sweepAngle, false)
+            ..close(),
+        );
         final hatch = Paint()
-          ..color = (palette.isDark ? Colors.white : Colors.black)
-              .withValues(alpha: 0.14)
+          ..color = (palette.isDark ? Colors.white : Colors.black).withValues(
+            alpha: 0.14,
+          )
           ..strokeWidth = 1;
         for (double x = -radius * 2; x < radius * 2; x += 7) {
           canvas.drawLine(
@@ -147,9 +155,9 @@ class ClockPiePainter extends CustomPainter {
         final labelColor = fade
             ? palette.inkFaint.withValues(alpha: 0.5)
             : (ThemeData.estimateBrightnessForColor(sliceFill) ==
-                    Brightness.dark
-                ? Colors.white
-                : const Color(0xFF14161C));
+                      Brightness.dark
+                  ? Colors.white
+                  : const Color(0xFF14161C));
 
         final mid = startAngle + sweepAngle / 2;
         final lr = radius * 0.62;
@@ -179,8 +187,10 @@ class ClockPiePainter extends CustomPainter {
       final angle = (i / 24) * 2 * pi - (pi / 2);
       canvas.drawLine(
         center,
-        Offset(center.dx + cos(angle) * radius,
-            center.dy + sin(angle) * radius),
+        Offset(
+          center.dx + cos(angle) * radius,
+          center.dy + sin(angle) * radius,
+        ),
         Paint()
           ..color = spokeBase.withValues(alpha: i % 6 == 0 ? 0.10 : 0.04)
           ..strokeWidth = 0.8,
@@ -204,8 +214,10 @@ class ClockPiePainter extends CustomPainter {
       final angle = (h / 24) * 2 * pi - (pi / 2);
       canvas.drawLine(
         center,
-        Offset(center.dx + cos(angle) * radius,
-            center.dy + sin(angle) * radius),
+        Offset(
+          center.dx + cos(angle) * radius,
+          center.dy + sin(angle) * radius,
+        ),
         Paint()
           ..color = palette.nowLine
           ..strokeWidth = 1.6
@@ -221,10 +233,14 @@ class ClockPiePainter extends CustomPainter {
     for (int i = 0; i < 24; i += 2) {
       final angle = (i / 24) * 2 * pi - (pi / 2);
       canvas.drawLine(
-        Offset(center.dx + cos(angle) * (radius - 6),
-            center.dy + sin(angle) * (radius - 6)),
-        Offset(center.dx + cos(angle) * radius,
-            center.dy + sin(angle) * radius),
+        Offset(
+          center.dx + cos(angle) * (radius - 6),
+          center.dy + sin(angle) * (radius - 6),
+        ),
+        Offset(
+          center.dx + cos(angle) * radius,
+          center.dy + sin(angle) * radius,
+        ),
         Paint()
           ..color = palette.inkFaint
           ..strokeWidth = 1.2,

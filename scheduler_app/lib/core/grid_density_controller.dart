@@ -47,5 +47,5 @@ class GridDensityController extends StateNotifier<GridDensity> {
 
 final gridDensityProvider =
     StateNotifierProvider<GridDensityController, GridDensity>(
-  (ref) => GridDensityController(ref.watch(localStoreProvider)),
-);
+      (ref) => GridDensityController(ref.watch(localStoreProvider)),
+    );

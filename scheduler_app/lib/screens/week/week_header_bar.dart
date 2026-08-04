@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../models/task.dart' show Energy;
 import '../../theme.dart';
 
 /// Haftalık görünümün başlık çubuğu.
@@ -24,10 +25,12 @@ class WeekHeaderBar extends StatelessWidget {
     required this.offsetLabel,
     required this.isCurrentWeek,
     required this.density,
+    required this.energy,
     required this.onPrevious,
     required this.onNext,
     required this.onToday,
     required this.onDensityChanged,
+    required this.onEnergyChanged,
     required this.onCreate,
   });
 
@@ -40,10 +43,14 @@ class WeekHeaderBar extends StatelessWidget {
   final bool isCurrentWeek;
   final GridDensity density;
 
+  /// "Bugün enerjim" — null ise filtre kapalı.
+  final Energy? energy;
+
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onToday;
   final ValueChanged<GridDensity> onDensityChanged;
+  final ValueChanged<Energy?> onEnergyChanged;
   final VoidCallback onCreate;
 
   /// Bu genişliğin altında yoğunluk seçici ile "+ Yeni"nin yazısı düşer.
@@ -74,18 +81,28 @@ class WeekHeaderBar extends StatelessWidget {
 
           // "Bugün" yalnızca gerektiğinde belirir — bu haftadayken anlamsız bir
           // düğme, sakin kromun ilk kuralına aykırı olurdu.
+          //
+          // Dar ekranda yazısı düşer: 390px'te "Bugün" + iki seçici + "Yeni"
+          // yan yana sığmıyor. Başlık zaten yoğunluk ve "Yeni" için aynı kuralı
+          // uyguluyordu; "Bugün"ün yazısını korumak tutarsızlıktı.
           AnimatedSize(
             duration: Motion.base,
             curve: Motion.curve,
             child: isCurrentWeek
                 ? const SizedBox(width: 0)
                 : Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: ShadButton.outline(
-                      size: ShadButtonSize.sm,
-                      onPressed: onToday,
-                      child: const Text('Bugün'),
-                    ),
+                    padding: EdgeInsets.only(left: tight ? 0 : 8),
+                    child: tight
+                        ? _IconButton(
+                            icon: Icons.today_rounded,
+                            label: 'Bugün',
+                            onPressed: onToday,
+                          )
+                        : ShadButton.outline(
+                            size: ShadButtonSize.sm,
+                            onPressed: onToday,
+                            child: const Text('Bugün'),
+                          ),
                   ),
           ),
 
@@ -118,14 +135,23 @@ class WeekHeaderBar extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(width: 12),
+          // Sağdaki denetimler arası nefes payı dar ekranda kısalıyor: 390px'te
+          // beş öğe ancak böyle sığıyor (enerji seçici eklenince 1.7px taşmıştı).
+          SizedBox(width: tight ? 8 : 12),
+
+          _EnergySelect(
+            value: energy,
+            onChanged: onEnergyChanged,
+            iconOnly: tight,
+          ),
+          SizedBox(width: tight ? 4 : 8),
 
           _DensitySelect(
             value: density,
             onChanged: onDensityChanged,
             iconOnly: tight,
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: tight ? 4 : 8),
 
           ShadButton(
             size: ShadButtonSize.sm,
@@ -170,6 +196,63 @@ class _IconButton extends StatelessWidget {
   }
 }
 
+/// "Bugün enerjim" seçici.
+///
+/// Yoğunluk seçicinin **solunda**: yoğunluk ekranın nasıl göründüğünü, enerji
+/// ise neye bakılacağını değiştiriyor. İçeriğe dokunan denetim, krom ayarından
+/// önce gelir.
+///
+/// Seçim ızgarayı süzmez, **soluklaştırır**. Gizlemek "bugün enerjim düşük"
+/// diyen birine işleri unutturur; solgun bir blok hâlâ oradadır, yalnız öne
+/// çıkmaz.
+class _EnergySelect extends StatelessWidget {
+  const _EnergySelect({
+    required this.value,
+    required this.onChanged,
+    required this.iconOnly,
+  });
+
+  final Energy? value;
+  final ValueChanged<Energy?> onChanged;
+  final bool iconOnly;
+
+  /// Filtre kapalıyken görünen etiket. "Enerji" değil "Tüm işler": kapalı bir
+  /// filtrenin ne yaptığını değil, ekranda ne olduğunu söylemek daha dürüst.
+  static const String _allLabel = 'Tüm işler';
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Bugün enerjim',
+      child: ShadSelect<Energy?>(
+        initialValue: value,
+        minWidth: iconOnly ? 0 : 148,
+        onChanged: onChanged,
+        options: [
+          const ShadOption<Energy?>(value: null, child: Text(_allLabel)),
+          for (final level in Energy.values)
+            ShadOption<Energy?>(value: level, child: Text(level.label)),
+        ],
+        selectedOptionBuilder: (context, selected) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected == null
+                  ? Icons.battery_full_rounded
+                  : Icons.bolt_rounded,
+              size: 16,
+            ),
+            if (!iconOnly) ...[
+              const SizedBox(width: 8),
+              Text(selected?.label ?? _allLabel),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Üç kademeli yoğunluk seçici.
 ///
 /// Önceki hâli döngüsel bir ikon düğmesiydi: kaç seçenek olduğu, hangisinde
@@ -189,10 +272,10 @@ class _DensitySelect extends StatelessWidget {
   final bool iconOnly;
 
   static IconData _iconFor(GridDensity density) => switch (density) {
-        GridDensity.compact => Icons.density_small_rounded,
-        GridDensity.cozy => Icons.density_medium_rounded,
-        GridDensity.spacious => Icons.density_large_rounded,
-      };
+    GridDensity.compact => Icons.density_small_rounded,
+    GridDensity.cozy => Icons.density_medium_rounded,
+    GridDensity.spacious => Icons.density_large_rounded,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -224,10 +307,7 @@ class _DensitySelect extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(_iconFor(selected), size: 16),
-            if (!iconOnly) ...[
-              const SizedBox(width: 8),
-              Text(selected.label),
-            ],
+            if (!iconOnly) ...[const SizedBox(width: 8), Text(selected.label)],
           ],
         ),
       ),

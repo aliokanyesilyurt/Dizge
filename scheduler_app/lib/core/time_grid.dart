@@ -12,8 +12,8 @@ class GridMetrics {
     this.hourHeight = 64.0,
     this.dayStart = 0.0,
     this.dayEnd = 24.0,
-  })  : assert(hourHeight > 0),
-        assert(dayEnd > dayStart);
+  }) : assert(hourHeight > 0),
+       assert(dayEnd > dayStart);
 
   /// Bir saatin piksel yüksekliği. Kullanıcı sıkıştırma (pinch) ile değiştirir.
   final double hourHeight;
@@ -36,16 +36,15 @@ class GridMetrics {
       (dayStart + dy / hourHeight).clamp(dayStart, dayEnd);
 
   GridMetrics copyWith({double? hourHeight}) => GridMetrics(
-        hourHeight: hourHeight ?? this.hourHeight,
-        dayStart: dayStart,
-        dayEnd: dayEnd,
-      );
+    hourHeight: hourHeight ?? this.hourHeight,
+    dayStart: dayStart,
+    dayEnd: dayEnd,
+  );
 
   /// Sıkıştırma jestinin ölçeğini uygulanabilir sınırlara oturtur.
   GridMetrics scaled(double factor) => copyWith(
-        hourHeight:
-            (hourHeight * factor).clamp(minHourHeight, maxHourHeight),
-      );
+    hourHeight: (hourHeight * factor).clamp(minHourHeight, maxHourHeight),
+  );
 }
 
 /// Sürükleme sırasında saatin yuvarlanacağı adım (dakika).
@@ -63,8 +62,12 @@ double snapHour(double hour, {int minutes = kSnapMinutes}) {
 
 /// Bir etkinliği gün içinde tutar: başlangıç + süre 24'ü aşarsa başlangıcı geri
 /// çeker (süreyi kısaltmak yerine — kullanıcı süreyi bilerek seçmiştir).
-double clampStartWithin(double start, double duration,
-    {double dayStart = 0.0, double dayEnd = 24.0}) {
+double clampStartWithin(
+  double start,
+  double duration, {
+  double dayStart = 0.0,
+  double dayEnd = 24.0,
+}) {
   final maxStart = math.max(dayStart, dayEnd - duration);
   return start.clamp(dayStart, maxStart);
 }
@@ -169,11 +172,13 @@ List<EventSlot<T>> layoutEvents<T>(
     for (final slot in group) {
       var span = 1;
       for (var c = slot.column + 1; c < total; c++) {
-        final blocked = group.any((other) =>
-            other != slot &&
-            other.column == c &&
-            other.start < slot.end - 1e-9 &&
-            slot.start < other.end - 1e-9);
+        final blocked = group.any(
+          (other) =>
+              other != slot &&
+              other.column == c &&
+              other.start < slot.end - 1e-9 &&
+              slot.start < other.end - 1e-9,
+        );
         if (blocked) break;
         span++;
       }

@@ -72,5 +72,5 @@ class NavigationController extends StateNotifier<NavState> {
 
 final navigationProvider =
     StateNotifierProvider<NavigationController, NavState>(
-  (ref) => NavigationController(),
-);
+      (ref) => NavigationController(),
+    );

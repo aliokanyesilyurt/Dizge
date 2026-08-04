@@ -32,33 +32,43 @@ void main() {
       expect(buildAppTheme().brightness, Brightness.dark);
     });
 
-    testWidgets('context.colors çalışan temanın paletini verir',
-        (tester) async {
+    testWidgets('context.colors çalışan temanın paletini verir', (
+      tester,
+    ) async {
       late AppPalette seen;
 
-      await tester.pumpWidget(MaterialApp(
-        theme: buildAppTheme(brightness: Brightness.light),
-        home: Builder(builder: (context) {
-          seen = context.colors;
-          return const SizedBox();
-        }),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(brightness: Brightness.light),
+          home: Builder(
+            builder: (context) {
+              seen = context.colors;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
 
       expect(seen, AppPalette.light);
       expect(seen.isDark, isFalse);
     });
 
-    testWidgets('palet uzantısı olmayan temada parlaklığa göre düşer',
-        (tester) async {
+    testWidgets('palet uzantısı olmayan temada parlaklığa göre düşer', (
+      tester,
+    ) async {
       late AppPalette seen;
 
-      await tester.pumpWidget(MaterialApp(
-        theme: ThemeData(brightness: Brightness.dark),
-        home: Builder(builder: (context) {
-          seen = context.colors;
-          return const SizedBox();
-        }),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: Brightness.dark),
+          home: Builder(
+            builder: (context) {
+              seen = context.colors;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
 
       expect(seen, AppPalette.dark);
     });
@@ -75,7 +85,8 @@ void main() {
           expect(
             contrastRatio(style.ink, style.fill),
             greaterThanOrEqualTo(4.5),
-            reason: '$themeName ${color.toARGB32().toRadixString(16)} okunmuyor',
+            reason:
+                '$themeName ${color.toARGB32().toRadixString(16)} okunmuyor',
           );
         }
       });
@@ -92,7 +103,8 @@ void main() {
           expect(
             contrastRatio(style.fill, p.surface),
             lessThan(1.9),
-            reason: '$themeName ${color.toARGB32().toRadixString(16)} '
+            reason:
+                '$themeName ${color.toARGB32().toRadixString(16)} '
                 'gövdesi fazla doygun',
           );
         }
@@ -216,12 +228,16 @@ void main() {
       await tester.tap(find.byTooltip('Önceki hafta'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Bugün'), findsOneWidget);
+      // Bu genişlikte "Bugün" de ikona iniyor (yoğunluk ve "Yeni" gibi);
+      // eylem duruyor, yalnız yazısı düşüyor.
+      expect(find.byTooltip('Bugün'), findsOneWidget);
+      expect(find.text('Bugün'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('kenar çubuğundaki seçim tema kipini değiştirir',
-        (tester) async {
+    testWidgets('kenar çubuğundaki seçim tema kipini değiştirir', (
+      tester,
+    ) async {
       useScreenSize(tester, const Size(1400, 1000));
 
       final container = ProviderContainer();
@@ -315,11 +331,16 @@ void main() {
       // bildirilmeden kalsa Flutter sessizce yedeğe düşer — ekran görüntüsü
       // bakılmadan fark edilmez.
       final pubspec = File('pubspec.yaml').readAsStringSync();
-      final block = pubspec.split('- family: $kFontFamily')[1].split('- family:')[0];
+      final block = pubspec
+          .split('- family: $kFontFamily')[1]
+          .split('- family:')[0];
 
       for (final weight in [400, 500, 600, 700]) {
-        expect(block, contains('weight: $weight'),
-            reason: '$weight ağırlığı pubspec\'te bildirilmemiş');
+        expect(
+          block,
+          contains('weight: $weight'),
+          reason: '$weight ağırlığı pubspec\'te bildirilmemiş',
+        );
       }
 
       for (final file in ['Regular', 'Medium', 'SemiBold', 'Bold']) {

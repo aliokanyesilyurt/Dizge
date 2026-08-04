@@ -38,8 +38,11 @@ const _listItems = [
 
 const _knowledgeItems = [
   _NavItem(AppSection.notes, Icons.description_rounded, 'Notlar'),
-  _NavItem(AppSection.habits, Icons.local_fire_department_rounded,
-      'Alışkanlıklar'),
+  _NavItem(
+    AppSection.habits,
+    Icons.local_fire_department_rounded,
+    'Alışkanlıklar',
+  ),
   _NavItem(AppSection.reports, Icons.insights_rounded, 'Raporlar'),
 ];
 
@@ -399,10 +402,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 12, 8),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelSmall,
-      ),
+      child: Text(text, style: Theme.of(context).textTheme.labelSmall),
     );
   }
 }
@@ -468,8 +468,9 @@ class _NavTileState extends State<_NavTile> {
                         style: TextStyle(
                           color: ink,
                           fontSize: 13.5,
-                          fontWeight:
-                              selected ? FontWeight.w600 : FontWeight.w500,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
                           letterSpacing: -0.1,
                         ),
                       ),
@@ -635,10 +636,7 @@ class _ProfileTile extends StatelessWidget {
       width: 32,
       height: 32,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: c.accentSoft,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: c.accentSoft, shape: BoxShape.circle),
       child: Icon(Icons.person_rounded, size: 17, color: c.navActiveInk),
     );
 
@@ -691,8 +689,6 @@ class _ProfileTile extends StatelessWidget {
       ),
     );
 
-    return collapsed
-        ? Tooltip(message: 'Hesap ayarları', child: tile)
-        : tile;
+    return collapsed ? Tooltip(message: 'Hesap ayarları', child: tile) : tile;
   }
 }

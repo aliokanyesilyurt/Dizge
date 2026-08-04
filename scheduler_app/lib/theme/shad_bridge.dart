@@ -33,44 +33,45 @@ ShadThemeData shadThemeFrom(AppPalette p) {
     // Renkte olduğu gibi tipografide de kaynak tek. Bu satır olmasaydı Shad
     // bileşenleri kendi varsayılan ailesinde kalır, ızgaranın hemen yanında
     // farklı bir yazı tipiyle görünürlerdi.
-    textTheme: ShadTextTheme(family: kFontFamily)
-        .apply(fontFamilyFallback: kFontFallback),
+    textTheme: ShadTextTheme(
+      family: kFontFamily,
+    ).apply(fontFamilyFallback: kFontFallback),
   );
 }
 
 ShadColorScheme _schemeFrom(AppPalette p) => ShadColorScheme(
-      background: p.bg,
-      foreground: p.ink,
+  background: p.bg,
+  foreground: p.ink,
 
-      card: p.surface,
-      cardForeground: p.ink,
+  card: p.surface,
+  cardForeground: p.ink,
 
-      popover: p.surfaceAlt,
-      popoverForeground: p.ink,
+  popover: p.surfaceAlt,
+  popoverForeground: p.ink,
 
-      // Birincil eylem = uygulamanın tek vurgu rengi (indigo).
-      primary: p.accent,
-      primaryForeground: p.onAccent,
+  // Birincil eylem = uygulamanın tek vurgu rengi (indigo).
+  primary: p.accent,
+  primaryForeground: p.onAccent,
 
-      // İkincil eylem: dolu ama sessiz — zemin bir kat ileri, yazı ikincil.
-      secondary: p.surfaceAlt,
-      secondaryForeground: p.inkDim,
+  // İkincil eylem: dolu ama sessiz — zemin bir kat ileri, yazı ikincil.
+  secondary: p.surfaceAlt,
+  secondaryForeground: p.inkDim,
 
-      muted: p.hover,
-      mutedForeground: p.inkFaint,
+  muted: p.hover,
+  mutedForeground: p.inkFaint,
 
-      // Shadcn'de `accent` "üzerine gelinen / seçili öğe zemini" demek,
-      // bizim `accent`imiz gibi doygun bir vurgu değil. Bu yüzden çapraz
-      // eşleniyor: zemin `accentSoft`, üzerindeki yazı `accent`.
-      accent: p.accentSoft,
-      accentForeground: p.accent,
+  // Shadcn'de `accent` "üzerine gelinen / seçili öğe zemini" demek,
+  // bizim `accent`imiz gibi doygun bir vurgu değil. Bu yüzden çapraz
+  // eşleniyor: zemin `accentSoft`, üzerindeki yazı `accent`.
+  accent: p.accentSoft,
+  accentForeground: p.accent,
 
-      destructive: p.danger,
-      destructiveForeground: p.onAccent,
+  destructive: p.danger,
+  destructiveForeground: p.onAccent,
 
-      border: p.line,
-      input: p.lineSoft,
-      ring: p.accent,
+  border: p.line,
+  input: p.lineSoft,
+  ring: p.accent,
 
-      selection: p.accentSoft,
-    );
+  selection: p.accentSoft,
+);

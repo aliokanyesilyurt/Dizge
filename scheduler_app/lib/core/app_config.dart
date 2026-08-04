@@ -23,8 +23,10 @@ class AppConfig {
 
   /// `dev` | `staging` | `prod`. Telemetri olaylarına özellik olarak eklenir ki
   /// geliştirme trafiği üretim panosunu kirletmesin.
-  static const String environment =
-      String.fromEnvironment('APP_ENV', defaultValue: kReleaseMode ? 'prod' : 'dev');
+  static const String environment = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: kReleaseMode ? 'prod' : 'dev',
+  );
 
   static bool get isProd => environment == 'prod';
 
@@ -33,8 +35,10 @@ class AppConfig {
   static const String posthogApiKey = String.fromEnvironment('POSTHOG_API_KEY');
 
   /// AB veri ikametgâhı için `https://eu.i.posthog.com` verilebilir.
-  static const String posthogHost =
-      String.fromEnvironment('POSTHOG_HOST', defaultValue: 'https://eu.i.posthog.com');
+  static const String posthogHost = String.fromEnvironment(
+    'POSTHOG_HOST',
+    defaultValue: 'https://eu.i.posthog.com',
+  );
 
   /// Anahtar yoksa PostHog hiç başlatılmaz; [NoopTelemetry] devreye girer.
   static bool get telemetryAvailable => posthogApiKey.isNotEmpty;

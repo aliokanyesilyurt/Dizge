@@ -130,8 +130,11 @@ class _HabitCard extends ConsumerWidget {
               const SizedBox(width: 2),
               IconButton(
                 onPressed: () => _confirmDelete(context, store, habit),
-                icon: Icon(Icons.more_horiz_rounded,
-                    size: 18, color: c.inkFaint),
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  size: 18,
+                  color: c.inkFaint,
+                ),
               ),
             ],
           ),
@@ -171,8 +174,9 @@ class _HabitCard extends ConsumerWidget {
         content: Text('"${h.title}" ve tüm geçmişi silinsin mi?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Vazgeç')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Sil', style: TextStyle(color: ctx.colors.danger)),
@@ -188,14 +192,17 @@ class _TodayButton extends StatelessWidget {
   final bool done;
   final Color color;
   final VoidCallback onTap;
-  const _TodayButton(
-      {required this.done, required this.color, required this.onTap});
+  const _TodayButton({
+    required this.done,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final onColor = ThemeData.estimateBrightnessForColor(color) ==
-            Brightness.dark
+    final onColor =
+        ThemeData.estimateBrightnessForColor(color) == Brightness.dark
         ? Colors.white
         : const Color(0xFF14161C);
 
@@ -216,8 +223,11 @@ class _TodayButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(done ? Icons.check_rounded : Icons.add_rounded,
-                  size: 15, color: done ? onColor : c.inkDim),
+              Icon(
+                done ? Icons.check_rounded : Icons.add_rounded,
+                size: 15,
+                color: done ? onColor : c.inkDim,
+              ),
               const SizedBox(width: 5),
               Text(
                 'Bugün',
@@ -356,7 +366,9 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
             segments: const [
               ButtonSegment(value: HabitCadence.daily, label: Text('Her gün')),
               ButtonSegment(
-                  value: HabitCadence.weekly, label: Text('Haftada N')),
+                value: HabitCadence.weekly,
+                label: Text('Haftada N'),
+              ),
             ],
             selected: {_cadence},
             showSelectedIcon: false,
@@ -366,8 +378,7 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Text('Hedef',
-                    style: TextStyle(color: c.inkDim, fontSize: 13)),
+                Text('Hedef', style: TextStyle(color: c.inkDim, fontSize: 13)),
                 Expanded(
                   child: Slider(
                     value: _target.toDouble(),
@@ -378,11 +389,14 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
                     onChanged: (v) => setState(() => _target = v.round()),
                   ),
                 ),
-                Text('$_target/hafta',
-                    style: TextStyle(
-                        color: c.ink,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  '$_target/hafta',
+                  style: TextStyle(
+                    color: c.ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ],
@@ -390,18 +404,21 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Vazgeç')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Vazgeç'),
+        ),
         ElevatedButton(
           onPressed: () {
             final title = _controller.text.trim();
             if (title.isEmpty) return;
-            widget.store.addHabit(Habit(
-              title: title,
-              color: _color,
-              cadence: _cadence,
-              targetPerWeek: _target,
-            ));
+            widget.store.addHabit(
+              Habit(
+                title: title,
+                color: _color,
+                cadence: _cadence,
+                targetPerWeek: _target,
+              ),
+            );
             Navigator.pop(context);
           },
           child: const Text('Ekle'),

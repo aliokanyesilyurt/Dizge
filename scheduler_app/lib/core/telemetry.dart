@@ -110,7 +110,10 @@ class NoopTelemetry implements Telemetry {
   void screen(String name, {Map<String, Object>? props}) {}
 
   @override
-  Future<void> identify(String distinctId, {Map<String, Object>? props}) async {}
+  Future<void> identify(
+    String distinctId, {
+    Map<String, Object>? props,
+  }) async {}
 
   @override
   Future<void> reset() async {}
@@ -138,8 +141,10 @@ class DebugTelemetry implements Telemetry {
       _log('screen', name, props);
 
   @override
-  Future<void> identify(String distinctId, {Map<String, Object>? props}) async =>
-      _log('identify', distinctId, props);
+  Future<void> identify(
+    String distinctId, {
+    Map<String, Object>? props,
+  }) async => _log('identify', distinctId, props);
 
   @override
   Future<void> reset() async => _log('reset', '-', null);
@@ -185,23 +190,23 @@ class PostHogTelemetry implements Telemetry {
   }
 
   Map<String, Object> _props(Map<String, Object>? props) => {
-        ..._superProps,
-        ...SafeProps.sanitize(props),
-      };
+    ..._superProps,
+    ...SafeProps.sanitize(props),
+  };
 
   @override
   void capture(String event, {Map<String, Object>? props}) {
     // Ateşle-unut: ağ hatası kullanıcı akışını kesmemeli.
-    _posthog.capture(eventName: event, properties: _props(props)).catchError(
-          (Object e) => debugPrint('telemetri capture hatası: $e'),
-        );
+    _posthog
+        .capture(eventName: event, properties: _props(props))
+        .catchError((Object e) => debugPrint('telemetri capture hatası: $e'));
   }
 
   @override
   void screen(String name, {Map<String, Object>? props}) {
-    _posthog.screen(screenName: name, properties: _props(props)).catchError(
-          (Object e) => debugPrint('telemetri screen hatası: $e'),
-        );
+    _posthog
+        .screen(screenName: name, properties: _props(props))
+        .catchError((Object e) => debugPrint('telemetri screen hatası: $e'));
   }
 
   @override

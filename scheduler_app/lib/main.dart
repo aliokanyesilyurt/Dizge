@@ -64,8 +64,7 @@ class SchedulerApp extends ConsumerWidget {
         // Sistem çubukları temayı izler. `builder` içinde okunuyor çünkü
         // MaterialApp'in teması ancak burada bağlamda hazır.
         final palette = context.colors;
-        final barIcons =
-            palette.isDark ? Brightness.light : Brightness.dark;
+        final barIcons = palette.isDark ? Brightness.light : Brightness.dark;
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(

@@ -25,7 +25,8 @@ class AccountScreen extends ConsumerWidget {
     final store = ref.watch(localStoreProvider);
     final encrypted = store is HiveLocalStore;
     final outbox = ref.watch(outboxProvider);
-    final syncState = ref.watch(syncStateProvider).valueOrNull ?? SyncState.idle;
+    final syncState =
+        ref.watch(syncStateProvider).valueOrNull ?? SyncState.idle;
     final online = ref.watch(networkStatusProvider).valueOrNull;
 
     return Scaffold(
@@ -53,20 +54,22 @@ class AccountScreen extends ConsumerWidget {
                       ? Icons.lock_rounded
                       : Icons.lock_open_rounded,
                   iconColor: encrypted ? c.accent : c.warning,
-                  title:
-                      encrypted ? 'Veriler şifreli' : 'Şifreleme kullanılamıyor',
+                  title: encrypted
+                      ? 'Veriler şifreli'
+                      : 'Şifreleme kullanılamıyor',
                   subtitle: encrypted
                       ? 'Planların AES-256 ile bu cihazda saklanıyor. '
-                          'Anahtar cihazın güvenli kasasında; sunucuya gitmiyor.'
+                            'Anahtar cihazın güvenli kasasında; sunucuya gitmiyor.'
                       : 'Cihazın güvenli anahtar deposuna erişilemedi. '
-                          'Veriler yalnızca uygulama açıkken bellekte tutuluyor.',
+                            'Veriler yalnızca uygulama açıkken bellekte tutuluyor.',
                 ),
                 _StatusTile(
                   icon: online == NetworkStatus.offline
                       ? Icons.cloud_off_rounded
                       : Icons.cloud_done_rounded,
                   title: _syncTitle(syncState, outbox.length),
-                  subtitle: 'Uygulama önce cihaza yazar, sonra eşitler. '
+                  subtitle:
+                      'Uygulama önce cihaza yazar, sonra eşitler. '
                       'İnternet olmadan da tam çalışır.',
                 ),
                 const _TelemetryTile(),
@@ -116,12 +119,12 @@ class AccountScreen extends ConsumerWidget {
   }
 
   static String _syncTitle(SyncState state, int pending) => switch (state) {
-        SyncState.idle when pending == 0 => 'Her şey kaydedildi',
-        SyncState.idle => '$pending değişiklik bekliyor',
-        SyncState.syncing => 'Eşitleniyor…',
-        SyncState.waitingForNetwork => '$pending değişiklik bağlantı bekliyor',
-        SyncState.failed => 'Eşitleme durdu',
-      };
+    SyncState.idle when pending == 0 => 'Her şey kaydedildi',
+    SyncState.idle => '$pending değişiklik bekliyor',
+    SyncState.syncing => 'Eşitleniyor…',
+    SyncState.waitingForNetwork => '$pending değişiklik bağlantı bekliyor',
+    SyncState.failed => 'Eşitleme durdu',
+  };
 }
 
 class _ProfileHeader extends StatelessWidget {
@@ -153,8 +156,7 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Misafir',
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Text('Misafir', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 3),
               Text(
                 'Oturum açılmadı — veriler bu cihazda',
@@ -230,8 +232,7 @@ class _ThemeCard extends ConsumerWidget {
                     title: o.$2,
                     caption: o.$3,
                     selected: mode == o.$4,
-                    onTap: () =>
-                        ref.read(themeModeProvider.notifier).set(o.$4),
+                    onTap: () => ref.read(themeModeProvider.notifier).set(o.$4),
                   ),
                 ),
                 if (o != _options.last) const SizedBox(width: 10),
@@ -281,8 +282,7 @@ class _ThemeOptionCard extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(icon,
-                  size: 20, color: selected ? c.navActiveInk : c.inkDim),
+              Icon(icon, size: 20, color: selected ? c.navActiveInk : c.inkDim),
               const SizedBox(height: 8),
               Text(
                 title,
@@ -395,8 +395,7 @@ class _DangerZone extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Sil',
-                style: TextStyle(color: ctx.colors.danger)),
+            child: Text('Sil', style: TextStyle(color: ctx.colors.danger)),
           ),
         ],
       ),
@@ -444,8 +443,11 @@ class _DangerZone extends ConsumerWidget {
                   ),
                 ),
               ),
-              Icon(Icons.chevron_right_rounded,
-                  size: 18, color: c.danger.withValues(alpha: 0.7)),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: c.danger.withValues(alpha: 0.7),
+              ),
             ],
           ),
         ),
@@ -541,10 +543,7 @@ class _Notice extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: c.accentSoft,
-        borderRadius: R.radiusMd,
-      ),
+      decoration: BoxDecoration(color: c.accentSoft, borderRadius: R.radiusMd),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

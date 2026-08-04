@@ -50,7 +50,7 @@ const _kSnapshot = 'snapshot';
 /// Hive tabanlı, AES-256 şifreli uygulama.
 class HiveLocalStore implements LocalStore {
   HiveLocalStore({SecureKeyStore? keyStore})
-      : _keyStore = keyStore ?? SecureKeyStore();
+    : _keyStore = keyStore ?? SecureKeyStore();
 
   final SecureKeyStore _keyStore;
   Box<String>? _box;
@@ -108,7 +108,10 @@ class HiveLocalStore implements LocalStore {
 
     var migrated = json;
     if (version < 2) {
-      migrated = {...migrated, 'categories': migrated['categories'] ?? const []};
+      migrated = {
+        ...migrated,
+        'categories': migrated['categories'] ?? const [],
+      };
     }
     return {...migrated, 'schemaVersion': AppConfig.kSchemaVersion};
   }

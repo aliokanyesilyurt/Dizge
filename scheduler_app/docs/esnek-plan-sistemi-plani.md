@@ -151,7 +151,7 @@ Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit
 |---|---|---|---|
 | ~~**Ö3**~~ | ~~Günlük tikler~~ | `DailyHabitStrip` — ana ekranın üstünde, günlük ritimli alışkanlıklar için kutucuk + seri rozeti. **Yeni model yok.** | **İndi (4 Ağustos).** Bkz. §5.1 |
 | ~~**Ö4a**~~ | ~~Enerji modeli~~ | `Energy` enum, `Task.energy`, JSON + geri uyum, düzenleyicide seçici | **İndi (4 Ağustos).** Bkz. §5.2 |
-| **Ö4b** | Enerji filtresi | Başlıkta "Bugün enerjim" seçici; ızgara yüksek eforluları soluklaştırır (gizlemez) | Filtre ızgarayı süzer, tercih kalıcı |
+| ~~**Ö4b**~~ | ~~Enerji filtresi~~ | Başlıkta "Bugün enerjim" seçici; ızgara yüksek eforluları soluklaştırır (gizlemez) | **İndi (4 Ağustos).** Bkz. §5.3 |
 | **Ö1a** | Havuz modeli | `inPool`, `occursOn` kapısı, `AppStore.moveToPool` / `pullFromPool`, mutasyon kaydı | Havuzdaki iş hiçbir görünümde çıkmaz; senkron kaydı düşer |
 | **Ö1b** | Havuz paneli | "Kenarda Bekleyenler" — sağda daraltılabilir sütun; ızgaradan sürükleyip bırakma çift yönlü | Sürükle-bırak iki yönde çalışır; panel kapalıyken sayaç rozeti |
 | **Ö2** | Kaos düğmesi | `isFixed`, `skippedOn`, "Günü kurtar" eylemi + onay + **geri al** | Sabitler yerinde kalır, tamamlananlar dokunulmaz, tek tıkla geri alınır |
@@ -205,6 +205,35 @@ Plana ek olarak üç küçük karar:
 
 Enerji şu an yalnız *yazılıyor*; ızgarada hiçbir görsel karşılığı yok. Bu
 bilinçli — rozet ve soluklaştırma Ö4b'nin işi.
+
+### 5.3 Ö4b kapanış notu (4 Ağustos)
+
+`core/energy_filter_controller.dart` + başlıkta "Bugün enerjim" seçici.
+Enerjinin üstünde efor isteyen bloklar %40 saydamlığa iniyor — ızgarada ve
+"Saatsiz" şeridinde aynı kural. 12 test, `flutter analyze` temiz, derleme
+ayakta.
+
+**Plandan tek sapma — tercih güne bağlı.** Plan "tercih kalıcı" diyordu;
+süresiz kalıcı yapmadım. "Bugün enerjim" tanımı gereği bugüne ait: dün akşam
+"deşarj" işaretleyen biri ertesi sabah takvimini yarı solmuş bulur ve nedenini
+aramazdı bile — filtreyi kendisinin açtığını unutmuş olurdu. Bu yüzden diske
+`gün|kademe` yazılıyor; gün değişince filtre kendiliğinden kalkıyor. Gün içinde
+ise tam kalıcı: uygulama kapanıp açılsa da seçim yerinde.
+
+Yol boyunca çıkan iki şey:
+
+* **Başlık 390px'te taştı** (1.7px, sonra "Bugün" düğmesi de açıkken 5.7px).
+  Beşinci denetim o genişliğe sığmıyor. Çözüm boşlukları daraltmak *ve*
+  dar ekranda "Bugün"ü ikona indirmek oldu — başlık zaten yoğunluk ve "Yeni"
+  için aynı kuralı uyguluyordu, "Bugün"ün yazısını korumak tutarsızlıktı.
+  `theme_test` buna göre güncellendi (artık `byTooltip('Bugün')` arıyor).
+* **`Energy` kademelerinin sırası artık anlamlı** — karşılaştırma `index`
+  üzerinden yapılıyor. Enum'a doküman notu ve sırayı bekçileyen bir test
+  eklendi; araya yeni bir kademe girerse doğru yere girmeli.
+
+Ö4b, ana ekran planının 13.3 maddesindeki açık soruyu (telefon düzeni) daha
+görünür kıldı: 390px'te başlık artık dolu. Bir denetim daha eklenecekse orada
+karar vermek gerekecek.
 
 ---
 

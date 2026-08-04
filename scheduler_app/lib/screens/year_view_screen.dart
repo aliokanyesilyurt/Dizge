@@ -10,8 +10,18 @@ class YearViewScreen extends ConsumerWidget {
   const YearViewScreen({super.key, this.year});
 
   static const List<String> _months = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
   ];
 
   @override
@@ -25,13 +35,15 @@ class YearViewScreen extends ConsumerWidget {
       backgroundColor: c.bg,
       appBar: AppBar(
         centerTitle: true,
-        title: Text('$year',
-            style: TextStyle(
-              color: c.ink,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-              fontSize: 16,
-            )),
+        title: Text(
+          '$year',
+          style: TextStyle(
+            color: c.ink,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+            fontSize: 16,
+          ),
+        ),
       ),
       body: SafeArea(
         child: GridView.builder(
@@ -89,8 +101,7 @@ class _MiniMonthState extends State<_MiniMonth> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final int daysInMonth =
-        DateUtils.getDaysInMonth(widget.year, widget.month);
+    final int daysInMonth = DateUtils.getDaysInMonth(widget.year, widget.month);
     final int offset = DateTime(widget.year, widget.month, 1).weekday - 1;
     final DateTime today = DateTime.now();
     final isCurrentMonth =
@@ -99,8 +110,9 @@ class _MiniMonthState extends State<_MiniMonth> {
     // Görevi olan günler (renkli nokta için)
     final Map<int, Color> markedDays = {};
     for (int d = 1; d <= daysInMonth; d++) {
-      final list =
-          widget.store.tasksForDate(DateTime(widget.year, widget.month, d));
+      final list = widget.store.tasksForDate(
+        DateTime(widget.year, widget.month, d),
+      );
       if (list.isNotEmpty) markedDays[d] = list.first.color;
     }
 
@@ -185,8 +197,10 @@ class _MiniMonthState extends State<_MiniMonth> {
                     Container(
                       width: 5,
                       height: 5,
-                      decoration:
-                          BoxDecoration(color: c.accent, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: c.accent,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ],
                 ],

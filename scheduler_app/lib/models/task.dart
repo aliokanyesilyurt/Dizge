@@ -51,6 +51,10 @@ enum TaskStatus { todo, doing, done }
 /// Dört kademe, üç değil: asıl kullanım senaryosu — akşam yorgun dönüp
 /// "beynimi yakmadan ne yapabilirim" diye bakmak — tam olarak [low] ile
 /// [medium] arasından seçmek. Ayrımı silmek özelliğin sebebini silerdi.
+///
+/// **Sıra anlamlı:** baştan sona azalan efor. [Task.exceedsEnergy] karşılaştırmayı
+/// `index` üzerinden yapıyor; araya yeni bir kademe eklenecekse doğru yere
+/// eklenmeli. Bir test bu sırayı bekçiliyor.
 enum Energy {
   high('Yüksek efor'),
   medium('Orta efor'),
@@ -245,6 +249,14 @@ class Task implements Node {
       startHour == null ? null : (startHour! + durationHours).clamp(0.0, 24.0);
 
   bool isDoneOn(DateTime day) => completedOn.contains(dayKey(day));
+
+  /// Bu iş, elde [limit] kadar enerji varken fazla mı geliyor?
+  ///
+  /// Eforu belirtilmemiş iş **asla** elenmez: filtre bir öneri, sansür değil.
+  /// Aksi hâlde alanı hiç doldurmayan biri bir gün filtreyi açar ve takvimini
+  /// tamamen solmuş bulurdu.
+  bool exceedsEnergy(Energy? limit) =>
+      limit != null && energy != null && energy!.index < limit.index;
 
   void setDone(DateTime day, bool done) {
     final k = dayKey(day);

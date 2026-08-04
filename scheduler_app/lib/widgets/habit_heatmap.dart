@@ -72,7 +72,10 @@ class HabitHeatmap extends StatelessWidget {
                         children: [
                           for (var d = 0; d < 7; d++)
                             _cellFor(
-                                c, firstMon.add(Duration(days: w * 7 + d)), today),
+                              c,
+                              firstMon.add(Duration(days: w * 7 + d)),
+                              today,
+                            ),
                         ],
                       ),
                   ],
@@ -131,14 +134,14 @@ class _Legend extends StatelessWidget {
     final c = context.colors;
 
     Widget box(Color fill) => Container(
-          width: 11,
-          height: 11,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          decoration: BoxDecoration(
-            color: fill,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        );
+      width: 11,
+      height: 11,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(3),
+      ),
+    );
 
     final label = TextStyle(color: c.inkFaint, fontSize: 10);
 

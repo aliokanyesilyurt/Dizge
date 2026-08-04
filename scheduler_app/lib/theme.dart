@@ -229,21 +229,25 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   /// Zeminden hafifçe kalkan yüzey: kart, satır, hap.
   List<BoxShadow> get shadowSm => [
-        BoxShadow(color: shadowContact, blurRadius: 2, offset: const Offset(0, 1)),
-        BoxShadow(color: shadowAmbient, blurRadius: 8, offset: const Offset(0, 2)),
-      ];
+    BoxShadow(color: shadowContact, blurRadius: 2, offset: const Offset(0, 1)),
+    BoxShadow(color: shadowAmbient, blurRadius: 8, offset: const Offset(0, 2)),
+  ];
 
   /// Belirgin şekilde önde duran yüzey: seçili kart, açılır panel, FAB.
   List<BoxShadow> get shadowMd => [
-        BoxShadow(color: shadowContact, blurRadius: 4, offset: const Offset(0, 2)),
-        BoxShadow(color: shadowAmbient, blurRadius: 20, offset: const Offset(0, 8)),
-      ];
+    BoxShadow(color: shadowContact, blurRadius: 4, offset: const Offset(0, 2)),
+    BoxShadow(color: shadowAmbient, blurRadius: 20, offset: const Offset(0, 8)),
+  ];
 
   /// Ekrandan kopan katman: sürüklenen blok, sheet, dialog.
   List<BoxShadow> get shadowLg => [
-        BoxShadow(color: shadowContact, blurRadius: 8, offset: const Offset(0, 4)),
-        BoxShadow(color: shadowAmbient, blurRadius: 40, offset: const Offset(0, 18)),
-      ];
+    BoxShadow(color: shadowContact, blurRadius: 8, offset: const Offset(0, 4)),
+    BoxShadow(
+      color: shadowAmbient,
+      blurRadius: 40,
+      offset: const Offset(0, 18),
+    ),
+  ];
 
   // --- Türetilmiş stiller ----------------------------------------------------
 
@@ -257,7 +261,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
       return TagStyle(color.withValues(alpha: selected ? 0.26 : 0.15), color);
     }
     return TagStyle(
-      Color.alphaBlend(color.withValues(alpha: selected ? 0.26 : 0.15), surface),
+      Color.alphaBlend(
+        color.withValues(alpha: selected ? 0.26 : 0.15),
+        surface,
+      ),
       Color.lerp(color, Colors.black, 0.55)!,
     );
   }
@@ -321,7 +328,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     for (var step = 0; step <= 20; step++) {
       final candidate = Color.lerp(color, ink, step / 20)!;
       final l = candidate.computeLuminance();
-      final ratio = ((l > bgLuminance ? l : bgLuminance) + 0.05) /
+      final ratio =
+          ((l > bgLuminance ? l : bgLuminance) + 0.05) /
           ((l < bgLuminance ? l : bgLuminance) + 0.05);
       if (ratio >= 4.5) {
         result = candidate;
@@ -650,22 +658,22 @@ TextTheme _buildTextTheme(AppPalette p) {
 /// Varsayılanın koyu olması bilinçli: testler ve eski çağrılar `buildAppTheme()`
 /// diyor ve uygulamanın kimliği koyu temada tanımlandı.
 ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
-  final p =
-      brightness == Brightness.dark ? AppPalette.dark : AppPalette.light;
+  final p = brightness == Brightness.dark ? AppPalette.dark : AppPalette.light;
 
-  final scheme = ColorScheme.fromSeed(
-    seedColor: p.accent,
-    brightness: brightness,
-  ).copyWith(
-    surface: p.surface,
-    onSurface: p.ink,
-    primary: p.accent,
-    onPrimary: p.onAccent,
-    secondary: p.secondary,
-    outline: p.line,
-    outlineVariant: p.lineSoft,
-    error: p.danger,
-  );
+  final scheme =
+      ColorScheme.fromSeed(
+        seedColor: p.accent,
+        brightness: brightness,
+      ).copyWith(
+        surface: p.surface,
+        onSurface: p.ink,
+        primary: p.accent,
+        onPrimary: p.onAccent,
+        secondary: p.secondary,
+        outline: p.line,
+        outlineVariant: p.lineSoft,
+        error: p.danger,
+      );
 
   return ThemeData(
     useMaterial3: true,
@@ -836,8 +844,7 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
       filled: true,
       fillColor: p.isDark ? p.surfaceAlt : p.hover,
       hintStyle: TextStyle(color: p.inkFaint, fontSize: 14),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: OutlineInputBorder(
         borderRadius: R.radiusSm,
         borderSide: BorderSide(color: p.line),

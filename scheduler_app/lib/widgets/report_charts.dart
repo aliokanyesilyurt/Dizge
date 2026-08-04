@@ -239,8 +239,9 @@ class VBarChart extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.bottomCenter,
                         child: FractionallySizedBox(
-                          heightFactor:
-                              values[i] < 0 ? 0.02 : max(values[i], 0.02),
+                          heightFactor: values[i] < 0
+                              ? 0.02
+                              : max(values[i], 0.02),
                           child: AnimatedContainer(
                             duration: Motion.slow,
                             curve: Motion.curve,
@@ -248,7 +249,8 @@ class VBarChart extends StatelessWidget {
                               color: i == highlightIndex
                                   ? c.secondary
                                   : color.withValues(
-                                      alpha: values[i] < 0 ? 0.15 : 0.8),
+                                      alpha: values[i] < 0 ? 0.15 : 0.8,
+                                    ),
                               borderRadius: BorderRadius.circular(6),
                             ),
                           ),

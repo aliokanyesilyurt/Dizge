@@ -37,6 +37,7 @@ class WeekTimeGrid extends StatefulWidget {
     required this.onDelete,
     this.scrollOffset,
     this.initialScrollHour,
+    this.energyLimit,
   }) : assert(tasksByDay.length == 7, 'Haftalık ızgara tam 7 gün bekler');
 
   /// Gösterilen haftanın pazartesisi (saat kırpılmış).
@@ -66,6 +67,11 @@ class WeekTimeGrid extends StatefulWidget {
 
   /// İlk açılışta ekranın ortalayacağı saat (genelde "şimdi"den biraz önce).
   final double? initialScrollHour;
+
+  /// Kullanıcının o günkü enerjisi; bunun üstünde efor isteyen bloklar
+  /// **soluklaşır, gizlenmez**. Gizlemek işi unutturur; soluklaştırmak
+  /// "bugün olmasa da olur" der. null => filtre kapalı.
+  final Energy? energyLimit;
 
   @override
   State<WeekTimeGrid> createState() => _WeekTimeGridState();
@@ -118,6 +124,10 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
   double _autoScrollVelocity = 0;
 
   static const double _edgeZone = 64.0;
+
+  /// Enerji filtresinin elediği bloğun saydamlığı. Okunmaya devam edecek kadar
+  /// koyu, "bugün bu değil" diyecek kadar geride.
+  static const double _dimmedOpacity = 0.4;
   static const double _maxAutoScrollPerTick = 14.0;
 
   double _initialOffset() {
@@ -416,6 +426,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       for (final slot in slots) {
         final task = slot.item;
         final dragging = _drag?.task.id == task.id;
+        final dimmed = task.exceedsEnergy(widget.energyLimit);
 
         // Süre değiştiriliyorsa canlı önizleme göster.
         final duration = (_resize?.task.id == task.id)
@@ -446,11 +457,14 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
             height: height,
             child: Opacity(
               // Sürüklenen bloğun aslı soluklaşır; hayaleti parmağı takip eder.
-              opacity: dragging ? 0.28 : 1,
+              // Enerji filtresi de aynı kanaldan geçiyor: sürüklenen blok zaten
+              // en solgun hâlinde olmalı, iki solgunluk çarpışmamalı.
+              opacity: dragging ? 0.28 : (dimmed ? _dimmedOpacity : 1),
               child: _EventBlock(
                 task: task,
                 day: day,
                 done: task.isDoneOn(day),
+                dimmed: dimmed,
                 // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
                 compact: height < 34,
                 onEdit: () => widget.onTapTask(task, day),
@@ -652,6 +666,7 @@ class _EventBlock extends StatefulWidget {
     required this.day,
     required this.done,
     required this.compact,
+    this.dimmed = false,
     required this.onEdit,
     required this.onDuplicate,
     required this.onDelete,
@@ -669,6 +684,11 @@ class _EventBlock extends StatefulWidget {
 
   /// Blok kısaysa başlık ve saat tek satırda birleşir.
   final bool compact;
+
+  /// Enerji filtresi bu bloğu eledi mi? Solgunluğu üstteki [Opacity] veriyor;
+  /// burada yalnızca ekran okuyucuya söylemek için duruyor — solgunluk göze
+  /// görünüyorsa kulağa da görünmeli.
+  final bool dimmed;
 
   /// Tam düzenleyiciyi açar. Bloğa tıklamak artık doğrudan buraya gitmiyor —
   /// önce hafif bir önizleme açılıyor, "Düzenle" oradan çağırıyor.
@@ -742,6 +762,7 @@ class _EventBlockState extends State<_EventBlock> {
       '${_weekdayNames[widget.day.weekday - 1]} ${task.timeString}',
       if (task.isRoutine) 'rutin',
       if (widget.done) 'tamamlandı',
+      if (widget.dimmed) 'bugünkü enerjinin üstünde',
     ];
     return parts.join(', ');
   }

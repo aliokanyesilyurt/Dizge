@@ -179,8 +179,10 @@ class _NoteRowState extends State<_NoteRow> {
               ),
               if (widget.backlinkCount > 0)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: c.hover,
                     borderRadius: R.radiusPill,
@@ -253,8 +255,9 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
 
   /// Controller'lardaki metni not modeline yazar (bildirim yok).
   void _writeBack() {
-    widget.note.title =
-        _titleCtrl.text.trim().isEmpty ? 'Başlıksız' : _titleCtrl.text.trim();
+    widget.note.title = _titleCtrl.text.trim().isEmpty
+        ? 'Başlıksız'
+        : _titleCtrl.text.trim();
     widget.note.body = _bodyCtrl.text;
   }
 
@@ -319,8 +322,11 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                   IconButton(
                     onPressed: _back,
                     tooltip: 'Geri',
-                    icon: Icon(Icons.arrow_back_rounded,
-                        size: 20, color: c.inkDim),
+                    icon: Icon(
+                      Icons.arrow_back_rounded,
+                      size: 20,
+                      color: c.inkDim,
+                    ),
                   ),
                   const Spacer(),
                   TextButton.icon(
@@ -391,8 +397,9 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                       const SizedBox(height: 32),
                       if (outTitles.isNotEmpty) ...[
                         const _PanelLabel(
-                            icon: Icons.north_east_rounded,
-                            text: 'Bu notun bağlantıları'),
+                          icon: Icons.north_east_rounded,
+                          text: 'Bu notun bağlantıları',
+                        ),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
@@ -409,8 +416,9 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                         const SizedBox(height: 26),
                       ],
                       const _PanelLabel(
-                          icon: Icons.south_west_rounded,
-                          text: 'Backlinks (buraya bağlananlar)'),
+                        icon: Icons.south_west_rounded,
+                        text: 'Backlinks (buraya bağlananlar)',
+                      ),
                       const SizedBox(height: 10),
                       if (backlinks.isEmpty)
                         Text(
@@ -510,8 +518,8 @@ class _LinkChip extends StatelessWidget {
                 broken
                     ? Icons.link_off_rounded
                     : (isNote
-                        ? Icons.description_rounded
-                        : Icons.check_circle_rounded),
+                          ? Icons.description_rounded
+                          : Icons.check_circle_rounded),
                 size: 13,
                 color: color,
               ),
@@ -558,9 +566,7 @@ class _BacklinkRow extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                isTask
-                    ? Icons.check_circle_rounded
-                    : Icons.description_rounded,
+                isTask ? Icons.check_circle_rounded : Icons.description_rounded,
                 size: 16,
                 color: isTask ? c.secondary : c.accent,
               ),
@@ -646,8 +652,11 @@ class _LinkPickerState extends State<_LinkPicker> {
                 style: TextStyle(color: c.ink),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  prefixIcon:
-                      Icon(Icons.search_rounded, size: 18, color: c.inkFaint),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 18,
+                    color: c.inkFaint,
+                  ),
                   hintText: 'Not/görev ara ya da yeni not adı yaz…',
                 ),
               ),
@@ -659,8 +668,7 @@ class _LinkPickerState extends State<_LinkPicker> {
                 children: [
                   if (canCreate)
                     ListTile(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: R.radiusSm),
+                      shape: RoundedRectangleBorder(borderRadius: R.radiusSm),
                       leading: Icon(Icons.add_rounded, color: c.accent),
                       title: Text(
                         '"${_query.text.trim()}" notunu oluştur ve bağla',
@@ -670,8 +678,7 @@ class _LinkPickerState extends State<_LinkPicker> {
                     ),
                   for (final n in matches)
                     ListTile(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: R.radiusSm),
+                      shape: RoundedRectangleBorder(borderRadius: R.radiusSm),
                       leading: Icon(
                         n.kind == NodeKind.task
                             ? Icons.check_circle_rounded

@@ -47,7 +47,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ? const EmptyState(
                       icon: Icons.insights_rounded,
                       title: 'Rapor için yeterli veri yok.',
-                      text: 'Birkaç görev ekleyip tamamlayınca grafikler dolar.',
+                      text:
+                          'Birkaç görev ekleyip tamamlayınca grafikler dolar.',
                     )
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
@@ -59,8 +60,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           child: HBarChart(
                             rows: [
                               for (final b in report.byCategory.take(6))
-                                HBarRow(b.label, b.color, b.hours,
-                                    Task.formatDuration(b.hours)),
+                                HBarRow(
+                                  b.label,
+                                  b.color,
+                                  b.hours,
+                                  Task.formatDuration(b.hours),
+                                ),
                             ],
                           ),
                         ),
@@ -70,8 +75,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           child: HBarChart(
                             rows: [
                               for (final b in report.byTag.take(6))
-                                HBarRow('#${b.label}', c.accent, b.hours,
-                                    Task.formatDuration(b.hours)),
+                                HBarRow(
+                                  '#${b.label}',
+                                  c.accent,
+                                  b.hours,
+                                  Task.formatDuration(b.hours),
+                                ),
                             ],
                             emptyText:
                                 'Görevlere etiket ekleyince burada dağılım çıkar.',
@@ -159,8 +168,11 @@ class _Metric extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
-  const _Metric(
-      {required this.value, required this.label, required this.color});
+  const _Metric({
+    required this.value,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -279,10 +291,7 @@ class _RangePicker extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: c.hover,
-        borderRadius: R.radiusPill,
-      ),
+      decoration: BoxDecoration(color: c.hover, borderRadius: R.radiusPill),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [chip(7, '7g'), chip(30, '30g'), chip(90, '90g')],

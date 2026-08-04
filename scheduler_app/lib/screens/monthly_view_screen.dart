@@ -19,16 +19,33 @@ class MonthlyViewScreen extends ConsumerStatefulWidget {
 
 class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
   late final PageController _pageController = PageController(
-      initialPage: widget.initialMonth ?? DateTime.now().month - 1);
+    initialPage: widget.initialMonth ?? DateTime.now().month - 1,
+  );
 
   static const List<String> _months = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
   ];
 
   /// Doğrudan büyük harfli: Dart'ın toUpperCase'i Türkçe 'i' -> 'İ' yapmaz.
   static const List<String> _weekDays = [
-    'PZT', 'SAL', 'ÇAR', 'PER', 'CUM', 'CMT', 'PAZ'
+    'PZT',
+    'SAL',
+    'ÇAR',
+    'PER',
+    'CUM',
+    'CMT',
+    'PAZ',
   ];
 
   /// İlk dokunuşta seçilen gün; ikinci dokunuş o günü açar.
@@ -48,10 +65,10 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
       ref.read(navigationProvider.notifier).openDay(date);
 
   Future<void> _openRoutines() => showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        builder: (_) => const _RoutinesSheet(),
-      );
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => const _RoutinesSheet(),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -123,11 +140,15 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
           Expanded(
             child: Column(
               children: [
-                Text('$monthName $year',
-                    style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  '$monthName $year',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 2),
-                Text('kaydırarak ayları gez',
-                    style: TextStyle(color: c.inkFaint, fontSize: 11)),
+                Text(
+                  'kaydırarak ayları gez',
+                  style: TextStyle(color: c.inkFaint, fontSize: 11),
+                ),
               ],
             ),
           ),
@@ -146,18 +167,20 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
       child: Row(
         children: _weekDays
-            .map((d) => Expanded(
-                  child: Text(d,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: (d == 'CMT' || d == 'PAZ')
-                            ? c.inkFaint
-                            : c.inkDim,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
-                      )),
-                ))
+            .map(
+              (d) => Expanded(
+                child: Text(
+                  d,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: (d == 'CMT' || d == 'PAZ') ? c.inkFaint : c.inkDim,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -205,7 +228,8 @@ class _Grid extends StatelessWidget {
                   store: store,
                   isWeekend: dow >= 5,
                   isToday: date != null && DateUtils.isSameDay(date, today),
-                  isSelected: date != null &&
+                  isSelected:
+                      date != null &&
                       selectedDay != null &&
                       DateUtils.isSameDay(date, selectedDay!),
                   onTap: date == null ? null : () => onTapDay(date),
@@ -256,8 +280,8 @@ class _Cell extends StatelessWidget {
     final Color borderColor = isSelected
         ? c.accent
         : isToday
-            ? c.accent.withValues(alpha: 0.5)
-            : c.lineSoft;
+        ? c.accent.withValues(alpha: 0.5)
+        : c.lineSoft;
 
     return GestureDetector(
       onTap: onTap,
@@ -270,10 +294,7 @@ class _Cell extends StatelessWidget {
           decoration: BoxDecoration(
             color: fill,
             borderRadius: R.radiusSm,
-            border: Border.all(
-              color: borderColor,
-              width: isSelected ? 1.5 : 1,
-            ),
+            border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
             boxShadow: isSelected || isToday ? c.shadowSm : null,
           ),
           padding: const EdgeInsets.fromLTRB(6, 6, 5, 5),
@@ -288,14 +309,16 @@ class _Cell extends StatelessWidget {
                 decoration: isToday
                     ? BoxDecoration(color: c.accent, shape: BoxShape.circle)
                     : null,
-                child: Text('$dayNum',
-                    style: TextStyle(
-                      color: isToday
-                          ? c.onAccent
-                          : (isWeekend ? c.inkFaint : c.ink),
-                      fontSize: 11.5,
-                      fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
-                    )),
+                child: Text(
+                  '$dayNum',
+                  style: TextStyle(
+                    color: isToday
+                        ? c.onAccent
+                        : (isWeekend ? c.inkFaint : c.ink),
+                    fontSize: 11.5,
+                    fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
               ),
               const SizedBox(height: 3),
               // Hücreye sığmayan işler kırpılır (gün görünümünde tamamı var).
@@ -303,8 +326,7 @@ class _Cell extends StatelessWidget {
                 child: ListView(
                   padding: EdgeInsets.zero,
                   physics: const NeverScrollableScrollPhysics(),
-                  children:
-                      tasks.map((t) => _entry(c, t, date!)).toList(),
+                  children: tasks.map((t) => _entry(c, t, date!)).toList(),
                 ),
               ),
             ],
@@ -374,22 +396,22 @@ class _RoutinesSheet extends ConsumerWidget {
             children: [
               Icon(Icons.repeat_rounded, size: 18, color: c.inkDim),
               const SizedBox(width: 10),
-              Text('Rutinler',
-                  style: Theme.of(context).textTheme.titleLarge),
+              Text('Rutinler', style: Theme.of(context).textTheme.titleLarge),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
                   color: c.hover,
                   borderRadius: R.radiusPill,
                 ),
-                child: Text('${routines.length}',
-                    style: TextStyle(
-                      color: c.inkDim,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    )),
+                child: Text(
+                  '${routines.length}',
+                  style: TextStyle(
+                    color: c.inkDim,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
@@ -400,8 +422,7 @@ class _RoutinesSheet extends ConsumerWidget {
               child: Text(
                 'Henüz rutin yok. Bir iş eklerken türünü "Rutin" seçersen '
                 'burada listelenir.',
-                style: TextStyle(
-                    color: c.inkFaint, fontSize: 13, height: 1.5),
+                style: TextStyle(color: c.inkFaint, fontSize: 13, height: 1.5),
               ),
             )
           else
@@ -441,13 +462,16 @@ class _RoutinesSheet extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(t.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          color: c.ink,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600)),
+                                  Text(
+                                    t.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: c.ink,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                   const SizedBox(height: 3),
                                   Text(
                                     [
@@ -458,13 +482,18 @@ class _RoutinesSheet extends ConsumerWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                        color: c.inkFaint, fontSize: 11.5),
+                                      color: c.inkFaint,
+                                      fontSize: 11.5,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right_rounded,
-                                size: 18, color: c.inkFaint),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: c.inkFaint,
+                            ),
                           ],
                         ),
                       ),

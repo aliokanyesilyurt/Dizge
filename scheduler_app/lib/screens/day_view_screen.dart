@@ -22,11 +22,27 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
   Task? _selected; // saatte vurgulanan görev
 
   static const List<String> _weekdays = [
-    'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'
+    'Pazartesi',
+    'Salı',
+    'Çarşamba',
+    'Perşembe',
+    'Cuma',
+    'Cumartesi',
+    'Pazar',
   ];
   static const List<String> _monthNames = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
   ];
 
   Future<void> _openEditor({Task? existing, TimeOfDay? presetStart}) async {
@@ -46,11 +62,8 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
   }
 
   /// Saat diskinin bir dilimine dokunmak: o saate hızlı ekleme.
-  void _onClockTap(double hour) => showQuickAdd(
-        context,
-        date: widget.date,
-        startHour: hour.floorToDouble(),
-      );
+  void _onClockTap(double hour) =>
+      showQuickAdd(context, date: widget.date, startHour: hour.floorToDouble());
 
   @override
   Widget build(BuildContext context) {
@@ -72,8 +85,10 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('${d.day} ${_monthNames[d.month - 1]} ${d.year}',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              '${d.day} ${_monthNames[d.month - 1]} ${d.year}',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 2),
             Text(
               tasks.isEmpty
@@ -121,13 +136,21 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                     children: [
                       if (singles.isNotEmpty) ...[
                         _sectionHeader(
-                            c, Icons.today_rounded, 'BUGÜNE ÖZEL', singles.length),
+                          c,
+                          Icons.today_rounded,
+                          'BUGÜNE ÖZEL',
+                          singles.length,
+                        ),
                         ...singles.map(_card),
                       ],
                       if (routines.isNotEmpty) ...[
                         if (singles.isNotEmpty) const SizedBox(height: 18),
                         _sectionHeader(
-                            c, Icons.repeat_rounded, 'RUTİNLER', routines.length),
+                          c,
+                          Icons.repeat_rounded,
+                          'RUTİNLER',
+                          routines.length,
+                        ),
                         ...routines.map(_card),
                       ],
                     ],
@@ -160,33 +183,33 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                 color: c.hover,
                 borderRadius: R.radiusPill,
               ),
-              child: Text('$count',
-                  style: TextStyle(
-                    color: c.inkFaint,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                  )),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color: c.inkFaint,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
       );
 
   Widget _card(Task task) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: _TaskCard(
-          task: task,
-          date: widget.date,
-          selected: identical(task, _selected),
-          onTap: () => setState(
-              () => _selected = identical(_selected, task) ? null : task),
-          onEdit: () => _openEditor(existing: task),
-          onToggleDone: () => ref.read(appStoreProvider).setTaskDone(
-                task,
-                widget.date,
-                !task.isDoneOn(widget.date),
-              ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: _TaskCard(
+      task: task,
+      date: widget.date,
+      selected: identical(task, _selected),
+      onTap: () =>
+          setState(() => _selected = identical(_selected, task) ? null : task),
+      onEdit: () => _openEditor(existing: task),
+      onToggleDone: () => ref
+          .read(appStoreProvider)
+          .setTaskDone(task, widget.date, !task.isDoneOn(widget.date)),
+    ),
+  );
 }
 
 class _TaskCard extends StatelessWidget {
@@ -245,19 +268,25 @@ class _TaskCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(task.startString,
-                              style: TextStyle(
-                                  color: done ? c.inkFaint : c.ink,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  letterSpacing: -0.2)),
-                          Text(task.durationString,
-                              style: TextStyle(
-                                  color: c.inkFaint, fontSize: 11)),
+                          Text(
+                            task.startString,
+                            style: TextStyle(
+                              color: done ? c.inkFaint : c.ink,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          Text(
+                            task.durationString,
+                            style: TextStyle(color: c.inkFaint, fontSize: 11),
+                          ),
                         ],
                       )
-                    : Text('Saatsiz',
-                        style: TextStyle(color: c.inkFaint, fontSize: 11)),
+                    : Text(
+                        'Saatsiz',
+                        style: TextStyle(color: c.inkFaint, fontSize: 11),
+                      ),
               ),
               const SizedBox(width: 10),
               Container(width: 1, height: 32, color: c.lineSoft),
@@ -279,16 +308,20 @@ class _TaskCard extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                               fontSize: 14.5,
                               letterSpacing: -0.1,
-                              decoration:
-                                  done ? TextDecoration.lineThrough : null,
+                              decoration: done
+                                  ? TextDecoration.lineThrough
+                                  : null,
                               decorationColor: c.inkFaint,
                             ),
                           ),
                         ),
                         if (task.isRoutine) ...[
                           const SizedBox(width: 6),
-                          Icon(Icons.repeat_rounded,
-                              size: 13, color: c.inkFaint),
+                          Icon(
+                            Icons.repeat_rounded,
+                            size: 13,
+                            color: c.inkFaint,
+                          ),
                         ],
                       ],
                     ),
@@ -298,15 +331,19 @@ class _TaskCard extends StatelessWidget {
                         _MiniTag(text: task.categoryName, color: task.color),
                         if (task.place.isNotEmpty) ...[
                           const SizedBox(width: 7),
-                          Icon(Icons.place_rounded,
-                              size: 11, color: c.inkFaint),
+                          Icon(
+                            Icons.place_rounded,
+                            size: 11,
+                            color: c.inkFaint,
+                          ),
                           const SizedBox(width: 2),
                           Flexible(
-                            child: Text(task.place,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    color: c.inkDim, fontSize: 11)),
+                            child: Text(
+                              task.place,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: c.inkDim, fontSize: 11),
+                            ),
                           ),
                         ],
                       ],
@@ -314,11 +351,16 @@ class _TaskCard extends StatelessWidget {
                     if (task.note.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
-                        child: Text(task.note,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: c.inkDim, fontSize: 12, height: 1.35)),
+                        child: Text(
+                          task.note,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: c.inkDim,
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
                       ),
                     if (task.sketch != null && !task.sketch!.isEmpty)
                       Padding(
@@ -330,8 +372,11 @@ class _TaskCard extends StatelessWidget {
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.more_horiz_rounded,
-                    size: 18, color: c.inkFaint),
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  size: 18,
+                  color: c.inkFaint,
+                ),
                 onPressed: onEdit,
               ),
             ],
@@ -373,16 +418,18 @@ class _Check extends StatelessWidget {
             decoration: BoxDecoration(
               color: done ? color : Colors.transparent,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                  color: done ? color : c.inkFaint, width: 1.5),
+              border: Border.all(color: done ? color : c.inkFaint, width: 1.5),
             ),
             child: done
-                ? Icon(Icons.check_rounded,
+                ? Icon(
+                    Icons.check_rounded,
                     size: 14,
-                    color: ThemeData.estimateBrightnessForColor(color) ==
+                    color:
+                        ThemeData.estimateBrightnessForColor(color) ==
                             Brightness.dark
                         ? Colors.white
-                        : const Color(0xFF14161C))
+                        : const Color(0xFF14161C),
+                  )
                 : null,
           ),
         ),
@@ -403,13 +450,15 @@ class _MiniTag extends StatelessWidget {
     final style = context.colors.tag(color);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: style.fill,
-        borderRadius: R.radiusPill,
+      decoration: BoxDecoration(color: style.fill, borderRadius: R.radiusPill),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: style.text,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
+        ),
       ),
-      child: Text(text,
-          style: TextStyle(
-              color: style.text, fontSize: 10.5, fontWeight: FontWeight.w600)),
     );
   }
 }

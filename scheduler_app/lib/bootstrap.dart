@@ -72,10 +72,13 @@ Future<ProviderContainer> bootstrap({RemoteGateway? gateway}) async {
       ..start();
   }
 
-  telemetry.capture(Ev.appOpened, props: {
-    'storage': storageDegraded ? 'memory_fallback' : 'encrypted',
-    'pending_sync': outbox.length,
-  });
+  telemetry.capture(
+    Ev.appOpened,
+    props: {
+      'storage': storageDegraded ? 'memory_fallback' : 'encrypted',
+      'pending_sync': outbox.length,
+    },
+  );
 
   return container;
 }
@@ -111,6 +114,7 @@ Future<(LocalStore, bool)> _openStore() async {
   await memory.init();
   return (memory, true);
 }
+
 /// Yakalanmayan hataları hem konsola hem telemetriye yönlendirir.
 ///
 /// Not: hata **metni** gönderilmez — istisna mesajları kullanıcı verisi
@@ -121,19 +125,22 @@ void _installErrorHandlers(Telemetry telemetry) {
 
   FlutterError.onError = (details) {
     previousOnError?.call(details);
-    telemetry.capture(Ev.appError, props: {
-      'type': details.exception.runtimeType.toString(),
-      'library': details.library ?? 'unknown',
-      'fatal': false,
-    });
+    telemetry.capture(
+      Ev.appError,
+      props: {
+        'type': details.exception.runtimeType.toString(),
+        'library': details.library ?? 'unknown',
+        'fatal': false,
+      },
+    );
   };
 
   PlatformDispatcher.instance.onError = (error, stack) {
     debugPrint('Yakalanmayan hata: $error\n$stack');
-    telemetry.capture(Ev.appError, props: {
-      'type': error.runtimeType.toString(),
-      'fatal': true,
-    });
+    telemetry.capture(
+      Ev.appError,
+      props: {'type': error.runtimeType.toString(), 'fatal': true},
+    );
     return true; // uygulamayı düşürme
   };
 }

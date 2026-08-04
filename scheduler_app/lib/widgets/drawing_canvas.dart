@@ -9,17 +9,17 @@ class SketchController {
   Size size = Size.zero;
 
   SketchController([List<List<Offset>>? initial])
-      : strokes = initial == null
-            ? <List<Offset>>[]
-            : initial.map(List<Offset>.of).toList();
+    : strokes = initial == null
+          ? <List<Offset>>[]
+          : initial.map(List<Offset>.of).toList();
 
   bool get isEmpty => strokes.every((s) => s.isEmpty);
 
   Sketch toSketch(Color color) => Sketch(
-        strokes.map(List<Offset>.of).toList(),
-        size == Size.zero ? const Size(300, 180) : size,
-        color,
-      );
+    strokes.map(List<Offset>.of).toList(),
+    size == Size.zero ? const Size(300, 180) : size,
+    color,
+  );
 }
 
 /// Parmak/kalem ile elle yazma alanı.
@@ -27,8 +27,11 @@ class DrawingCanvas extends StatefulWidget {
   final SketchController controller;
   final Color color;
 
-  const DrawingCanvas(
-      {super.key, required this.controller, required this.color});
+  const DrawingCanvas({
+    super.key,
+    required this.controller,
+    required this.color,
+  });
 
   @override
   State<DrawingCanvas> createState() => _DrawingCanvasState();
@@ -96,8 +99,10 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         const SizedBox(height: 8),
         Row(
           children: [
-            Text('Kalemle yaz',
-                style: TextStyle(color: c.inkDim, fontSize: 13)),
+            Text(
+              'Kalemle yaz',
+              style: TextStyle(color: c.inkDim, fontSize: 13),
+            ),
             const Spacer(),
             IconButton(
               tooltip: 'Geri al',
@@ -108,8 +113,11 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
             IconButton(
               tooltip: 'Temizle',
               visualDensity: VisualDensity.compact,
-              icon: Icon(Icons.delete_outline_rounded,
-                  size: 20, color: c.inkDim),
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: c.inkDim,
+              ),
               onPressed: _clear,
             ),
           ],
@@ -126,11 +134,7 @@ class SketchPainter extends CustomPainter {
   /// Kılavuz çizgilerinin rengi. null ise kılavuz çizilmez (küçük önizleme).
   final Color? guideColor;
 
-  SketchPainter({
-    required this.strokes,
-    required this.color,
-    this.guideColor,
-  });
+  SketchPainter({required this.strokes, required this.color, this.guideColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -178,8 +182,12 @@ class SketchThumbnail extends StatelessWidget {
   final double width;
   final double height;
 
-  const SketchThumbnail(
-      {super.key, required this.sketch, this.width = 56, this.height = 34});
+  const SketchThumbnail({
+    super.key,
+    required this.sketch,
+    this.width = 56,
+    this.height = 34,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -192,8 +200,10 @@ class SketchThumbnail extends StatelessWidget {
           width: sketch.size.width,
           height: sketch.size.height,
           child: CustomPaint(
-            painter:
-                SketchPainter(strokes: sketch.strokes, color: sketch.color),
+            painter: SketchPainter(
+              strokes: sketch.strokes,
+              color: sketch.color,
+            ),
           ),
         ),
       ),

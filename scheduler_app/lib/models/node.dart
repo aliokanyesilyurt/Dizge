@@ -60,33 +60,33 @@ class Note implements Node {
     Set<String>? tags,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : id = id ?? newNodeId(),
-        tags = tags ?? <String>{},
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? newNodeId(),
+       tags = tags ?? <String>{},
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   @override
   NodeKind get kind => NodeKind.note;
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'note',
-        'id': id,
-        'title': title,
-        'body': body,
-        'tags': tags.toList(),
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-      };
+    'kind': 'note',
+    'id': id,
+    'title': title,
+    'body': body,
+    'tags': tags.toList(),
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   factory Note.fromJson(Map<String, dynamic> j) => Note(
-        id: j['id'] as String?,
-        title: (j['title'] as String?) ?? '',
-        body: (j['body'] as String?) ?? '',
-        tags: readTags(j['tags']),
-        createdAt: readDate(j['createdAt']),
-        updatedAt: readDate(j['updatedAt']),
-      );
+    id: j['id'] as String?,
+    title: (j['title'] as String?) ?? '',
+    body: (j['body'] as String?) ?? '',
+    tags: readTags(j['tags']),
+    createdAt: readDate(j['createdAt']),
+    updatedAt: readDate(j['updatedAt']),
+  );
 }
 
 // --- Serileştirme yardımcıları (tüm modeller ortak kullanır) ---------------
@@ -108,7 +108,8 @@ DateTime dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 String dateToKey(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-DateTime? dateFromKeyOrNull(String? s) => s == null ? null : DateTime.tryParse(s);
+DateTime? dateFromKeyOrNull(String? s) =>
+    s == null ? null : DateTime.tryParse(s);
 
 /// Tam zaman damgası; eksik/boşsa "şimdi"ye düşer (geriye dönük kayıtlar için).
 DateTime readDate(dynamic v) {

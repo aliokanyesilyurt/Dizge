@@ -79,5 +79,6 @@ class NoopRemoteGateway implements RemoteGateway {
       PushResult.empty;
 }
 
-final remoteGatewayProvider =
-    Provider<RemoteGateway>((ref) => const NoopRemoteGateway());
+final remoteGatewayProvider = Provider<RemoteGateway>(
+  (ref) => const NoopRemoteGateway(),
+);
