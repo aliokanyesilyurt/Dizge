@@ -149,7 +149,7 @@ Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit
 
 | # | Dilim | Kapsam | Kabul ölçütü |
 |---|---|---|---|
-| **Ö3** | Günlük tikler | `DailyHabitStrip` — ana ekranın üstünde, günlük ritimli alışkanlıklar için kutucuk + seri rozeti. **Yeni model yok.** | Tik at → `Habit.doneDates` yazılır, seri artar, diske iner; boşken şerit gizli |
+| ~~**Ö3**~~ | ~~Günlük tikler~~ | `DailyHabitStrip` — ana ekranın üstünde, günlük ritimli alışkanlıklar için kutucuk + seri rozeti. **Yeni model yok.** | **İndi (4 Ağustos).** Bkz. §5.1 |
 | **Ö4a** | Enerji modeli | `Energy` enum, `Task.energy`, JSON + geri uyum, düzenleyicide seçici | Eski kayıt `energy: null` açılır; seçim diske iner |
 | **Ö4b** | Enerji filtresi | Başlıkta "Bugün enerjim" seçici; ızgara yüksek eforluları soluklaştırır (gizlemez) | Filtre ızgarayı süzer, tercih kalıcı |
 | **Ö1a** | Havuz modeli | `inPool`, `occursOn` kapısı, `AppStore.moveToPool` / `pullFromPool`, mutasyon kaydı | Havuzdaki iş hiçbir görünümde çıkmaz; senkron kaydı düşer |
@@ -158,6 +158,32 @@ Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit
 
 **Sıralama gerekçesi:** Ö3 en ucuz ve en yüksek duygusal getiri — önce o.
 Ö2 en son, çünkü hem Ö1'in havuzuna hem D6'nın geri alma altyapısına yaslanıyor.
+
+### 5.1 Ö3 kapanış notu (4 Ağustos)
+
+`lib/screens/week/daily_habit_strip.dart` — 7 test, `flutter analyze` temiz,
+Windows derlemesi ayakta. Plandan iki sapma, ikisi de bilinçli:
+
+1. **Haftalık ritimli alışkanlıklar da şeritte.** Plan "günlük ritimli"
+   diyordu; dışarıda bırakmak "haftada 3 spor" tutan birine özelliği tümden
+   görünmez kılardı — tik zaten günlük bir eylem, hedefin haftalık olması bunu
+   değiştirmiyor. Rozet ayrışıyor: günlükte alev + seri (`🔥 5`), haftalıkta bu
+   haftanın ilerlemesi (`2/3`). Haftalık olana "5 günlük seri" demek hedefin
+   kendisini görünmez kılardı. Modele tek okuma yardımcısı eklendi
+   (`Habit.doneInWeekOf`) — veri şeması değişmedi.
+2. **Şerit `PageView`'in dışında.** Sayfaların içinde olsaydı geçen haftaya
+   bakarken atılan tik sessizce oraya yazılır, seri yalan söylerdi. Şerit hep
+   bugünü işaretler; bunu görünür kılmak için başında sabit bir "BUGÜN"
+   etiketi var. Bir test bu kararı bekçiliyor.
+
+Ayrıca `AppStore.toggleHabit` bir `source` alanı kazandı (`habits` /
+`week_strip`). Şeridin varlık sebebi "tik atmak kolaylaşsın"dı; hangi kapıdan
+geçildiği ölçülmeden bilinemezdi.
+
+**Not:** "hiç alışkanlık yoksa şerit gizli" kuralı, alışkanlık ekleme yolunun
+ana ekranda hiç görünmemesi demek. Şu an eklemek için Alışkanlıklar bölümüne
+gitmek gerekiyor; bu bilinçli (ana ekranda ikinci bir birincil eylem yok) ama
+Ö1b'de havuz paneli gelirken yeniden bakılmalı.
 
 ---
 

@@ -12,6 +12,7 @@ import '../theme.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
 import '../widgets/week_time_grid.dart';
+import 'week/daily_habit_strip.dart';
 import 'week/week_header_bar.dart';
 
 /// Haftalık görünüm — uygulamanın ana ekranı.
@@ -242,6 +243,14 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                     onDensityChanged: (next) =>
                         ref.read(gridDensityProvider.notifier).set(next),
                     onCreate: _createFromHeader,
+                  ),
+                  // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
+                  // her zaman bugüne yazılır (bkz. [DailyHabitStrip]).
+                  DailyHabitStrip(
+                    habits: store.habits,
+                    day: today,
+                    onToggle: (habit) =>
+                        store.toggleHabit(habit, today, source: 'week_strip'),
                   ),
                   Expanded(
                     child: PageView.builder(

@@ -32,7 +32,7 @@ import 'sync/outbox.dart';
 ///   * **Telemetri** — mutasyonların *şekli* (sayı/enum) ölçülür, içeriği asla.
 class AppStore extends ChangeNotifier {
   AppStore({Telemetry telemetry = const NoopTelemetry()})
-      : _telemetry = telemetry;
+    : _telemetry = telemetry;
 
   final Telemetry _telemetry;
 
@@ -109,15 +109,16 @@ class AppStore extends ChangeNotifier {
 
   /// Mutasyonu senkron kuyruğuna yazar. Hidrasyon sırasında atlanır (diskten
   /// okunan veriyi sunucuya geri göndermek anlamsız).
-  void _record(EntityKind kind, MutationOp op, String entityId,
-      Map<String, dynamic> payload) {
+  void _record(
+    EntityKind kind,
+    MutationOp op,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) {
     if (_hydrating) return;
-    _outbox?.enqueue(Mutation(
-      kind: kind,
-      op: op,
-      entityId: entityId,
-      payload: payload,
-    ));
+    _outbox?.enqueue(
+      Mutation(kind: kind, op: op, entityId: entityId, payload: payload),
+    );
   }
 
   // --- Okuma -----------------------------------------------------------------
@@ -136,7 +137,10 @@ class AppStore extends ChangeNotifier {
   /// taramak olurdu.
   List<List<Task>> tasksForWeek(DateTime monday) {
     final start = Task.dayKey(monday);
-    return List.generate(7, (i) => TaskRepository.forDate(start.add(Duration(days: i))));
+    return List.generate(
+      7,
+      (i) => TaskRepository.forDate(start.add(Duration(days: i))),
+    );
   }
 
   Node? nodeById(String id) {
@@ -159,11 +163,8 @@ class AppStore extends ChangeNotifier {
   LinkIndex get linkIndex => LinkIndex.build(nodes);
 
   /// [id]'ye link veren node'lar (backlink paneli).
-  List<Node> backlinkNodes(String id) => linkIndex
-      .linksTo(id)
-      .map(nodeById)
-      .whereType<Node>()
-      .toList();
+  List<Node> backlinkNodes(String id) =>
+      linkIndex.linksTo(id).map(nodeById).whereType<Node>().toList();
 
   /// `[[title]]` tıklaması -> hedef node (yoksa null).
   Node? resolveLink(String title) {
@@ -176,14 +177,17 @@ class AppStore extends ChangeNotifier {
   void addTask(Task task) {
     TaskRepository.add(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    _telemetry.capture(Ev.taskCreated, props: {
-      'routine': task.isRoutine,
-      'repeat': task.repeat.type.name,
-      'scheduled': task.scheduled,
-      'duration_min': (task.durationHours * 60).round(),
-      'has_note': task.note.isNotEmpty,
-      'has_sketch': task.sketch != null,
-    });
+    _telemetry.capture(
+      Ev.taskCreated,
+      props: {
+        'routine': task.isRoutine,
+        'repeat': task.repeat.type.name,
+        'scheduled': task.scheduled,
+        'duration_min': (task.durationHours * 60).round(),
+        'has_note': task.note.isNotEmpty,
+        'has_sketch': task.sketch != null,
+      },
+    );
     _touched();
   }
 
@@ -191,10 +195,10 @@ class AppStore extends ChangeNotifier {
     task.updatedAt = DateTime.now();
     TaskRepository.update(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    _telemetry.capture(Ev.taskUpdated, props: {
-      'routine': task.isRoutine,
-      'scheduled': task.scheduled,
-    });
+    _telemetry.capture(
+      Ev.taskUpdated,
+      props: {'routine': task.isRoutine, 'scheduled': task.scheduled},
+    );
     _touched();
   }
 
@@ -234,11 +238,16 @@ class AppStore extends ChangeNotifier {
     task.setDone(day, done);
     task.updatedAt = DateTime.now();
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    _telemetry.capture(done ? Ev.taskCompleted : Ev.taskUncompleted, props: {
-      'routine': task.isRoutine,
-      // Zamanında mı, gecikmeli mi tamamlandı — erteleme analizinin girdisi.
-      'days_late': Task.dayKey(DateTime.now()).difference(Task.dayKey(day)).inDays,
-    });
+    _telemetry.capture(
+      done ? Ev.taskCompleted : Ev.taskUncompleted,
+      props: {
+        'routine': task.isRoutine,
+        // Zamanında mı, gecikmeli mi tamamlandı — erteleme analizinin girdisi.
+        'days_late': Task.dayKey(
+          DateTime.now(),
+        ).difference(Task.dayKey(day)).inDays,
+      },
+    );
     _touched();
   }
 
@@ -254,7 +263,11 @@ class AppStore extends ChangeNotifier {
   ///   * Tek günlük işte ikisi de doğrudan uygulanır.
   ///
   /// [newStartHour] 15 dakikalık ızgaraya oturtulmuş gelmelidir.
-  void moveTask(Task task, {required DateTime toDay, required double newStartHour}) {
+  void moveTask(
+    Task task, {
+    required DateTime toDay,
+    required double newStartHour,
+  }) {
     final fromDay = task.date;
     final start = clampStartWithin(newStartHour, task.durationHours);
     final targetDay = Task.dayKey(toDay);
@@ -265,7 +278,11 @@ class AppStore extends ChangeNotifier {
             ? {task.date.weekday}
             : task.repeat.weekdays;
         // Sürüklenen tekrar hangi haftagünündeyse onu hedefe taşı, diğerleri kalsın.
-        final sourceWeekday = _weekdayBeingDragged(task, targetDay, oldWeekdays);
+        final sourceWeekday = _weekdayBeingDragged(
+          task,
+          targetDay,
+          oldWeekdays,
+        );
         final next = {...oldWeekdays}
           ..remove(sourceWeekday)
           ..add(targetDay.weekday);
@@ -280,11 +297,14 @@ class AppStore extends ChangeNotifier {
     TaskRepository.update(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
 
-    _telemetry.capture(Ev.taskMoved, props: {
-      'routine': task.isRoutine,
-      'day_delta': targetDay.difference(Task.dayKey(fromDay)).inDays,
-      'hour': start.round(),
-    });
+    _telemetry.capture(
+      Ev.taskMoved,
+      props: {
+        'routine': task.isRoutine,
+        'day_delta': targetDay.difference(Task.dayKey(fromDay)).inDays,
+        'hour': start.round(),
+      },
+    );
     _touched();
   }
 
@@ -309,9 +329,10 @@ class AppStore extends ChangeNotifier {
     task.updatedAt = DateTime.now();
     TaskRepository.update(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    _telemetry.capture(Ev.taskResized, props: {
-      'duration_min': (task.durationHours * 60).round(),
-    });
+    _telemetry.capture(
+      Ev.taskResized,
+      props: {'duration_min': (task.durationHours * 60).round()},
+    );
     _touched();
   }
 
@@ -354,13 +375,21 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Alışkanlığı verilen günde işaretle/kaldır (ısı haritası hücresi tıklaması).
-  void toggleHabit(Habit habit, DateTime day) {
+  ///
+  /// [source] tikin nereden geldiğini ayırır: alışkanlık ekranından mı, ana
+  /// ekrandaki günlük şeritten mi. Şeridin varlık sebebi tam olarak bu —
+  /// ölçmeden bilinemez.
+  void toggleHabit(Habit habit, DateTime day, {String source = 'habits'}) {
     habit.toggle(day);
     _record(EntityKind.habit, MutationOp.upsert, habit.id, habit.toJson());
-    _telemetry.capture(Ev.habitToggled, props: {
-      'done': habit.isDoneOn(day),
-      'streak': habit.currentStreak,
-    });
+    _telemetry.capture(
+      Ev.habitToggled,
+      props: {
+        'done': habit.isDoneOn(day),
+        'streak': habit.currentStreak,
+        'source': source,
+      },
+    );
     _touched();
   }
 
@@ -396,18 +425,18 @@ class AppStore extends ChangeNotifier {
   // --- Serileştirme ----------------------------------------------------------
 
   Map<String, dynamic> toJson() => {
-        'schemaVersion': AppConfig.kSchemaVersion,
-        'savedAt': DateTime.now().toIso8601String(),
-        'nodes': [
-          for (final t in TaskRepository.all) t.toJson(),
-          for (final n in _notes) n.toJson(),
-        ],
-        'habits': [for (final h in _habits) h.toJson()],
-        'categories': [
-          for (final c in AppData.categories)
-            {'name': c.name, 'colorHex': colorToHex(c.color)},
-        ],
-      };
+    'schemaVersion': AppConfig.kSchemaVersion,
+    'savedAt': DateTime.now().toIso8601String(),
+    'nodes': [
+      for (final t in TaskRepository.all) t.toJson(),
+      for (final n in _notes) n.toJson(),
+    ],
+    'habits': [for (final h in _habits) h.toJson()],
+    'categories': [
+      for (final c in AppData.categories)
+        {'name': c.name, 'colorHex': colorToHex(c.color)},
+    ],
+  };
 
   void loadJson(Map<String, dynamic> j) {
     TaskRepository.all.clear();
@@ -456,8 +485,10 @@ final tasksForDateProvider = Provider.family<List<Task>, DateTime>((ref, day) {
 });
 
 /// Bir haftanın 7 günlük görev matrisi (haftalık ızgara).
-final tasksForWeekProvider =
-    Provider.family<List<List<Task>>, DateTime>((ref, monday) {
+final tasksForWeekProvider = Provider.family<List<List<Task>>, DateTime>((
+  ref,
+  monday,
+) {
   return ref.watch(appStoreProvider).tasksForWeek(monday);
 });
 
