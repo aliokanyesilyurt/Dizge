@@ -26,6 +26,11 @@ class Ev {
   static const taskMoved = 'task_moved';
   static const taskResized = 'task_resized';
 
+  /// Havuz: takvimden çekme ve geri koyma. İkisi ayrı olay, çünkü asıl soru
+  /// "havuza atılan iş geri geliyor mu, yoksa orası bir çöp kutusu mu".
+  static const taskPooled = 'task_pooled';
+  static const taskUnpooled = 'task_unpooled';
+
   // Gezinme / görünüm
   static const screenViewed = 'screen_viewed';
   static const weekChanged = 'week_changed';

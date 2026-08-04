@@ -200,6 +200,18 @@ class Task implements Node {
   /// Tek günlük işte işin günü; rutinde rutinin başladığı gün.
   DateTime date;
 
+  /// Havuzda bekleyen iş: **takvimde hiçbir günde görünmez.**
+  ///
+  /// Neden `date`'i nullable yapmak yerine bir bayrak: `date` kod tabanında
+  /// 30'u aşkın yerde okunuyor ve `occursOn`, `dayKey`, `compare`, aylık/yıllık
+  /// ızgaralar hepsi onun dolu olmasına yaslanıyor. Nullable yapmak her çağrı
+  /// yerine bir null denetimi, yani bir hata fırsatı eklerdi. Tek kapı
+  /// [occursOn] olduğu için tek bir bayrak hepsini kapsıyor.
+  ///
+  /// [date] bilerek silinmiyor: işin hangi günden çekildiği "geri koy" için
+  /// lazım — havuzdan çıkarken "eskiden Salı'daydı" diyebilmek için.
+  bool inPool;
+
   /// Rutinlerde hangi günlerde tamamlandığı; tek günlük işte 0 veya 1 eleman.
   final Set<DateTime> completedOn;
 
@@ -215,6 +227,7 @@ class Task implements Node {
     this.categoryName = '',
     this.repeat = const Repeat.once(),
     required DateTime date,
+    this.inPool = false,
     Set<DateTime>? completedOn,
     Set<String>? tags,
     this.status = TaskStatus.todo,
@@ -265,6 +278,10 @@ class Task implements Node {
 
   /// Bu iş verilen günde görünür mü?
   bool occursOn(DateTime day) {
+    // Havuzun tek kapısı. Takvimin her okuması buradan geçtiği için havuza
+    // atılan iş tek satırla bütün görünümlerden çekiliyor.
+    if (inPool) return false;
+
     final d = dayKey(day);
     if (repeat.type == RepeatType.once) return d == date;
     if (d.isBefore(date)) return false;
@@ -330,6 +347,7 @@ class Task implements Node {
     categoryName: categoryName,
     repeat: repeat,
     date: date,
+    inPool: inPool,
     completedOn: {...completedOn},
     tags: {...tags},
     status: status,
@@ -345,6 +363,10 @@ class Task implements Node {
   /// [copy]'den farkı bilinçli: yeni bir kimlik alır (aksi hâlde iki blok aynı
   /// görevi gösterirdi) ve tamamlanma geçmişini devralmaz — kopya henüz
   /// yapılmadı, kaynağın geçmişi ona ait değil.
+  ///
+  /// Havuz bayrağı da devralınmaz: bir güne kopyalamak o işi takvime koymak
+  /// demek. Havuzdaki bir işin kopyası yine havuzda doğsaydı, kullanıcı
+  /// kopyaladığı şeyi hiçbir yerde göremezdi.
   Task duplicateTo(DateTime day) => Task(
     title: title,
     note: note,
@@ -376,6 +398,7 @@ class Task implements Node {
     'categoryName': categoryName,
     'repeat': repeat.toJson(),
     'date': dateToKey(date),
+    'inPool': inPool,
     'completedOn': completedOn.map(dateToKey).toList(),
     'tags': tags.toList(),
     'status': status.name,
@@ -405,6 +428,8 @@ class Task implements Node {
         ? const Repeat.once()
         : Repeat.fromJson((j['repeat'] as Map).cast<String, dynamic>()),
     date: dateFromKeyOrNull(j['date'] as String?) ?? DateTime.now(),
+    // Anahtar yoksa havuz öncesi bir kayıt: takvimde durmaya devam eder.
+    inPool: (j['inPool'] as bool?) ?? false,
     completedOn:
         (j['completedOn'] as List?)
             ?.map((e) => dateFromKeyOrNull(e as String?))

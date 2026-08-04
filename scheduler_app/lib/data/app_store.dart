@@ -258,6 +258,73 @@ class AppStore extends ChangeNotifier {
     _touched();
   }
 
+  // --- Havuz ("Kenarda Bekleyenler") ----------------------------------------
+
+  /// İşi havuza alır: takvimden çekilir ama **silinmez**.
+  ///
+  /// [Task.date] korunuyor — havuzdan çıkarken hangi günden geldiğini
+  /// bilebilmek için. Saat de duruyor: geri koyarken kullanıcıya aynı saati
+  /// önermek, onu sıfırdan seçtirmekten iyi.
+  ///
+  /// **Rutinler havuza girmez.** "Her gün tekrarlayan ama hiçbir gün görünmeyen
+  /// iş" tanımsız bir şey; rutinde doğru eylem o günü atlamak. Kural asıl olarak
+  /// arayüzde uygulanıyor (rutinde bu eylem hiç gösterilmiyor); buradaki
+  /// denetim, bir çağrı yerinin unutulması hâlinde veriyi tutarsız bırakmamak
+  /// için.
+  void moveToPool(Task task) {
+    assert(!task.isRoutine, 'Rutin havuza atılamaz (bkz. plan K2)');
+    if (task.isRoutine || task.inPool) return;
+
+    task.inPool = true;
+    task.updatedAt = DateTime.now();
+    TaskRepository.update(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    _telemetry.capture(
+      Ev.taskPooled,
+      props: {
+        'scheduled': task.scheduled,
+        'energy': task.energy?.name ?? 'none',
+      },
+    );
+    _touched();
+  }
+
+  /// İşi havuzdan çıkarıp takvime koyar.
+  ///
+  /// [toDay] verilmezse iş **eski gününe** döner: havuza atılırken korunan
+  /// tarih tam bu an için saklanıyordu.
+  void pullFromPool(Task task, {DateTime? toDay, double? startHour}) {
+    if (!task.inPool) return;
+
+    // Ölçüm için: havuza atıldığından beri geçen gün. Ayrı bir `pooledAt`
+    // alanı yok — havuzdaki bir işe başka türlü dokunulmadığı sürece son
+    // güncelleme zamanı bunun yeterince iyi bir yaklaşığı. `updatedAt`
+    // aşağıda ezileceği için şimdi okunuyor.
+    final waited = Task.dayKey(
+      DateTime.now(),
+    ).difference(Task.dayKey(task.updatedAt)).inDays;
+
+    final target = Task.dayKey(toDay ?? task.date);
+    task.inPool = false;
+    task.date = target;
+    if (startHour != null) {
+      task.startHour = clampStartWithin(startHour, task.durationHours);
+    }
+    task.updatedAt = DateTime.now();
+    TaskRepository.update(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    _telemetry.capture(
+      Ev.taskUnpooled,
+      props: {
+        'scheduled': task.scheduled,
+        // Havuzda kaç gün beklediği: havuzun çöp kutusuna dönüp dönmediğini
+        // söyleyen tek sayı.
+        'days_waited': waited,
+      },
+    );
+    _touched();
+  }
+
   // --- Izgara etkileşimleri (sürükle-bırak) ---------------------------------
 
   /// Bir görevi ızgarada başka bir gün/saate taşır.
@@ -499,7 +566,22 @@ final tasksForWeekProvider = Provider.family<List<List<Task>>, DateTime>((
   return ref.watch(appStoreProvider).tasksForWeek(monday);
 });
 
+/// Havuzda bekleyen işler ("Kenarda Bekleyenler"), en eski önce.
+///
+/// Sıralama bilinçli: havuzun asıl riski çöp kutusuna dönmesi. En uzun
+/// bekleyen üstte durursa unutulmuş iş göze çarpar; en yeni üstte olsaydı
+/// eskiler listenin dibinde sessizce yaşlanırdı.
+final poolProvider = Provider<List<Task>>((ref) {
+  return ref.watch(appStoreProvider).tasks.where((t) => t.inPool).toList()
+    ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+});
+
 /// Rutin olmayan tek günlük işler (Yapılacaklar ekranı).
+///
+/// Havuzdakiler **burada kalır.** Havuz "takvimden çekildi" demek, "yok oldu"
+/// değil; Yapılacaklar bir takvim görünümü değil, işlerin düz listesi. Havuza
+/// atılan bir iş buradan da düşseydi, paneli açmayan biri onu hiçbir yerde
+/// bulamazdı — kaybolan iş, kaybolan güven demek.
 final todosProvider = Provider<List<Task>>((ref) {
   final list =
       ref.watch(appStoreProvider).tasks.where((t) => !t.isRoutine).toList()

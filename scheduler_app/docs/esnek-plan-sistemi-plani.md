@@ -152,7 +152,7 @@ Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit
 | ~~**Ö3**~~ | ~~Günlük tikler~~ | `DailyHabitStrip` — ana ekranın üstünde, günlük ritimli alışkanlıklar için kutucuk + seri rozeti. **Yeni model yok.** | **İndi (4 Ağustos).** Bkz. §5.1 |
 | ~~**Ö4a**~~ | ~~Enerji modeli~~ | `Energy` enum, `Task.energy`, JSON + geri uyum, düzenleyicide seçici | **İndi (4 Ağustos).** Bkz. §5.2 |
 | ~~**Ö4b**~~ | ~~Enerji filtresi~~ | Başlıkta "Bugün enerjim" seçici; ızgara yüksek eforluları soluklaştırır (gizlemez) | **İndi (4 Ağustos).** Bkz. §5.3 |
-| **Ö1a** | Havuz modeli | `inPool`, `occursOn` kapısı, `AppStore.moveToPool` / `pullFromPool`, mutasyon kaydı | Havuzdaki iş hiçbir görünümde çıkmaz; senkron kaydı düşer |
+| ~~**Ö1a**~~ | ~~Havuz modeli~~ | `inPool`, `occursOn` kapısı, `AppStore.moveToPool` / `pullFromPool`, mutasyon kaydı | **İndi (4 Ağustos).** Bkz. §5.4 |
 | **Ö1b** | Havuz paneli | "Kenarda Bekleyenler" — sağda daraltılabilir sütun; ızgaradan sürükleyip bırakma çift yönlü | Sürükle-bırak iki yönde çalışır; panel kapalıyken sayaç rozeti |
 | **Ö2** | Kaos düğmesi | `isFixed`, `skippedOn`, "Günü kurtar" eylemi + onay + **geri al** | Sabitler yerinde kalır, tamamlananlar dokunulmaz, tek tıkla geri alınır |
 
@@ -234,6 +234,33 @@ Yol boyunca çıkan iki şey:
 Ö4b, ana ekran planının 13.3 maddesindeki açık soruyu (telefon düzeni) daha
 görünür kıldı: 390px'te başlık artık dolu. Bir denetim daha eklenecekse orada
 karar vermek gerekecek.
+
+### 5.4 Ö1a kapanış notu (4 Ağustos)
+
+K1 olduğu gibi uygulandı: `Task.inPool`, `occursOn`'un ilk satırında tek kapı,
+`date` korunuyor. `AppStore.moveToPool` / `pullFromPool` mutasyon kaydı ve
+telemetriyle birlikte. 17 test, `flutter analyze` temiz, derleme ayakta.
+Havuza atma/çıkarma arayüzü **yok** — o Ö1b'nin işi.
+
+**§7'nin "hiçbir görünümde çıkmaz" ifadesini daralttım.** Havuzdaki iş bütün
+*takvim* görünümlerinden (hafta, ay, gün, yıl sayacı) çekiliyor — bir test üç
+ekranı tek tek geziyor. Ama **Yapılacaklar listesinde kalıyor.** Gerekçe: havuz
+"takvimden çekildi" demek, "yok oldu" değil; Yapılacaklar bir takvim görünümü
+değil, işlerin düz listesi. Aksi hâlde — özellikle panel inmeden önce — havuza
+atılan iş uygulamada hiçbir yerde görünmezdi. Kaybolan iş, kaybolan güven.
+Bu bir yorum; farklı isteniyorsa `todosProvider`'da tek satır.
+
+Plana ek üç küçük karar:
+
+* **`moveToPool` rutinde assert atıyor** (K2 "modelde assert değil" diyordu —
+  o kural modelin kendisi için; store bir çağrı yeri unutulursa veriyi
+  tutarsız bırakmamalı). Sürümde assert kapalıyken sessizce geçiyor.
+* **`duplicateTo` havuz bayrağını devralmıyor**: bir güne kopyalamak o işi
+  takvime koymak demek. Kopya da havuzda doğsaydı kullanıcı kopyaladığı şeyi
+  hiçbir yerde göremezdi.
+* **`poolProvider` en eski bekleyeni önce veriyor** — havuzun asıl riski çöp
+  kutusuna dönmesi; en uzun bekleyen üstteyse unutulmuş iş göze çarpar.
+  `task_unpooled` olayı `days_waited` taşıyor, aynı sorunun ölçüsü.
 
 ---
 
