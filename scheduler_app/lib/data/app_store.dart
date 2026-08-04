@@ -186,6 +186,9 @@ class AppStore extends ChangeNotifier {
         'duration_min': (task.durationHours * 60).round(),
         'has_note': task.note.isNotEmpty,
         'has_sketch': task.sketch != null,
+        // Efor isteğe bağlı; kaç kişinin gerçekten işaretlediği ölçülmeden
+        // filtrenin (Ö4b) kime hitap ettiği bilinemez.
+        'energy': task.energy?.name ?? 'none',
       },
     );
     _touched();
@@ -197,7 +200,11 @@ class AppStore extends ChangeNotifier {
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
     _telemetry.capture(
       Ev.taskUpdated,
-      props: {'routine': task.isRoutine, 'scheduled': task.scheduled},
+      props: {
+        'routine': task.isRoutine,
+        'scheduled': task.scheduled,
+        'energy': task.energy?.name ?? 'none',
+      },
     );
     _touched();
   }

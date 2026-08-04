@@ -150,7 +150,7 @@ Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit
 | # | Dilim | Kapsam | Kabul ölçütü |
 |---|---|---|---|
 | ~~**Ö3**~~ | ~~Günlük tikler~~ | `DailyHabitStrip` — ana ekranın üstünde, günlük ritimli alışkanlıklar için kutucuk + seri rozeti. **Yeni model yok.** | **İndi (4 Ağustos).** Bkz. §5.1 |
-| **Ö4a** | Enerji modeli | `Energy` enum, `Task.energy`, JSON + geri uyum, düzenleyicide seçici | Eski kayıt `energy: null` açılır; seçim diske iner |
+| ~~**Ö4a**~~ | ~~Enerji modeli~~ | `Energy` enum, `Task.energy`, JSON + geri uyum, düzenleyicide seçici | **İndi (4 Ağustos).** Bkz. §5.2 |
 | **Ö4b** | Enerji filtresi | Başlıkta "Bugün enerjim" seçici; ızgara yüksek eforluları soluklaştırır (gizlemez) | Filtre ızgarayı süzer, tercih kalıcı |
 | **Ö1a** | Havuz modeli | `inPool`, `occursOn` kapısı, `AppStore.moveToPool` / `pullFromPool`, mutasyon kaydı | Havuzdaki iş hiçbir görünümde çıkmaz; senkron kaydı düşer |
 | **Ö1b** | Havuz paneli | "Kenarda Bekleyenler" — sağda daraltılabilir sütun; ızgaradan sürükleyip bırakma çift yönlü | Sürükle-bırak iki yönde çalışır; panel kapalıyken sayaç rozeti |
@@ -184,6 +184,27 @@ geçildiği ölçülmeden bilinemezdi.
 ana ekranda hiç görünmemesi demek. Şu an eklemek için Alışkanlıklar bölümüne
 gitmek gerekiyor; bu bilinçli (ana ekranda ikinci bir birincil eylem yok) ama
 Ö1b'de havuz paneli gelirken yeniden bakılmalı.
+
+### 5.2 Ö4a kapanış notu (4 Ağustos)
+
+`Energy` enum'ı `task.dart`'ta, K5'te kararlaştırıldığı gibi dört kademe.
+`Task.energy` nullable, JSON'da `energy` anahtarı. Düzenleyicide "Efor"
+satırı — kategori satırının hemen altında, ikisi de "bu ne tür bir iş"
+sorusunun parçası. 10 test, `flutter analyze` temiz, derleme ayakta.
+
+Plana ek olarak üç küçük karar:
+
+* **`Energy.byName`** eksik *ve* tanınmayan değeri null'a indiriyor. Yalnız
+  geriye değil ileri de uyum: başka bir cihazda eklenen bir kademe geri
+  okunduğunda kayıt açılmamazlık etmiyor, o alan sessizce boş kalıyor.
+* **Seçili kademeye tekrar dokunmak seçimi kaldırıyor.** Aksi hâlde
+  yanlışlıkla işaretlenen bir iş bir daha "belirtilmemiş"e dönemezdi;
+  seçiciye ayrı bir "temizle" çipi koymaktan sessiz.
+* **`task_created` / `task_updated` olayları `energy` taşıyor** (`none` dahil).
+  Ö4b'nin filtresi kimseye hitap etmiyorsa bunu ancak bu sayı söyler.
+
+Enerji şu an yalnız *yazılıyor*; ızgarada hiçbir görsel karşılığı yok. Bu
+bilinçli — rozet ve soluklaştırma Ö4b'nin işi.
 
 ---
 

@@ -64,6 +64,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   late double _duration;
   late Color _color;
   late String _categoryName;
+  late Energy? _energy;
   late bool _drawMode;
 
   /// Aynı anda tek bir özellik satırı açık kalır (sade tutmak için).
@@ -85,7 +86,8 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     _repeatType = e?.repeat.type ?? RepeatType.once;
     _weekdays = {...?e?.repeat.weekdays};
     _until = e?.repeat.until;
-    _start = e?.startHour ??
+    _start =
+        e?.startHour ??
         (widget.presetStart == null
             ? null
             : widget.presetStart!.hour + widget.presetStart!.minute / 60.0);
@@ -93,12 +95,19 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     final cat = AppData.categories.first;
     _color = e?.color ?? cat.color;
     _categoryName = e?.categoryName ?? cat.name;
+    // Varsayılan yok: efor belirtmek isteğe bağlı kalmalı.
+    _energy = e?.energy;
     _drawMode = e?.sketch != null && !e!.sketch!.isEmpty;
 
-    ref.read(telemetryProvider).capture(Ev.editorOpened, props: {
-      'mode': widget.existing == null ? 'create' : 'edit',
-      'from_draft': widget.draft != null,
-    });
+    ref
+        .read(telemetryProvider)
+        .capture(
+          Ev.editorOpened,
+          props: {
+            'mode': widget.existing == null ? 'create' : 'edit',
+            'from_draft': widget.draft != null,
+          },
+        );
   }
 
   @override
@@ -115,18 +124,20 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     final title = _title.text.trim();
     if (title.isEmpty) {
       setState(() => _open = null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('İşin bir başlığı olmalı.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('İşin bir başlığı olmalı.')));
       return;
     }
     final repeat = _repeatType == RepeatType.once
         ? const Repeat.once()
-        : Repeat(_repeatType,
+        : Repeat(
+            _repeatType,
             weekdays: _repeatType == RepeatType.weekly
                 ? (_weekdays.isEmpty ? {_date.weekday} : _weekdays)
                 : const {},
-            until: _until);
+            until: _until,
+          );
 
     final isNew = widget.existing == null;
     final task =
@@ -135,12 +146,14 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       ..title = title
       ..note = _drawMode ? '' : _note.text.trim()
       ..place = _place.text.trim()
-      ..sketch =
-          (_drawMode && !_sketch.isEmpty) ? _sketch.toSketch(_color) : null
+      ..sketch = (_drawMode && !_sketch.isEmpty)
+          ? _sketch.toSketch(_color)
+          : null
       ..startHour = _start
       ..durationHours = _duration
       ..color = _color
       ..categoryName = _categoryName
+      ..energy = _energy
       ..repeat = repeat
       ..date = _date;
 
@@ -160,18 +173,20 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
         builder: (ctx) => AlertDialog(
           title: const Text('Rutini sil'),
           content: const Text(
-              'Bu bir rutin. Sadece bu günü mü, yoksa rutinin tamamını mı kaldıralım?'),
+            'Bu bir rutin. Sadece bu günü mü, yoksa rutinin tamamını mı kaldıralım?',
+          ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Vazgeç')),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Vazgeç'),
+            ),
             TextButton(
-                onPressed: () => Navigator.pop(ctx, 'day'),
-                child: const Text('Bu günden itibaren')),
+              onPressed: () => Navigator.pop(ctx, 'day'),
+              child: const Text('Bu günden itibaren'),
+            ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, 'all'),
-              child: Text('Tamamı',
-                  style: TextStyle(color: ctx.colors.danger)),
+              child: Text('Tamamı', style: TextStyle(color: ctx.colors.danger)),
             ),
           ],
         ),
@@ -195,8 +210,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight),
       child: Padding(
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -214,6 +230,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                   _timeRow(c),
                   if (_start != null) _durationRow(c),
                   _categoryRow(c),
+                  _energyRow(c),
                   _placeRow(c),
                   _noteRow(c),
                 ],
@@ -227,66 +244,65 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   }
 
   Widget _grabber(AppPalette c) => Container(
-        width: 36,
-        height: 4,
-        margin: const EdgeInsets.only(top: 12, bottom: 8),
-        decoration: BoxDecoration(
-          color: c.line,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      );
+    width: 36,
+    height: 4,
+    margin: const EdgeInsets.only(top: 12, bottom: 8),
+    decoration: BoxDecoration(
+      color: c.line,
+      borderRadius: BorderRadius.circular(2),
+    ),
+  );
 
   Widget _titleField(AppPalette c) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 14, 16),
-        child: Row(
-          children: [
-            Container(
-              width: 4,
-              height: 28,
-              decoration: BoxDecoration(
-                color: _color,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: TextField(
-                controller: _title,
-                autofocus: widget.existing == null,
-                textCapitalization: TextCapitalization.sentences,
-                style: TextStyle(
-                  color: c.ink,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.4,
-                ),
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  hintText: 'Başlıksız',
-                  hintStyle: TextStyle(
-                    color: c.inkFaint,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-              ),
-            ),
-            if (widget.existing != null)
-              IconButton(
-                tooltip: 'Sil',
-                icon: Icon(Icons.delete_outline_rounded,
-                    size: 20, color: c.inkDim),
-                onPressed: _delete,
-              ),
-          ],
+    padding: const EdgeInsets.fromLTRB(20, 8, 14, 16),
+    child: Row(
+      children: [
+        Container(
+          width: 4,
+          height: 28,
+          decoration: BoxDecoration(
+            color: _color,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
-      );
+        const SizedBox(width: 14),
+        Expanded(
+          child: TextField(
+            controller: _title,
+            autofocus: widget.existing == null,
+            textCapitalization: TextCapitalization.sentences,
+            style: TextStyle(
+              color: c.ink,
+              fontSize: 21,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.4,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              hintText: 'Başlıksız',
+              hintStyle: TextStyle(
+                color: c.inkFaint,
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+              ),
+            ),
+          ),
+        ),
+        if (widget.existing != null)
+          IconButton(
+            tooltip: 'Sil',
+            icon: Icon(Icons.delete_outline_rounded, size: 20, color: c.inkDim),
+            onPressed: _delete,
+          ),
+      ],
+    ),
+  );
 
   // ---- Özellik satırları ---------------------------------------------------
 
@@ -344,16 +360,22 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _chip('Her gün', _repeatType == RepeatType.daily,
-                  () => setState(() => _repeatType = RepeatType.daily)),
+              _chip(
+                'Her gün',
+                _repeatType == RepeatType.daily,
+                () => setState(() => _repeatType = RepeatType.daily),
+              ),
               _chip('Haftanın günleri', _repeatType == RepeatType.weekly, () {
                 setState(() {
                   _repeatType = RepeatType.weekly;
                   if (_weekdays.isEmpty) _weekdays = {_date.weekday};
                 });
               }),
-              _chip('Her ay', _repeatType == RepeatType.monthly,
-                  () => setState(() => _repeatType = RepeatType.monthly)),
+              _chip(
+                'Her ay',
+                _repeatType == RepeatType.monthly,
+                () => setState(() => _repeatType = RepeatType.monthly),
+              ),
             ],
           ),
           if (_repeatType == RepeatType.weekly) ...[
@@ -443,8 +465,11 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
         runSpacing: 8,
         children: [
           _chip('Bugün', _date == today, () => setState(() => _date = today)),
-          _chip('Yarın', _date == tomorrow,
-              () => setState(() => _date = tomorrow)),
+          _chip(
+            'Yarın',
+            _date == tomorrow,
+            () => setState(() => _date = tomorrow),
+          ),
           _chip(
             'Takvimden seç…',
             _date != today && _date != tomorrow,
@@ -480,11 +505,17 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _chip('Saatsiz', _start == null,
-                  () => setState(() => _start = null)),
+              _chip(
+                'Saatsiz',
+                _start == null,
+                () => setState(() => _start = null),
+              ),
               for (final h in _hourPresets)
-                _chip(Task.formatTime(h), _start == h,
-                    () => setState(() => _start = h)),
+                _chip(
+                  Task.formatTime(h),
+                  _start == h,
+                  () => setState(() => _start = h),
+                ),
               _chip(
                 'Seç…',
                 _start != null && !_hourPresets.contains(_start),
@@ -499,8 +530,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                             minute: ((s % 1) * 60).round() % 60,
                           ),
                     builder: (ctx, child) => MediaQuery(
-                      data: MediaQuery.of(ctx)
-                          .copyWith(alwaysUse24HourFormat: true),
+                      data: MediaQuery.of(
+                        ctx,
+                      ).copyWith(alwaysUse24HourFormat: true),
                       child: child!,
                     ),
                   );
@@ -539,15 +571,20 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             runSpacing: 8,
             children: [
               for (final d in presets)
-                _chip(Task.formatDuration(d), _duration == d,
-                    () => setState(() => _duration = d)),
+                _chip(
+                  Task.formatDuration(d),
+                  _duration == d,
+                  () => setState(() => _duration = d),
+                ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              Text('İnce ayar',
-                  style: TextStyle(color: c.inkFaint, fontSize: 12)),
+              Text(
+                'İnce ayar',
+                style: TextStyle(color: c.inkFaint, fontSize: 12),
+              ),
               Expanded(
                 child: Slider(
                   value: _duration.clamp(0.25, 12.0),
@@ -599,12 +636,44 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 children: [
                   Icon(Icons.add_rounded, size: 14, color: c.inkDim),
                   const SizedBox(width: 5),
-                  Text('Özel',
-                      style: TextStyle(color: c.inkDim, fontSize: 13)),
+                  Text('Özel', style: TextStyle(color: c.inkDim, fontSize: 13)),
                 ],
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Efor seçici.
+  ///
+  /// Kategori satırının hemen altında: ikisi de "bu iş ne türden bir iş"
+  /// sorusunun parçası. Saat/süre satırlarının arasına girseydi zaman kararıyla
+  /// karışırdı.
+  Widget _energyRow(AppPalette c) {
+    return _PropertyRow(
+      icon: Icons.bolt_rounded,
+      label: 'Efor',
+      value: _energy?.label ?? 'Belirtilmemiş',
+      // Boş hâl sessiz kalmalı: efor isteğe bağlı, seçilmemiş olması bir eksik
+      // değil.
+      valueColor: _energy == null ? c.inkFaint : c.ink,
+      open: _open == 'energy',
+      onTap: () => _toggle('energy'),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final level in Energy.values)
+            _chip(
+              level.label,
+              _energy == level,
+              // Seçili kademeye tekrar dokunmak seçimi kaldırır: aksi hâlde
+              // yanlışlıkla işaretlenen bir iş bir daha "belirtilmemiş"e
+              // dönemezdi.
+              () => setState(() => _energy = _energy == level ? null : level),
+            ),
         ],
       ),
     );
@@ -740,8 +809,11 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                           ),
                         ),
                         child: sel
-                            ? const Icon(Icons.check_rounded,
-                                size: 16, color: Color(0xFF14161C))
+                            ? const Icon(
+                                Icons.check_rounded,
+                                size: 16,
+                                color: Color(0xFF14161C),
+                              )
                             : null,
                       ),
                     );
@@ -751,8 +823,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             ),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('İptal')),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('İptal'),
+              ),
               ElevatedButton(
                 onPressed: () {
                   final t = name.trim();
@@ -780,8 +853,18 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       _ChoiceChipTile(text: text, selected: selected, onTap: onTap);
 
   static const List<String> _months = [
-    'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
-    'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'
+    'Oca',
+    'Şub',
+    'Mar',
+    'Nis',
+    'May',
+    'Haz',
+    'Tem',
+    'Ağu',
+    'Eyl',
+    'Eki',
+    'Kas',
+    'Ara',
   ];
 
   static String _fmtDate(DateTime d) =>
@@ -830,22 +913,27 @@ class _PropertyRow extends StatelessWidget {
               onTap: onTap,
               borderRadius: R.radiusMd,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 13,
+                ),
                 child: Row(
                   children: [
                     Icon(icon, size: 17, color: c.inkDim),
                     const SizedBox(width: 12),
                     SizedBox(
                       width: 76,
-                      child: Text(label,
-                          style: TextStyle(color: c.inkDim, fontSize: 13.5)),
+                      child: Text(
+                        label,
+                        style: TextStyle(color: c.inkDim, fontSize: 13.5),
+                      ),
                     ),
                     Expanded(
                       child: valueWidget != null
                           ? Align(
                               alignment: Alignment.centerLeft,
-                              child: valueWidget!)
+                              child: valueWidget!,
+                            )
                           : Text(
                               value ?? '',
                               maxLines: 1,
@@ -863,8 +951,11 @@ class _PropertyRow extends StatelessWidget {
                       turns: open ? 0.25 : 0,
                       duration: Motion.base,
                       curve: Motion.curve,
-                      child: Icon(Icons.chevron_right_rounded,
-                          size: 18, color: c.inkFaint),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: c.inkFaint,
+                      ),
                     ),
                   ],
                 ),
@@ -927,19 +1018,25 @@ class _BigChoice extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon,
-                  size: 18, color: selected ? c.navActiveInk : c.inkDim),
+              Icon(icon, size: 18, color: selected ? c.navActiveInk : c.inkDim),
               const SizedBox(height: 9),
-              Text(title,
-                  style: TextStyle(
-                    color: selected ? c.navActiveInk : c.ink,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  )),
+              Text(
+                title,
+                style: TextStyle(
+                  color: selected ? c.navActiveInk : c.ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(subtitle,
-                  style: TextStyle(
-                      color: c.inkFaint, fontSize: 11.5, height: 1.25)),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: c.inkFaint,
+                  fontSize: 11.5,
+                  height: 1.25,
+                ),
+              ),
             ],
           ),
         ),
@@ -953,8 +1050,11 @@ class _ChoiceChipTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _ChoiceChipTile(
-      {required this.text, required this.selected, required this.onTap});
+  const _ChoiceChipTile({
+    required this.text,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1011,7 +1111,10 @@ class _Tag extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-            color: style.text, fontSize: 13, fontWeight: FontWeight.w600),
+          color: style.text,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -1046,12 +1149,14 @@ class _SegToggle extends StatelessWidget {
               children: [
                 Icon(icon, size: 14, color: active ? c.ink : c.inkFaint),
                 const SizedBox(width: 6),
-                Text(label,
-                    style: TextStyle(
-                      color: active ? c.ink : c.inkFaint,
-                      fontSize: 13,
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                    )),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: active ? c.ink : c.inkFaint,
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
               ],
             ),
           ),

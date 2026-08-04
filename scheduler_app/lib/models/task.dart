@@ -11,32 +11,68 @@ class Sketch {
   bool get isEmpty => strokes.every((s) => s.isEmpty);
 
   Map<String, dynamic> toJson() => {
-        'strokes': strokes
-            .map((s) => s.map((o) => [o.dx, o.dy]).toList())
-            .toList(),
-        'w': size.width,
-        'h': size.height,
-        'color': colorToHex(color),
-      };
+    'strokes': strokes.map((s) => s.map((o) => [o.dx, o.dy]).toList()).toList(),
+    'w': size.width,
+    'h': size.height,
+    'color': colorToHex(color),
+  };
 
   factory Sketch.fromJson(Map<String, dynamic> j) => Sketch(
-        (j['strokes'] as List)
-            .map((s) => (s as List).map((p) {
-                  // Nokta [x, y] çifti olarak saklanır; dinamik indeksleme
-                  // yerine önce listeye daraltıp okuyoruz.
-                  final xy = (p as List).cast<num>();
-                  return Offset(xy[0].toDouble(), xy[1].toDouble());
-                }).toList())
-            .toList(),
-        Size((j['w'] as num).toDouble(), (j['h'] as num).toDouble()),
-        colorFromHex(j['color'] as String?),
-      );
+    (j['strokes'] as List)
+        .map(
+          (s) => (s as List).map((p) {
+            // Nokta [x, y] çifti olarak saklanır; dinamik indeksleme
+            // yerine önce listeye daraltıp okuyoruz.
+            final xy = (p as List).cast<num>();
+            return Offset(xy[0].toDouble(), xy[1].toDouble());
+          }).toList(),
+        )
+        .toList(),
+    Size((j['w'] as num).toDouble(), (j['h'] as num).toDouble()),
+    colorFromHex(j['color'] as String?),
+  );
 }
 
 /// Görevin Kanban/pano durumu (TickTick tarzı). Rutinlerde günlük tamamlanma
 /// hâlâ [Task.completedOn] üzerinden yürür; bu alan tek seferlik işlerin pano
 /// sütununu belirler.
 enum TaskStatus { todo, doing, done }
+
+/// İşin istediği zihinsel efor.
+///
+/// Neden `tags` değil: etiketler serbest metin (`Set<String>`); "Yüksek Efor",
+/// "yüksek efor" ve "YuksekEfor" üç ayrı etiket olurdu. Filtre ve renk kapalı
+/// bir küme ister.
+///
+/// Neden `priority` değil: aciliyet ile efor aynı şey değil. Doktor randevusu
+/// düşük öncelikli ama yorucu olabilir; iki eksen birbirine karışırsa ikisi de
+/// anlamını yitirir.
+///
+/// Dört kademe, üç değil: asıl kullanım senaryosu — akşam yorgun dönüp
+/// "beynimi yakmadan ne yapabilirim" diye bakmak — tam olarak [low] ile
+/// [medium] arasından seçmek. Ayrımı silmek özelliğin sebebini silerdi.
+enum Energy {
+  high('Yüksek efor'),
+  medium('Orta efor'),
+  low('Düşük efor'),
+  discharge('Deşarj');
+
+  const Energy(this.label);
+
+  /// Kullanıcıya görünen ad.
+  final String label;
+
+  /// Kayıttan okunan ad; tanınmayan ya da eksik değer "belirtilmemiş" demek.
+  ///
+  /// İleri uyum: bu sürümün tanımadığı bir kademe (başka bir cihazda eklenmiş
+  /// olabilir) veriyi düşürmez, yalnız sessizce boş görünür.
+  static Energy? byName(String? name) {
+    for (final e in Energy.values) {
+      if (e.name == name) return e;
+    }
+    return null;
+  }
+}
 
 /// Bir işin ne sıklıkla tekrarlandığı.
 enum RepeatType {
@@ -57,26 +93,30 @@ class Repeat {
   final DateTime? until;
 
   const Repeat.once()
-      : type = RepeatType.once,
-        weekdays = const {},
-        until = null;
+    : type = RepeatType.once,
+      weekdays = const {},
+      until = null;
 
   const Repeat(this.type, {this.weekdays = const {}, this.until});
 
   bool get isRoutine => type != RepeatType.once;
 
-  Repeat copyWith({RepeatType? type, Set<int>? weekdays, DateTime? until, bool clearUntil = false}) =>
-      Repeat(
-        type ?? this.type,
-        weekdays: weekdays ?? this.weekdays,
-        until: clearUntil ? null : (until ?? this.until),
-      );
+  Repeat copyWith({
+    RepeatType? type,
+    Set<int>? weekdays,
+    DateTime? until,
+    bool clearUntil = false,
+  }) => Repeat(
+    type ?? this.type,
+    weekdays: weekdays ?? this.weekdays,
+    until: clearUntil ? null : (until ?? this.until),
+  );
 
   Map<String, dynamic> toJson() => {
-        'type': type.name,
-        'weekdays': (weekdays.toList()..sort()),
-        'until': until == null ? null : dateToKey(until!),
-      };
+    'type': type.name,
+    'weekdays': (weekdays.toList()..sort()),
+    'until': until == null ? null : dateToKey(until!),
+  };
 
   factory Repeat.fromJson(Map<String, dynamic> j) {
     final type = RepeatType.values.firstWhere(
@@ -85,16 +125,21 @@ class Repeat {
     );
     return Repeat(
       type,
-      weekdays: (j['weekdays'] as List?)
-              ?.map((e) => (e as num).toInt())
-              .toSet() ??
+      weekdays:
+          (j['weekdays'] as List?)?.map((e) => (e as num).toInt()).toSet() ??
           const {},
       until: dateFromKeyOrNull(j['until'] as String?),
     );
   }
 
   static const List<String> weekdayShort = [
-    'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'
+    'Pzt',
+    'Sal',
+    'Çar',
+    'Per',
+    'Cum',
+    'Cmt',
+    'Paz',
   ];
 
   /// "Her gün", "Sal, Per", "Her ayın 12'si" gibi okunur özet.
@@ -134,6 +179,14 @@ class Task implements Node {
   final Set<String> tags; // TickTick etiketleri (# olmadan); analitik + filtre
   TaskStatus status; // Kanban sütunu
   int priority; // 0 = yok ... 3 = en yüksek
+
+  /// İşin istediği efor; null => belirtilmemiş.
+  ///
+  /// Zorunlu değil, olmamalı da: her iş eklemeye bir karar daha eklemek hızlı
+  /// eklemenin tek nefesliğini bozardı. Belirtilmeyen iş hiçbir filtrede
+  /// elenmez.
+  Energy? energy;
+
   int timeSpentMinutes; // Pomodoro'nun yazdığı harcanan süre
   @override
   final DateTime createdAt;
@@ -162,15 +215,16 @@ class Task implements Node {
     Set<String>? tags,
     this.status = TaskStatus.todo,
     this.priority = 0,
+    this.energy,
     this.timeSpentMinutes = 0,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : id = id ?? newNodeId(),
-        date = dayKey(date),
-        completedOn = completedOn ?? <DateTime>{},
-        tags = tags ?? <String>{},
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? newNodeId(),
+       date = dayKey(date),
+       completedOn = completedOn ?? <DateTime>{},
+       tags = tags ?? <String>{},
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   @override
   NodeKind get kind => NodeKind.task;
@@ -253,25 +307,26 @@ class Task implements Node {
   }
 
   Task copy() => Task(
-        id: id,
-        title: title,
-        note: note,
-        place: place,
-        sketch: sketch,
-        startHour: startHour,
-        durationHours: durationHours,
-        color: color,
-        categoryName: categoryName,
-        repeat: repeat,
-        date: date,
-        completedOn: {...completedOn},
-        tags: {...tags},
-        status: status,
-        priority: priority,
-        timeSpentMinutes: timeSpentMinutes,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+    id: id,
+    title: title,
+    note: note,
+    place: place,
+    sketch: sketch,
+    startHour: startHour,
+    durationHours: durationHours,
+    color: color,
+    categoryName: categoryName,
+    repeat: repeat,
+    date: date,
+    completedOn: {...completedOn},
+    tags: {...tags},
+    status: status,
+    priority: priority,
+    energy: energy,
+    timeSpentMinutes: timeSpentMinutes,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 
   /// Kullanıcının "Kopyala" dediğinde ürettiği yeni iş.
   ///
@@ -279,77 +334,83 @@ class Task implements Node {
   /// görevi gösterirdi) ve tamamlanma geçmişini devralmaz — kopya henüz
   /// yapılmadı, kaynağın geçmişi ona ait değil.
   Task duplicateTo(DateTime day) => Task(
-        title: title,
-        note: note,
-        place: place,
-        sketch: sketch,
-        startHour: startHour,
-        durationHours: durationHours,
-        color: color,
-        categoryName: categoryName,
-        repeat: repeat,
-        date: day,
-        tags: {...tags},
-        status: status,
-        priority: priority,
-      );
+    title: title,
+    note: note,
+    place: place,
+    sketch: sketch,
+    startHour: startHour,
+    durationHours: durationHours,
+    color: color,
+    categoryName: categoryName,
+    repeat: repeat,
+    date: day,
+    tags: {...tags},
+    status: status,
+    priority: priority,
+    energy: energy,
+  );
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'task',
-        'id': id,
-        'title': title,
-        'body': note, // Markdown açıklama
-        'place': place,
-        'sketch': sketch?.toJson(),
-        'startHour': startHour,
-        'durationHours': durationHours,
-        'colorHex': colorToHex(color),
-        'categoryName': categoryName,
-        'repeat': repeat.toJson(),
-        'date': dateToKey(date),
-        'completedOn': completedOn.map(dateToKey).toList(),
-        'tags': tags.toList(),
-        'status': status.name,
-        'priority': priority,
-        'timeSpentMinutes': timeSpentMinutes,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-      };
+    'kind': 'task',
+    'id': id,
+    'title': title,
+    'body': note, // Markdown açıklama
+    'place': place,
+    'sketch': sketch?.toJson(),
+    'startHour': startHour,
+    'durationHours': durationHours,
+    'colorHex': colorToHex(color),
+    'categoryName': categoryName,
+    'repeat': repeat.toJson(),
+    'date': dateToKey(date),
+    'completedOn': completedOn.map(dateToKey).toList(),
+    'tags': tags.toList(),
+    'status': status.name,
+    'priority': priority,
+    // Belirtilmemiş efor anahtarı yazılır ama null kalır; eski kayıtlarda
+    // anahtar hiç yok, ikisi de aynı kapıya çıkıyor.
+    'energy': energy?.name,
+    'timeSpentMinutes': timeSpentMinutes,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   factory Task.fromJson(Map<String, dynamic> j) => Task(
-        id: j['id'] as String?,
-        title: (j['title'] as String?) ?? '',
-        // Geriye dönük: eski kayıtlarda 'note', yenilerde 'body'.
-        note: (j['body'] ?? j['note'] ?? '') as String,
-        place: (j['place'] as String?) ?? '',
-        sketch: j['sketch'] == null
-            ? null
-            : Sketch.fromJson((j['sketch'] as Map).cast<String, dynamic>()),
-        startHour: (j['startHour'] as num?)?.toDouble(),
-        durationHours: (j['durationHours'] as num?)?.toDouble() ?? 1.0,
-        color: colorFromHex(j['colorHex'] as String?),
-        categoryName: (j['categoryName'] as String?) ?? '',
-        repeat: j['repeat'] == null
-            ? const Repeat.once()
-            : Repeat.fromJson((j['repeat'] as Map).cast<String, dynamic>()),
-        date: dateFromKeyOrNull(j['date'] as String?) ?? DateTime.now(),
-        completedOn: (j['completedOn'] as List?)
-                ?.map((e) => dateFromKeyOrNull(e as String?))
-                .whereType<DateTime>()
-                .map(Task.dayKey)
-                .toSet() ??
-            <DateTime>{},
-        tags: readTags(j['tags']),
-        status: TaskStatus.values.firstWhere(
-          (s) => s.name == j['status'],
-          orElse: () => TaskStatus.todo,
-        ),
-        priority: (j['priority'] as num?)?.toInt() ?? 0,
-        timeSpentMinutes: (j['timeSpentMinutes'] as num?)?.toInt() ?? 0,
-        createdAt: readDate(j['createdAt']),
-        updatedAt: readDate(j['updatedAt']),
-      );
+    id: j['id'] as String?,
+    title: (j['title'] as String?) ?? '',
+    // Geriye dönük: eski kayıtlarda 'note', yenilerde 'body'.
+    note: (j['body'] ?? j['note'] ?? '') as String,
+    place: (j['place'] as String?) ?? '',
+    sketch: j['sketch'] == null
+        ? null
+        : Sketch.fromJson((j['sketch'] as Map).cast<String, dynamic>()),
+    startHour: (j['startHour'] as num?)?.toDouble(),
+    durationHours: (j['durationHours'] as num?)?.toDouble() ?? 1.0,
+    color: colorFromHex(j['colorHex'] as String?),
+    categoryName: (j['categoryName'] as String?) ?? '',
+    repeat: j['repeat'] == null
+        ? const Repeat.once()
+        : Repeat.fromJson((j['repeat'] as Map).cast<String, dynamic>()),
+    date: dateFromKeyOrNull(j['date'] as String?) ?? DateTime.now(),
+    completedOn:
+        (j['completedOn'] as List?)
+            ?.map((e) => dateFromKeyOrNull(e as String?))
+            .whereType<DateTime>()
+            .map(Task.dayKey)
+            .toSet() ??
+        <DateTime>{},
+    tags: readTags(j['tags']),
+    status: TaskStatus.values.firstWhere(
+      (s) => s.name == j['status'],
+      orElse: () => TaskStatus.todo,
+    ),
+    priority: (j['priority'] as num?)?.toInt() ?? 0,
+    energy: Energy.byName(j['energy'] as String?),
+    timeSpentMinutes: (j['timeSpentMinutes'] as num?)?.toInt() ?? 0,
+    createdAt: readDate(j['createdAt']),
+    updatedAt: readDate(j['updatedAt']),
+  );
 }
 
 /// Görev eklerken/düzenlerken seçilebilecek renk paleti.
