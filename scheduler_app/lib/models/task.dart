@@ -11,32 +11,72 @@ class Sketch {
   bool get isEmpty => strokes.every((s) => s.isEmpty);
 
   Map<String, dynamic> toJson() => {
-        'strokes': strokes
-            .map((s) => s.map((o) => [o.dx, o.dy]).toList())
-            .toList(),
-        'w': size.width,
-        'h': size.height,
-        'color': colorToHex(color),
-      };
+    'strokes': strokes.map((s) => s.map((o) => [o.dx, o.dy]).toList()).toList(),
+    'w': size.width,
+    'h': size.height,
+    'color': colorToHex(color),
+  };
 
   factory Sketch.fromJson(Map<String, dynamic> j) => Sketch(
-        (j['strokes'] as List)
-            .map((s) => (s as List).map((p) {
-                  // Nokta [x, y] çifti olarak saklanır; dinamik indeksleme
-                  // yerine önce listeye daraltıp okuyoruz.
-                  final xy = (p as List).cast<num>();
-                  return Offset(xy[0].toDouble(), xy[1].toDouble());
-                }).toList())
-            .toList(),
-        Size((j['w'] as num).toDouble(), (j['h'] as num).toDouble()),
-        colorFromHex(j['color'] as String?),
-      );
+    (j['strokes'] as List)
+        .map(
+          (s) => (s as List).map((p) {
+            // Nokta [x, y] çifti olarak saklanır; dinamik indeksleme
+            // yerine önce listeye daraltıp okuyoruz.
+            final xy = (p as List).cast<num>();
+            return Offset(xy[0].toDouble(), xy[1].toDouble());
+          }).toList(),
+        )
+        .toList(),
+    Size((j['w'] as num).toDouble(), (j['h'] as num).toDouble()),
+    colorFromHex(j['color'] as String?),
+  );
 }
 
 /// Görevin Kanban/pano durumu (TickTick tarzı). Rutinlerde günlük tamamlanma
 /// hâlâ [Task.completedOn] üzerinden yürür; bu alan tek seferlik işlerin pano
 /// sütununu belirler.
 enum TaskStatus { todo, doing, done }
+
+/// İşin istediği zihinsel efor.
+///
+/// Neden `tags` değil: etiketler serbest metin (`Set<String>`); "Yüksek Efor",
+/// "yüksek efor" ve "YuksekEfor" üç ayrı etiket olurdu. Filtre ve renk kapalı
+/// bir küme ister.
+///
+/// Neden `priority` değil: aciliyet ile efor aynı şey değil. Doktor randevusu
+/// düşük öncelikli ama yorucu olabilir; iki eksen birbirine karışırsa ikisi de
+/// anlamını yitirir.
+///
+/// Dört kademe, üç değil: asıl kullanım senaryosu — akşam yorgun dönüp
+/// "beynimi yakmadan ne yapabilirim" diye bakmak — tam olarak [low] ile
+/// [medium] arasından seçmek. Ayrımı silmek özelliğin sebebini silerdi.
+///
+/// **Sıra anlamlı:** baştan sona azalan efor. [Task.exceedsEnergy] karşılaştırmayı
+/// `index` üzerinden yapıyor; araya yeni bir kademe eklenecekse doğru yere
+/// eklenmeli. Bir test bu sırayı bekçiliyor.
+enum Energy {
+  high('Yüksek efor'),
+  medium('Orta efor'),
+  low('Düşük efor'),
+  discharge('Deşarj');
+
+  const Energy(this.label);
+
+  /// Kullanıcıya görünen ad.
+  final String label;
+
+  /// Kayıttan okunan ad; tanınmayan ya da eksik değer "belirtilmemiş" demek.
+  ///
+  /// İleri uyum: bu sürümün tanımadığı bir kademe (başka bir cihazda eklenmiş
+  /// olabilir) veriyi düşürmez, yalnız sessizce boş görünür.
+  static Energy? byName(String? name) {
+    for (final e in Energy.values) {
+      if (e.name == name) return e;
+    }
+    return null;
+  }
+}
 
 /// Bir işin ne sıklıkla tekrarlandığı.
 enum RepeatType {
@@ -57,26 +97,30 @@ class Repeat {
   final DateTime? until;
 
   const Repeat.once()
-      : type = RepeatType.once,
-        weekdays = const {},
-        until = null;
+    : type = RepeatType.once,
+      weekdays = const {},
+      until = null;
 
   const Repeat(this.type, {this.weekdays = const {}, this.until});
 
   bool get isRoutine => type != RepeatType.once;
 
-  Repeat copyWith({RepeatType? type, Set<int>? weekdays, DateTime? until, bool clearUntil = false}) =>
-      Repeat(
-        type ?? this.type,
-        weekdays: weekdays ?? this.weekdays,
-        until: clearUntil ? null : (until ?? this.until),
-      );
+  Repeat copyWith({
+    RepeatType? type,
+    Set<int>? weekdays,
+    DateTime? until,
+    bool clearUntil = false,
+  }) => Repeat(
+    type ?? this.type,
+    weekdays: weekdays ?? this.weekdays,
+    until: clearUntil ? null : (until ?? this.until),
+  );
 
   Map<String, dynamic> toJson() => {
-        'type': type.name,
-        'weekdays': (weekdays.toList()..sort()),
-        'until': until == null ? null : dateToKey(until!),
-      };
+    'type': type.name,
+    'weekdays': (weekdays.toList()..sort()),
+    'until': until == null ? null : dateToKey(until!),
+  };
 
   factory Repeat.fromJson(Map<String, dynamic> j) {
     final type = RepeatType.values.firstWhere(
@@ -85,16 +129,21 @@ class Repeat {
     );
     return Repeat(
       type,
-      weekdays: (j['weekdays'] as List?)
-              ?.map((e) => (e as num).toInt())
-              .toSet() ??
+      weekdays:
+          (j['weekdays'] as List?)?.map((e) => (e as num).toInt()).toSet() ??
           const {},
       until: dateFromKeyOrNull(j['until'] as String?),
     );
   }
 
   static const List<String> weekdayShort = [
-    'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'
+    'Pzt',
+    'Sal',
+    'Çar',
+    'Per',
+    'Cum',
+    'Cmt',
+    'Paz',
   ];
 
   /// "Her gün", "Sal, Per", "Her ayın 12'si" gibi okunur özet.
@@ -134,6 +183,14 @@ class Task implements Node {
   final Set<String> tags; // TickTick etiketleri (# olmadan); analitik + filtre
   TaskStatus status; // Kanban sütunu
   int priority; // 0 = yok ... 3 = en yüksek
+
+  /// İşin istediği efor; null => belirtilmemiş.
+  ///
+  /// Zorunlu değil, olmamalı da: her iş eklemeye bir karar daha eklemek hızlı
+  /// eklemenin tek nefesliğini bozardı. Belirtilmeyen iş hiçbir filtrede
+  /// elenmez.
+  Energy? energy;
+
   int timeSpentMinutes; // Pomodoro'nun yazdığı harcanan süre
   @override
   final DateTime createdAt;
@@ -143,8 +200,44 @@ class Task implements Node {
   /// Tek günlük işte işin günü; rutinde rutinin başladığı gün.
   DateTime date;
 
+  /// Havuzda bekleyen iş: **takvimde hiçbir günde görünmez.**
+  ///
+  /// Neden `date`'i nullable yapmak yerine bir bayrak: `date` kod tabanında
+  /// 30'u aşkın yerde okunuyor ve `occursOn`, `dayKey`, `compare`, aylık/yıllık
+  /// ızgaralar hepsi onun dolu olmasına yaslanıyor. Nullable yapmak her çağrı
+  /// yerine bir null denetimi, yani bir hata fırsatı eklerdi. Tek kapı
+  /// [occursOn] olduğu için tek bir bayrak hepsini kapsıyor.
+  ///
+  /// [date] bilerek silinmiyor: işin hangi günden çekildiği "geri koy" için
+  /// lazım — havuzdan çıkarken "eskiden Salı'daydı" diyebilmek için.
+  bool inPool;
+
+  /// "Günü kurtar"ın (Kaos düğmesi) dokunamayacağı iş: randevu, ders, uçuş.
+  ///
+  /// Neden `priority` değil: aciliyet ile **kımıldatılamazlık** aynı şey değil.
+  /// Doktor randevusu düşük öncelikli ama sabittir; refactor yüksek öncelikli
+  /// ama esnektir. İki eksen tek alana yüklenirse ikisi de anlamını yitirir.
+  ///
+  /// Varsayılan `false` bilinçli: kullanıcı hiçbir şey işaretlemezse düğme
+  /// **çalışır**. Tersi olsaydı özellik sessizce ölü doğardı — kimse önceden
+  /// bütün işlerini "esnek" diye işaretlemez.
+  bool isFixed;
+
   /// Rutinlerde hangi günlerde tamamlandığı; tek günlük işte 0 veya 1 eleman.
   final Set<DateTime> completedOn;
+
+  /// Rutinin **bilerek** atlandığı günler.
+  ///
+  /// [completedOn]'dan ayrı tutuluyor: "yapmadım" ile "bugün geçiyorum" aynı
+  /// şey değil. Tek kümede toplansalardı atlanan gün tamamlanmış sayılır,
+  /// tamamlanma istatistiği yalan söylerdi.
+  ///
+  /// Atlanan gün [occursOn]'dan **düşmez** — iş o günde durmaya devam eder,
+  /// yalnız üstü çizili ve soluk çizilir. Düşseydi atlamak silmekten ayırt
+  /// edilemez, kullanıcı fikrini değiştirdiğinde dokunacağı bir şey kalmazdı.
+  /// Havuzun aksine bu bir görünürlük kuralı değil, gün üstünde bir durum —
+  /// tıpkı [completedOn] gibi.
+  final Set<DateTime> skippedOn;
 
   Task({
     String? id,
@@ -158,19 +251,24 @@ class Task implements Node {
     this.categoryName = '',
     this.repeat = const Repeat.once(),
     required DateTime date,
+    this.inPool = false,
+    this.isFixed = false,
     Set<DateTime>? completedOn,
+    Set<DateTime>? skippedOn,
     Set<String>? tags,
     this.status = TaskStatus.todo,
     this.priority = 0,
+    this.energy,
     this.timeSpentMinutes = 0,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : id = id ?? newNodeId(),
-        date = dayKey(date),
-        completedOn = completedOn ?? <DateTime>{},
-        tags = tags ?? <String>{},
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? newNodeId(),
+       date = dayKey(date),
+       completedOn = completedOn ?? <DateTime>{},
+       skippedOn = skippedOn ?? <DateTime>{},
+       tags = tags ?? <String>{},
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   @override
   NodeKind get kind => NodeKind.task;
@@ -192,13 +290,42 @@ class Task implements Node {
 
   bool isDoneOn(DateTime day) => completedOn.contains(dayKey(day));
 
+  /// Bu iş, elde [limit] kadar enerji varken fazla mı geliyor?
+  ///
+  /// Eforu belirtilmemiş iş **asla** elenmez: filtre bir öneri, sansür değil.
+  /// Aksi hâlde alanı hiç doldurmayan biri bir gün filtreyi açar ve takvimini
+  /// tamamen solmuş bulurdu.
+  bool exceedsEnergy(Energy? limit) =>
+      limit != null && energy != null && energy!.index < limit.index;
+
   void setDone(DateTime day, bool done) {
     final k = dayKey(day);
     done ? completedOn.add(k) : completedOn.remove(k);
   }
 
+  /// Bu gün bilerek atlandı mı? (Yalnız rutinlerde anlamlı.)
+  bool isSkippedOn(DateTime day) => skippedOn.contains(dayKey(day));
+
+  void setSkipped(DateTime day, bool skipped) {
+    final k = dayKey(day);
+    skipped ? skippedOn.add(k) : skippedOn.remove(k);
+  }
+
+  /// "Günü kurtar" bu işe [day] gününde dokunabilir mi?
+  ///
+  /// Üç kapı, üçü de plan §6'nın sözleşmesinden: sabit iş yerinde kalır,
+  /// tamamlanmış iş dokunulmaz, zaten atlanmış rutin ikinci kez atlanmaz.
+  /// Havuzdakiler zaten hiçbir günde görünmediği için ayrı bir denetim
+  /// gerektirmiyor.
+  bool isRescuableOn(DateTime day) =>
+      !isFixed && !isDoneOn(day) && !isSkippedOn(day);
+
   /// Bu iş verilen günde görünür mü?
   bool occursOn(DateTime day) {
+    // Havuzun tek kapısı. Takvimin her okuması buradan geçtiği için havuza
+    // atılan iş tek satırla bütün görünümlerden çekiliyor.
+    if (inPool) return false;
+
     final d = dayKey(day);
     if (repeat.type == RepeatType.once) return d == date;
     if (d.isBefore(date)) return false;
@@ -253,83 +380,140 @@ class Task implements Node {
   }
 
   Task copy() => Task(
-        id: id,
-        title: title,
-        note: note,
-        place: place,
-        sketch: sketch,
-        startHour: startHour,
-        durationHours: durationHours,
-        color: color,
-        categoryName: categoryName,
-        repeat: repeat,
-        date: date,
-        completedOn: {...completedOn},
-        tags: {...tags},
-        status: status,
-        priority: priority,
-        timeSpentMinutes: timeSpentMinutes,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+    id: id,
+    title: title,
+    note: note,
+    place: place,
+    sketch: sketch,
+    startHour: startHour,
+    durationHours: durationHours,
+    color: color,
+    categoryName: categoryName,
+    repeat: repeat,
+    date: date,
+    inPool: inPool,
+    isFixed: isFixed,
+    completedOn: {...completedOn},
+    skippedOn: {...skippedOn},
+    tags: {...tags},
+    status: status,
+    priority: priority,
+    energy: energy,
+    timeSpentMinutes: timeSpentMinutes,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
+
+  /// Kullanıcının "Kopyala" dediğinde ürettiği yeni iş.
+  ///
+  /// [copy]'den farkı bilinçli: yeni bir kimlik alır (aksi hâlde iki blok aynı
+  /// görevi gösterirdi) ve tamamlanma geçmişini devralmaz — kopya henüz
+  /// yapılmadı, kaynağın geçmişi ona ait değil.
+  ///
+  /// Havuz bayrağı da devralınmaz: bir güne kopyalamak o işi takvime koymak
+  /// demek. Havuzdaki bir işin kopyası yine havuzda doğsaydı, kullanıcı
+  /// kopyaladığı şeyi hiçbir yerde göremezdi.
+  ///
+  /// [isFixed] ise **devralınır**: kımıldatılamazlık işin kendi doğası
+  /// (randevu, ders, uçuş), kopyada kaybolursa kopya sessizce esnek doğar ve
+  /// ilk "Günü kurtar"da süpürülür. [skippedOn] devralınmaz — geçmiş,
+  /// [completedOn] gibi, kaynağa ait.
+  Task duplicateTo(DateTime day) => Task(
+    title: title,
+    note: note,
+    place: place,
+    sketch: sketch,
+    startHour: startHour,
+    durationHours: durationHours,
+    color: color,
+    categoryName: categoryName,
+    repeat: repeat,
+    date: day,
+    isFixed: isFixed,
+    tags: {...tags},
+    status: status,
+    priority: priority,
+    energy: energy,
+  );
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': 'task',
-        'id': id,
-        'title': title,
-        'body': note, // Markdown açıklama
-        'place': place,
-        'sketch': sketch?.toJson(),
-        'startHour': startHour,
-        'durationHours': durationHours,
-        'colorHex': colorToHex(color),
-        'categoryName': categoryName,
-        'repeat': repeat.toJson(),
-        'date': dateToKey(date),
-        'completedOn': completedOn.map(dateToKey).toList(),
-        'tags': tags.toList(),
-        'status': status.name,
-        'priority': priority,
-        'timeSpentMinutes': timeSpentMinutes,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-      };
+    'kind': 'task',
+    'id': id,
+    'title': title,
+    'body': note, // Markdown açıklama
+    'place': place,
+    'sketch': sketch?.toJson(),
+    'startHour': startHour,
+    'durationHours': durationHours,
+    'colorHex': colorToHex(color),
+    'categoryName': categoryName,
+    'repeat': repeat.toJson(),
+    'date': dateToKey(date),
+    'inPool': inPool,
+    'isFixed': isFixed,
+    'completedOn': completedOn.map(dateToKey).toList(),
+    'skippedOn': skippedOn.map(dateToKey).toList(),
+    'tags': tags.toList(),
+    'status': status.name,
+    'priority': priority,
+    // Belirtilmemiş efor anahtarı yazılır ama null kalır; eski kayıtlarda
+    // anahtar hiç yok, ikisi de aynı kapıya çıkıyor.
+    'energy': energy?.name,
+    'timeSpentMinutes': timeSpentMinutes,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   factory Task.fromJson(Map<String, dynamic> j) => Task(
-        id: j['id'] as String?,
-        title: (j['title'] as String?) ?? '',
-        // Geriye dönük: eski kayıtlarda 'note', yenilerde 'body'.
-        note: (j['body'] ?? j['note'] ?? '') as String,
-        place: (j['place'] as String?) ?? '',
-        sketch: j['sketch'] == null
-            ? null
-            : Sketch.fromJson((j['sketch'] as Map).cast<String, dynamic>()),
-        startHour: (j['startHour'] as num?)?.toDouble(),
-        durationHours: (j['durationHours'] as num?)?.toDouble() ?? 1.0,
-        color: colorFromHex(j['colorHex'] as String?),
-        categoryName: (j['categoryName'] as String?) ?? '',
-        repeat: j['repeat'] == null
-            ? const Repeat.once()
-            : Repeat.fromJson((j['repeat'] as Map).cast<String, dynamic>()),
-        date: dateFromKeyOrNull(j['date'] as String?) ?? DateTime.now(),
-        completedOn: (j['completedOn'] as List?)
-                ?.map((e) => dateFromKeyOrNull(e as String?))
-                .whereType<DateTime>()
-                .map(Task.dayKey)
-                .toSet() ??
-            <DateTime>{},
-        tags: readTags(j['tags']),
-        status: TaskStatus.values.firstWhere(
-          (s) => s.name == j['status'],
-          orElse: () => TaskStatus.todo,
-        ),
-        priority: (j['priority'] as num?)?.toInt() ?? 0,
-        timeSpentMinutes: (j['timeSpentMinutes'] as num?)?.toInt() ?? 0,
-        createdAt: readDate(j['createdAt']),
-        updatedAt: readDate(j['updatedAt']),
-      );
+    id: j['id'] as String?,
+    title: (j['title'] as String?) ?? '',
+    // Geriye dönük: eski kayıtlarda 'note', yenilerde 'body'.
+    note: (j['body'] ?? j['note'] ?? '') as String,
+    place: (j['place'] as String?) ?? '',
+    sketch: j['sketch'] == null
+        ? null
+        : Sketch.fromJson((j['sketch'] as Map).cast<String, dynamic>()),
+    startHour: (j['startHour'] as num?)?.toDouble(),
+    durationHours: (j['durationHours'] as num?)?.toDouble() ?? 1.0,
+    color: colorFromHex(j['colorHex'] as String?),
+    categoryName: (j['categoryName'] as String?) ?? '',
+    repeat: j['repeat'] == null
+        ? const Repeat.once()
+        : Repeat.fromJson((j['repeat'] as Map).cast<String, dynamic>()),
+    date: dateFromKeyOrNull(j['date'] as String?) ?? DateTime.now(),
+    // Anahtar yoksa havuz öncesi bir kayıt: takvimde durmaya devam eder.
+    inPool: (j['inPool'] as bool?) ?? false,
+    // Anahtar yoksa iş esnek sayılır. Eski kayıtları sabit kabul etmek
+    // güvenli görünürdü ama düğmeyi ilk kullanışta hiçbir şey yapmayan bir
+    // şeye çevirirdi — özellik ölü doğardı (bkz. K3).
+    isFixed: (j['isFixed'] as bool?) ?? false,
+    completedOn: _readDays(j['completedOn']),
+    skippedOn: _readDays(j['skippedOn']),
+    tags: readTags(j['tags']),
+    status: TaskStatus.values.firstWhere(
+      (s) => s.name == j['status'],
+      orElse: () => TaskStatus.todo,
+    ),
+    priority: (j['priority'] as num?)?.toInt() ?? 0,
+    energy: Energy.byName(j['energy'] as String?),
+    timeSpentMinutes: (j['timeSpentMinutes'] as num?)?.toInt() ?? 0,
+    createdAt: readDate(j['createdAt']),
+    updatedAt: readDate(j['updatedAt']),
+  );
 }
+
+/// `completedOn` / `skippedOn` gibi gün kümelerini kayıttan okur.
+///
+/// Okunamayan gün sessizce düşer: tek bozuk tarih yüzünden bütün kaydı
+/// açılmaz kılmak, o güne ait tik'i kaybetmekten pahalı.
+Set<DateTime> _readDays(Object? raw) =>
+    (raw as List?)
+        ?.map((e) => dateFromKeyOrNull(e as String?))
+        .whereType<DateTime>()
+        .map(Task.dayKey)
+        .toSet() ??
+    <DateTime>{};
 
 /// Görev eklerken/düzenlerken seçilebilecek renk paleti.
 const List<Color> kTaskColors = [

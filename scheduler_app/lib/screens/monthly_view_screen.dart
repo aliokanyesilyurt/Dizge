@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/navigation_controller.dart';
 import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
-import 'day_view_screen.dart';
-import 'year_view_screen.dart';
 
 class MonthlyViewScreen extends ConsumerStatefulWidget {
   /// Açılışta gösterilecek ay (0 = Ocak). Boşsa içinde bulunulan ay.
@@ -20,15 +19,33 @@ class MonthlyViewScreen extends ConsumerStatefulWidget {
 
 class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
   late final PageController _pageController = PageController(
-      initialPage: widget.initialMonth ?? DateTime.now().month - 1);
+    initialPage: widget.initialMonth ?? DateTime.now().month - 1,
+  );
 
   static const List<String> _months = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
   ];
+
   /// Doğrudan büyük harfli: Dart'ın toUpperCase'i Türkçe 'i' -> 'İ' yapmaz.
   static const List<String> _weekDays = [
-    'PZT', 'SAL', 'ÇAR', 'PER', 'CUM', 'CMT', 'PAZ'
+    'PZT',
+    'SAL',
+    'ÇAR',
+    'PER',
+    'CUM',
+    'CMT',
+    'PAZ',
   ];
 
   /// İlk dokunuşta seçilen gün; ikinci dokunuş o günü açar.
@@ -43,29 +60,26 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
     }
   }
 
-  Future<void> _openDay(DateTime date) => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => DayViewScreen(date: date)),
-      );
+  // Gün de ayın üstüne binen bir rota değil, kabuğun bir alt kademesi.
+  void _openDay(DateTime date) =>
+      ref.read(navigationProvider.notifier).openDay(date);
 
   Future<void> _openRoutines() => showModalBottomSheet(
-        context: context,
-        backgroundColor: AppColors.surfaceAlt,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-        ),
-        builder: (_) => const _RoutinesSheet(),
-      );
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => const _RoutinesSheet(),
+  );
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final int year = DateTime.now().year;
     final DateTime today = DateTime.now();
     // Store'u izle: hücrelerdeki iş noktaları her mutasyonda tazelensin.
     final store = ref.watch(appStoreProvider);
 
     return Scaffold(
+      backgroundColor: c.bg,
       body: SafeArea(
         child: PageView.builder(
           controller: _pageController,
@@ -78,11 +92,11 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
 
             return Column(
               children: [
-                _header(_months[monthIndex], year),
-                _weekHeader(),
+                _header(c, _months[monthIndex], year),
+                _weekHeader(c),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                     child: _Grid(
                       weeks: weeks,
                       leading: leading,
@@ -107,46 +121,39 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
           date: _selectedDay ?? Task.dayKey(DateTime.now()),
         ),
         tooltip: 'Hızlı ekle',
-        child: const Icon(Icons.add, size: 22),
+        child: const Icon(Icons.add_rounded, size: 24),
       ),
     );
   }
 
-  Widget _header(String monthName, int year) {
+  Widget _header(AppPalette c, String monthName, int year) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 6, 6, 4),
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 6),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.grid_view_outlined,
-                color: AppColors.inkDim, size: 19),
+            icon: Icon(Icons.grid_view_rounded, color: c.inkDim, size: 19),
             tooltip: '12 ay',
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => YearViewScreen(year: year)),
-              );
-              if (mounted) setState(() {});
-            },
+            onPressed: () =>
+                ref.read(navigationProvider.notifier).go(AppSection.year),
           ),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text('$monthName $year',
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                    )),
-                const Text('kaydırarak ayları gez',
-                    style: TextStyle(color: AppColors.inkFaint, fontSize: 11)),
+                Text(
+                  '$monthName $year',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'kaydırarak ayları gez',
+                  style: TextStyle(color: c.inkFaint, fontSize: 11),
+                ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.repeat, color: AppColors.inkDim, size: 19),
+            icon: Icon(Icons.repeat_rounded, color: c.inkDim, size: 19),
             tooltip: 'Rutinler',
             onPressed: _openRoutines,
           ),
@@ -155,23 +162,25 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
     );
   }
 
-  Widget _weekHeader() {
+  Widget _weekHeader(AppPalette c) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
       child: Row(
         children: _weekDays
-            .map((d) => Expanded(
-                  child: Text(d,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: (d == 'CMT' || d == 'PAZ')
-                            ? AppColors.inkFaint
-                            : AppColors.inkDim,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.6,
-                      )),
-                ))
+            .map(
+              (d) => Expanded(
+                child: Text(
+                  d,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: (d == 'CMT' || d == 'PAZ') ? c.inkFaint : c.inkDim,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -219,7 +228,8 @@ class _Grid extends StatelessWidget {
                   store: store,
                   isWeekend: dow >= 5,
                   isToday: date != null && DateUtils.isSameDay(date, today),
-                  isSelected: date != null &&
+                  isSelected:
+                      date != null &&
                       selectedDay != null &&
                       DateUtils.isSameDay(date, selectedDay!),
                   onTap: date == null ? null : () => onTapDay(date),
@@ -259,83 +269,87 @@ class _Cell extends StatelessWidget {
     // Aya ait olmayan günler kutu almaz; yerleri boş zemin kalır.
     if (dayNum == null) return const SizedBox.shrink();
 
+    final c = context.colors;
     final tasks = store.tasksForDate(date!);
 
     // Seçili gün en baskın; sonra bugün; sonra hafta içi/sonu tonu.
     final Color fill = isSelected
-        ? AppColors.blue.withValues(alpha: 0.22)
-        : isToday
-            ? AppColors.blue.withValues(alpha: 0.12)
-            : (isWeekend ? AppColors.gridWeekend : AppColors.gridDay);
+        ? c.accentSoft
+        : (isWeekend ? c.gridWeekend : c.gridDay);
 
     final Color borderColor = isSelected
-        ? AppColors.blue
+        ? c.accent
         : isToday
-            ? AppColors.blue.withValues(alpha: 0.55)
-            : AppColors.lineSoft;
+        ? c.accent.withValues(alpha: 0.5)
+        : c.lineSoft;
 
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOut,
-        margin: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: fill,
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(
-            color: borderColor,
-            width: isSelected ? 1.5 : 1,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: Motion.base,
+          curve: Motion.curve,
+          margin: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: R.radiusSm,
+            border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
+            boxShadow: isSelected || isToday ? c.shadowSm : null,
           ),
-        ),
-        padding: const EdgeInsets.fromLTRB(5, 5, 4, 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 18,
-              height: 18,
-              alignment: Alignment.center,
-              decoration: isToday
-                  ? const BoxDecoration(
-                      color: AppColors.blue, shape: BoxShape.circle)
-                  : null,
-              child: Text('$dayNum',
+          padding: const EdgeInsets.fromLTRB(6, 6, 5, 5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AnimatedContainer(
+                duration: Motion.fast,
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: isToday
+                    ? BoxDecoration(color: c.accent, shape: BoxShape.circle)
+                    : null,
+                child: Text(
+                  '$dayNum',
                   style: TextStyle(
                     color: isToday
-                        ? Colors.white
-                        : (isWeekend ? AppColors.pink : AppColors.ink),
-                    fontSize: 11,
+                        ? c.onAccent
+                        : (isWeekend ? c.inkFaint : c.ink),
+                    fontSize: 11.5,
                     fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
-                  )),
-            ),
-            const SizedBox(height: 2),
-            // Hücreye sığmayan işler kırpılır (gün görünümünde tamamı var).
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                physics: const NeverScrollableScrollPhysics(),
-                children: tasks.map((t) => _entry(t, date!)).toList(),
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              // Hücreye sığmayan işler kırpılır (gün görünümünde tamamı var).
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: tasks.map((t) => _entry(c, t, date!)).toList(),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   /// Aylık ızgarada tek satırlık iş kaydı. Rutinler soluk + ↻ işaretli.
-  Widget _entry(Task task, DateTime day) {
+  Widget _entry(AppPalette c, Task task, DateTime day) {
     final done = task.isDoneOn(day);
+    final tag = c.tag(task.color);
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: 2.5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 5,
             height: 5,
-            margin: const EdgeInsets.only(top: 4, right: 3),
+            margin: const EdgeInsets.only(top: 4, right: 4),
             decoration: BoxDecoration(
               color: done ? Colors.transparent : task.color,
               shape: BoxShape.circle,
@@ -348,11 +362,12 @@ class _Cell extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: task.color.withValues(alpha: done ? 0.4 : 0.95),
+                color: done ? c.inkFaint : tag.text,
                 fontSize: 10,
-                height: 1.15,
+                height: 1.2,
+                fontWeight: FontWeight.w500,
                 decoration: done ? TextDecoration.lineThrough : null,
-                decorationColor: task.color.withValues(alpha: 0.5),
+                decorationColor: c.inkFaint,
               ),
             ),
           ),
@@ -368,36 +383,46 @@ class _RoutinesSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final routines = ref.watch(routinesProvider);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.repeat, size: 17, color: AppColors.inkDim),
-              const SizedBox(width: 8),
-              const Text('Rutinler',
-                  style: TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700)),
+              Icon(Icons.repeat_rounded, size: 18, color: c.inkDim),
+              const SizedBox(width: 10),
+              Text('Rutinler', style: Theme.of(context).textTheme.titleLarge),
               const Spacer(),
-              Text('${routines.length}',
-                  style: const TextStyle(
-                      color: AppColors.inkFaint, fontSize: 13)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: c.hover,
+                  borderRadius: R.radiusPill,
+                ),
+                child: Text(
+                  '${routines.length}',
+                  style: TextStyle(
+                    color: c.inkDim,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           if (routines.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 28),
               child: Text(
-                'Henüz rutin yok. Bir iş eklerken türünü "Rutin" seçersen burada listelenir.',
-                style: TextStyle(color: AppColors.inkFaint, fontSize: 13),
+                'Henüz rutin yok. Bir iş eklerken türünü "Rutin" seçersen '
+                'burada listelenir.',
+                style: TextStyle(color: c.inkFaint, fontSize: 13, height: 1.5),
               ),
             )
           else
@@ -405,56 +430,72 @@ class _RoutinesSheet extends ConsumerWidget {
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: routines.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 6),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (_, i) {
                   final t = routines[i];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () =>
-                        showTaskEditor(context, date: t.date, existing: t),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.lineSoft),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 3,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: t.color,
-                              borderRadius: BorderRadius.circular(2),
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: R.radiusMd,
+                      onTap: () =>
+                          showTaskEditor(context, date: t.date, existing: t),
+                      child: Container(
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: c.surface,
+                          borderRadius: R.radiusMd,
+                          border: Border.all(color: c.lineSoft),
+                          boxShadow: c.shadowSm,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 3,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: t.color,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(t.title,
-                                    style: const TextStyle(
-                                        color: AppColors.ink,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  [
-                                    t.repeat.describe(t.date),
-                                    if (t.scheduled)
-                                      '${t.startString} · ${t.durationString}',
-                                  ].join('  ·  '),
-                                  style: const TextStyle(
-                                      color: AppColors.inkFaint, fontSize: 11),
-                                ),
-                              ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    t.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: c.ink,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    [
+                                      t.repeat.describe(t.date),
+                                      if (t.scheduled)
+                                        '${t.startString} · ${t.durationString}',
+                                    ].join('  ·  '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: c.inkFaint,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const Icon(Icons.chevron_right,
-                              size: 18, color: AppColors.inkFaint),
-                        ],
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: c.inkFaint,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );

@@ -104,15 +104,21 @@ class ProductivityReport {
       dailyRates.add(dayPlanned == 0 ? 0 : dayDone / dayPlanned);
     }
 
-    List<TimeBucket> buckets(Map<String, double> hours, Map<String, Color>? colors) {
-      final list = hours.entries
-          .map((e) => TimeBucket(
-                e.key,
-                colors?[e.key] ?? const Color(0xFF529CCA),
-                e.value,
-              ))
-          .toList()
-        ..sort((a, b) => b.hours.compareTo(a.hours));
+    List<TimeBucket> buckets(
+      Map<String, double> hours,
+      Map<String, Color>? colors,
+    ) {
+      final list =
+          hours.entries
+              .map(
+                (e) => TimeBucket(
+                  e.key,
+                  colors?[e.key] ?? const Color(0xFF529CCA),
+                  e.value,
+                ),
+              )
+              .toList()
+            ..sort((a, b) => b.hours.compareTo(a.hours));
       return list;
     }
 

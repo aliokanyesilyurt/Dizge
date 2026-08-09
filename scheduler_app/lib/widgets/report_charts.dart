@@ -12,35 +12,38 @@ class CompletionRing extends StatelessWidget {
   const CompletionRing({
     super.key,
     required this.value,
-    this.size = 120,
+    this.size = 124,
     this.centerLabel,
     this.caption,
   });
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return SizedBox(
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _RingPainter(value.clamp(0.0, 1.0)),
+        painter: _RingPainter(value.clamp(0.0, 1.0), c),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 centerLabel ?? '%${(value * 100).round()}',
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 24,
+                style: TextStyle(
+                  color: c.ink,
+                  fontSize: 26,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: -0.8,
                 ),
               ),
               if (caption != null)
                 Text(
                   caption!,
-                  style: const TextStyle(
-                    color: AppColors.inkFaint,
+                  style: TextStyle(
+                    color: c.inkFaint,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -55,29 +58,33 @@ class CompletionRing extends StatelessWidget {
 
 class _RingPainter extends CustomPainter {
   final double value;
-  _RingPainter(this.value);
+  final AppPalette palette;
+  _RingPainter(this.value, this.palette);
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = min(size.width, size.height) / 2 - 7;
-    const stroke = 10.0;
+    final radius = min(size.width, size.height) / 2 - 8;
+    const stroke = 9.0;
 
     canvas.drawCircle(
       center,
       radius,
       Paint()
-        ..color = AppColors.hover
+        ..color = palette.hover
         ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke,
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round,
     );
 
-    // Değere göre mavi→pembe geçişli yay.
+    // Değere göre vurgu→ikincil renk geçişli yay.
     final rect = Rect.fromCircle(center: center, radius: radius);
     final sweep = 2 * pi * value;
     final paint = Paint()
-      ..shader = const SweepGradient(
-        colors: [AppColors.blue, AppColors.pink],
+      ..shader = SweepGradient(
+        startAngle: -pi / 2,
+        endAngle: 3 * pi / 2,
+        colors: [palette.accent, palette.secondary, palette.accent],
       ).createShader(rect)
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
@@ -86,7 +93,8 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RingPainter old) => old.value != value;
+  bool shouldRepaint(covariant _RingPainter old) =>
+      old.value != value || old.palette != palette;
 }
 
 /// Etiketli yatay çubuk satırları (kategori/etikete göre süre gibi).
@@ -106,12 +114,14 @@ class HBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     if (rows.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Text(
           emptyText,
-          style: const TextStyle(color: AppColors.inkFaint, fontSize: 12.5),
+          style: TextStyle(color: c.inkFaint, fontSize: 12.5, height: 1.4),
         ),
       );
     }
@@ -130,8 +140,8 @@ class HBarChart extends StatelessWidget {
                     r.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.inkDim,
+                    style: TextStyle(
+                      color: c.inkDim,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w500,
                     ),
@@ -139,17 +149,24 @@ class HBarChart extends StatelessWidget {
                 ),
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(5),
+                    borderRadius: BorderRadius.circular(999),
                     child: Stack(
                       children: [
-                        Container(height: 18, color: AppColors.hover),
+                        Container(height: 16, color: c.hover),
                         FractionallySizedBox(
                           widthFactor: maxV == 0 ? 0 : (r.value / maxV),
-                          child: Container(
-                            height: 18,
+                          child: AnimatedContainer(
+                            duration: Motion.slow,
+                            curve: Motion.curve,
+                            height: 16,
                             decoration: BoxDecoration(
-                              color: r.color.withValues(alpha: 0.8),
-                              borderRadius: BorderRadius.circular(5),
+                              gradient: LinearGradient(
+                                colors: [
+                                  r.color.withValues(alpha: 0.65),
+                                  r.color,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(999),
                             ),
                           ),
                         ),
@@ -157,14 +174,14 @@ class HBarChart extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 SizedBox(
                   width: 48,
                   child: Text(
                     r.valueLabel,
                     textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      color: AppColors.inkDim,
+                    style: TextStyle(
+                      color: c.inkDim,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -195,27 +212,29 @@ class VBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return SizedBox(
-      height: 110,
+      height: 118,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           for (var i = 0; i < values.length; i++)
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Text(
                       values[i] < 0 ? '–' : '%${(values[i] * 100).round()}',
-                      style: const TextStyle(
-                        color: AppColors.inkFaint,
+                      style: TextStyle(
+                        color: c.inkFaint,
                         fontSize: 9.5,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Expanded(
                       child: Align(
                         alignment: Alignment.bottomCenter,
@@ -223,25 +242,26 @@ class VBarChart extends StatelessWidget {
                           heightFactor: values[i] < 0
                               ? 0.02
                               : max(values[i], 0.02),
-                          child: Container(
+                          child: AnimatedContainer(
+                            duration: Motion.slow,
+                            curve: Motion.curve,
                             decoration: BoxDecoration(
                               color: i == highlightIndex
-                                  ? AppColors.pink
+                                  ? c.secondary
                                   : color.withValues(
-                                      alpha: values[i] < 0 ? 0.15 : 0.75),
-                              borderRadius: BorderRadius.circular(4),
+                                      alpha: values[i] < 0 ? 0.15 : 0.8,
+                                    ),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 6),
                     Text(
                       labels[i],
                       style: TextStyle(
-                        color: i == highlightIndex
-                            ? AppColors.pink
-                            : AppColors.inkFaint,
+                        color: i == highlightIndex ? c.secondary : c.inkFaint,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),

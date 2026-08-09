@@ -26,6 +26,22 @@ class Ev {
   static const taskMoved = 'task_moved';
   static const taskResized = 'task_resized';
 
+  /// Havuz: takvimden çekme ve geri koyma. İkisi ayrı olay, çünkü asıl soru
+  /// "havuza atılan iş geri geliyor mu, yoksa orası bir çöp kutusu mu".
+  static const taskPooled = 'task_pooled';
+  static const taskUnpooled = 'task_unpooled';
+
+  /// "Günü kurtar". Geri alma **ayrı bir olay**, çünkü asıl soru düğmeye kaç
+  /// kez basıldığı değil: bastıktan sonra pişman olunuyor mu. Yüksek bir geri
+  /// alma oranı sözleşmenin (§6) yanlış işleri süpürdüğünü söyler — özelliğin
+  /// tek erken uyarısı bu.
+  static const dayRescued = 'day_rescued';
+  static const dayRescueUndone = 'day_rescue_undone';
+
+  /// Rutinin tek bir günü elle atlandı (kurtarma dışında, bloğun kendi
+  /// menüsünden).
+  static const routineSkipped = 'routine_skipped';
+
   // Gezinme / görünüm
   static const screenViewed = 'screen_viewed';
   static const weekChanged = 'week_changed';
@@ -110,7 +126,10 @@ class NoopTelemetry implements Telemetry {
   void screen(String name, {Map<String, Object>? props}) {}
 
   @override
-  Future<void> identify(String distinctId, {Map<String, Object>? props}) async {}
+  Future<void> identify(
+    String distinctId, {
+    Map<String, Object>? props,
+  }) async {}
 
   @override
   Future<void> reset() async {}
@@ -138,8 +157,10 @@ class DebugTelemetry implements Telemetry {
       _log('screen', name, props);
 
   @override
-  Future<void> identify(String distinctId, {Map<String, Object>? props}) async =>
-      _log('identify', distinctId, props);
+  Future<void> identify(
+    String distinctId, {
+    Map<String, Object>? props,
+  }) async => _log('identify', distinctId, props);
 
   @override
   Future<void> reset() async => _log('reset', '-', null);
@@ -185,23 +206,23 @@ class PostHogTelemetry implements Telemetry {
   }
 
   Map<String, Object> _props(Map<String, Object>? props) => {
-        ..._superProps,
-        ...SafeProps.sanitize(props),
-      };
+    ..._superProps,
+    ...SafeProps.sanitize(props),
+  };
 
   @override
   void capture(String event, {Map<String, Object>? props}) {
     // Ateşle-unut: ağ hatası kullanıcı akışını kesmemeli.
-    _posthog.capture(eventName: event, properties: _props(props)).catchError(
-          (Object e) => debugPrint('telemetri capture hatası: $e'),
-        );
+    _posthog
+        .capture(eventName: event, properties: _props(props))
+        .catchError((Object e) => debugPrint('telemetri capture hatası: $e'));
   }
 
   @override
   void screen(String name, {Map<String, Object>? props}) {
-    _posthog.screen(screenName: name, properties: _props(props)).catchError(
-          (Object e) => debugPrint('telemetri screen hatası: $e'),
-        );
+    _posthog
+        .screen(screenName: name, properties: _props(props))
+        .catchError((Object e) => debugPrint('telemetri screen hatası: $e'));
   }
 
   @override

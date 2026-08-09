@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_config.dart';
+import '../core/day_rescue.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
 import '../models/habit.dart';
@@ -32,7 +33,7 @@ import 'sync/outbox.dart';
 ///   * **Telemetri** — mutasyonların *şekli* (sayı/enum) ölçülür, içeriği asla.
 class AppStore extends ChangeNotifier {
   AppStore({Telemetry telemetry = const NoopTelemetry()})
-      : _telemetry = telemetry;
+    : _telemetry = telemetry;
 
   final Telemetry _telemetry;
 
@@ -109,15 +110,16 @@ class AppStore extends ChangeNotifier {
 
   /// Mutasyonu senkron kuyruğuna yazar. Hidrasyon sırasında atlanır (diskten
   /// okunan veriyi sunucuya geri göndermek anlamsız).
-  void _record(EntityKind kind, MutationOp op, String entityId,
-      Map<String, dynamic> payload) {
+  void _record(
+    EntityKind kind,
+    MutationOp op,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) {
     if (_hydrating) return;
-    _outbox?.enqueue(Mutation(
-      kind: kind,
-      op: op,
-      entityId: entityId,
-      payload: payload,
-    ));
+    _outbox?.enqueue(
+      Mutation(kind: kind, op: op, entityId: entityId, payload: payload),
+    );
   }
 
   // --- Okuma -----------------------------------------------------------------
@@ -136,7 +138,10 @@ class AppStore extends ChangeNotifier {
   /// taramak olurdu.
   List<List<Task>> tasksForWeek(DateTime monday) {
     final start = Task.dayKey(monday);
-    return List.generate(7, (i) => TaskRepository.forDate(start.add(Duration(days: i))));
+    return List.generate(
+      7,
+      (i) => TaskRepository.forDate(start.add(Duration(days: i))),
+    );
   }
 
   Node? nodeById(String id) {
@@ -159,11 +164,8 @@ class AppStore extends ChangeNotifier {
   LinkIndex get linkIndex => LinkIndex.build(nodes);
 
   /// [id]'ye link veren node'lar (backlink paneli).
-  List<Node> backlinkNodes(String id) => linkIndex
-      .linksTo(id)
-      .map(nodeById)
-      .whereType<Node>()
-      .toList();
+  List<Node> backlinkNodes(String id) =>
+      linkIndex.linksTo(id).map(nodeById).whereType<Node>().toList();
 
   /// `[[title]]` tıklaması -> hedef node (yoksa null).
   Node? resolveLink(String title) {
@@ -176,14 +178,20 @@ class AppStore extends ChangeNotifier {
   void addTask(Task task) {
     TaskRepository.add(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    _telemetry.capture(Ev.taskCreated, props: {
-      'routine': task.isRoutine,
-      'repeat': task.repeat.type.name,
-      'scheduled': task.scheduled,
-      'duration_min': (task.durationHours * 60).round(),
-      'has_note': task.note.isNotEmpty,
-      'has_sketch': task.sketch != null,
-    });
+    _telemetry.capture(
+      Ev.taskCreated,
+      props: {
+        'routine': task.isRoutine,
+        'repeat': task.repeat.type.name,
+        'scheduled': task.scheduled,
+        'duration_min': (task.durationHours * 60).round(),
+        'has_note': task.note.isNotEmpty,
+        'has_sketch': task.sketch != null,
+        // Efor isteğe bağlı; kaç kişinin gerçekten işaretlediği ölçülmeden
+        // filtrenin (Ö4b) kime hitap ettiği bilinemez.
+        'energy': task.energy?.name ?? 'none',
+      },
+    );
     _touched();
   }
 
@@ -191,10 +199,14 @@ class AppStore extends ChangeNotifier {
     task.updatedAt = DateTime.now();
     TaskRepository.update(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    _telemetry.capture(Ev.taskUpdated, props: {
-      'routine': task.isRoutine,
-      'scheduled': task.scheduled,
-    });
+    _telemetry.capture(
+      Ev.taskUpdated,
+      props: {
+        'routine': task.isRoutine,
+        'scheduled': task.scheduled,
+        'energy': task.energy?.name ?? 'none',
+      },
+    );
     _touched();
   }
 
@@ -202,6 +214,18 @@ class AppStore extends ChangeNotifier {
     TaskRepository.remove(task);
     _record(EntityKind.task, MutationOp.delete, task.id, const {});
     _telemetry.capture(Ev.taskDeleted, props: {'routine': task.isRoutine});
+    _touched();
+  }
+
+  /// Geri alma: silinen bir görevi eski hâliyle geri koyar.
+  ///
+  /// [addTask] değil çünkü bu bir *oluşturma* değil. Aynı yolu kullansaydık
+  /// her "geri al" bir `taskCreated` olayı üretir, oluşturma sayıları geri
+  /// alınan silmelerle şişerdi. Senkron kaydı yine düşüyor — diğer cihaz
+  /// görevin geri geldiğini görmeli.
+  void restoreTask(Task task) {
+    TaskRepository.add(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
     _touched();
   }
 
@@ -222,11 +246,163 @@ class AppStore extends ChangeNotifier {
     task.setDone(day, done);
     task.updatedAt = DateTime.now();
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    _telemetry.capture(done ? Ev.taskCompleted : Ev.taskUncompleted, props: {
-      'routine': task.isRoutine,
-      // Zamanında mı, gecikmeli mi tamamlandı — erteleme analizinin girdisi.
-      'days_late': Task.dayKey(DateTime.now()).difference(Task.dayKey(day)).inDays,
-    });
+    _telemetry.capture(
+      done ? Ev.taskCompleted : Ev.taskUncompleted,
+      props: {
+        'routine': task.isRoutine,
+        // Zamanında mı, gecikmeli mi tamamlandı — erteleme analizinin girdisi.
+        'days_late': Task.dayKey(
+          DateTime.now(),
+        ).difference(Task.dayKey(day)).inDays,
+      },
+    );
+    _touched();
+  }
+
+  // --- Havuz ("Kenarda Bekleyenler") ----------------------------------------
+
+  /// İşi havuza alır: takvimden çekilir ama **silinmez**.
+  ///
+  /// [Task.date] korunuyor — havuzdan çıkarken hangi günden geldiğini
+  /// bilebilmek için. Saat de duruyor: geri koyarken kullanıcıya aynı saati
+  /// önermek, onu sıfırdan seçtirmekten iyi.
+  ///
+  /// **Rutinler havuza girmez.** "Her gün tekrarlayan ama hiçbir gün görünmeyen
+  /// iş" tanımsız bir şey; rutinde doğru eylem o günü atlamak. Kural asıl olarak
+  /// arayüzde uygulanıyor (rutinde bu eylem hiç gösterilmiyor); buradaki
+  /// denetim, bir çağrı yerinin unutulması hâlinde veriyi tutarsız bırakmamak
+  /// için.
+  void moveToPool(Task task) {
+    assert(!task.isRoutine, 'Rutin havuza atılamaz (bkz. plan K2)');
+    if (task.isRoutine || task.inPool) return;
+
+    task.inPool = true;
+    task.updatedAt = DateTime.now();
+    TaskRepository.update(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    _telemetry.capture(
+      Ev.taskPooled,
+      props: {
+        'scheduled': task.scheduled,
+        'energy': task.energy?.name ?? 'none',
+      },
+    );
+    _touched();
+  }
+
+  /// İşi havuzdan çıkarıp takvime koyar.
+  ///
+  /// [toDay] verilmezse iş **eski gününe** döner: havuza atılırken korunan
+  /// tarih tam bu an için saklanıyordu.
+  void pullFromPool(Task task, {DateTime? toDay, double? startHour}) {
+    if (!task.inPool) return;
+
+    // Ölçüm için: havuza atıldığından beri geçen gün. Ayrı bir `pooledAt`
+    // alanı yok — havuzdaki bir işe başka türlü dokunulmadığı sürece son
+    // güncelleme zamanı bunun yeterince iyi bir yaklaşığı. `updatedAt`
+    // aşağıda ezileceği için şimdi okunuyor.
+    final waited = Task.dayKey(
+      DateTime.now(),
+    ).difference(Task.dayKey(task.updatedAt)).inDays;
+
+    final target = Task.dayKey(toDay ?? task.date);
+    task.inPool = false;
+    task.date = target;
+    if (startHour != null) {
+      task.startHour = clampStartWithin(startHour, task.durationHours);
+    }
+    task.updatedAt = DateTime.now();
+    TaskRepository.update(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    _telemetry.capture(
+      Ev.taskUnpooled,
+      props: {
+        'scheduled': task.scheduled,
+        // Havuzda kaç gün beklediği: havuzun çöp kutusuna dönüp dönmediğini
+        // söyleyen tek sayı.
+        'days_waited': waited,
+      },
+    );
+    _touched();
+  }
+
+  // --- "Günü kurtar" (Kaos düğmesi) -----------------------------------------
+
+  /// Rutinin tek bir gününü atlar / atlamayı geri alır.
+  ///
+  /// Silmekten farkı: rutin yerinde kalır, yarın yine gelir. [Task.completedOn]
+  /// hiç dokunulmaz — atlanan gün tamamlanmış sayılmaz.
+  void skipRoutineOn(
+    Task task,
+    DateTime day,
+    bool skipped, {
+    String source = 'block',
+  }) {
+    if (task.isSkippedOn(day) == skipped) return;
+
+    task.setSkipped(day, skipped);
+    task.updatedAt = DateTime.now();
+    TaskRepository.update(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    if (source != 'rescue') {
+      _telemetry.capture(
+        Ev.routineSkipped,
+        props: {'skipped': skipped, 'source': source},
+      );
+    }
+    _touched();
+  }
+
+  /// Planı uygular: tek günlük işler havuza, rutinler o günün atlananlarına.
+  ///
+  /// Tek bir bildirim atıyor (`_touched` sonda): sekiz işi tek tek bildirmek
+  /// haftalık ızgarayı sekiz kez yeniden kurardı. Telemetri de tek olay —
+  /// ölçülmek istenen "kaç iş süpürüldü", "kaç kez `moveToPool` çağrıldı"
+  /// değil.
+  void applyDayRescue(DayRescuePlan plan) {
+    if (plan.isEmpty) return;
+
+    for (final task in plan.toPool) {
+      task.inPool = true;
+      task.updatedAt = DateTime.now();
+      TaskRepository.update(task);
+      _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    }
+    for (final task in plan.toSkip) {
+      task.setSkipped(plan.day, true);
+      task.updatedAt = DateTime.now();
+      TaskRepository.update(task);
+      _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    }
+
+    _telemetry.capture(
+      Ev.dayRescued,
+      props: {
+        'pooled': plan.toPool.length,
+        'skipped': plan.toSkip.length,
+        'total': plan.total,
+      },
+    );
+    _touched();
+  }
+
+  /// Kurtarmayı geri alır: havuza gidenler eski günlerine döner (saatleri
+  /// zaten hiç değişmedi), atlanan rutinlerin atlaması silinir.
+  void undoDayRescue(DayRescuePlan plan) {
+    for (final task in plan.toPool) {
+      task.inPool = false;
+      task.updatedAt = DateTime.now();
+      TaskRepository.update(task);
+      _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    }
+    for (final task in plan.toSkip) {
+      task.setSkipped(plan.day, false);
+      task.updatedAt = DateTime.now();
+      TaskRepository.update(task);
+      _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    }
+
+    _telemetry.capture(Ev.dayRescueUndone, props: {'total': plan.total});
     _touched();
   }
 
@@ -242,7 +418,11 @@ class AppStore extends ChangeNotifier {
   ///   * Tek günlük işte ikisi de doğrudan uygulanır.
   ///
   /// [newStartHour] 15 dakikalık ızgaraya oturtulmuş gelmelidir.
-  void moveTask(Task task, {required DateTime toDay, required double newStartHour}) {
+  void moveTask(
+    Task task, {
+    required DateTime toDay,
+    required double newStartHour,
+  }) {
     final fromDay = task.date;
     final start = clampStartWithin(newStartHour, task.durationHours);
     final targetDay = Task.dayKey(toDay);
@@ -253,7 +433,11 @@ class AppStore extends ChangeNotifier {
             ? {task.date.weekday}
             : task.repeat.weekdays;
         // Sürüklenen tekrar hangi haftagünündeyse onu hedefe taşı, diğerleri kalsın.
-        final sourceWeekday = _weekdayBeingDragged(task, targetDay, oldWeekdays);
+        final sourceWeekday = _weekdayBeingDragged(
+          task,
+          targetDay,
+          oldWeekdays,
+        );
         final next = {...oldWeekdays}
           ..remove(sourceWeekday)
           ..add(targetDay.weekday);
@@ -268,11 +452,14 @@ class AppStore extends ChangeNotifier {
     TaskRepository.update(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
 
-    _telemetry.capture(Ev.taskMoved, props: {
-      'routine': task.isRoutine,
-      'day_delta': targetDay.difference(Task.dayKey(fromDay)).inDays,
-      'hour': start.round(),
-    });
+    _telemetry.capture(
+      Ev.taskMoved,
+      props: {
+        'routine': task.isRoutine,
+        'day_delta': targetDay.difference(Task.dayKey(fromDay)).inDays,
+        'hour': start.round(),
+      },
+    );
     _touched();
   }
 
@@ -297,9 +484,10 @@ class AppStore extends ChangeNotifier {
     task.updatedAt = DateTime.now();
     TaskRepository.update(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    _telemetry.capture(Ev.taskResized, props: {
-      'duration_min': (task.durationHours * 60).round(),
-    });
+    _telemetry.capture(
+      Ev.taskResized,
+      props: {'duration_min': (task.durationHours * 60).round()},
+    );
     _touched();
   }
 
@@ -342,13 +530,21 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Alışkanlığı verilen günde işaretle/kaldır (ısı haritası hücresi tıklaması).
-  void toggleHabit(Habit habit, DateTime day) {
+  ///
+  /// [source] tikin nereden geldiğini ayırır: alışkanlık ekranından mı, ana
+  /// ekrandaki günlük şeritten mi. Şeridin varlık sebebi tam olarak bu —
+  /// ölçmeden bilinemez.
+  void toggleHabit(Habit habit, DateTime day, {String source = 'habits'}) {
     habit.toggle(day);
     _record(EntityKind.habit, MutationOp.upsert, habit.id, habit.toJson());
-    _telemetry.capture(Ev.habitToggled, props: {
-      'done': habit.isDoneOn(day),
-      'streak': habit.currentStreak,
-    });
+    _telemetry.capture(
+      Ev.habitToggled,
+      props: {
+        'done': habit.isDoneOn(day),
+        'streak': habit.currentStreak,
+        'source': source,
+      },
+    );
     _touched();
   }
 
@@ -384,18 +580,18 @@ class AppStore extends ChangeNotifier {
   // --- Serileştirme ----------------------------------------------------------
 
   Map<String, dynamic> toJson() => {
-        'schemaVersion': AppConfig.kSchemaVersion,
-        'savedAt': DateTime.now().toIso8601String(),
-        'nodes': [
-          for (final t in TaskRepository.all) t.toJson(),
-          for (final n in _notes) n.toJson(),
-        ],
-        'habits': [for (final h in _habits) h.toJson()],
-        'categories': [
-          for (final c in AppData.categories)
-            {'name': c.name, 'colorHex': colorToHex(c.color)},
-        ],
-      };
+    'schemaVersion': AppConfig.kSchemaVersion,
+    'savedAt': DateTime.now().toIso8601String(),
+    'nodes': [
+      for (final t in TaskRepository.all) t.toJson(),
+      for (final n in _notes) n.toJson(),
+    ],
+    'habits': [for (final h in _habits) h.toJson()],
+    'categories': [
+      for (final c in AppData.categories)
+        {'name': c.name, 'colorHex': colorToHex(c.color)},
+    ],
+  };
 
   void loadJson(Map<String, dynamic> j) {
     TaskRepository.all.clear();
@@ -444,12 +640,29 @@ final tasksForDateProvider = Provider.family<List<Task>, DateTime>((ref, day) {
 });
 
 /// Bir haftanın 7 günlük görev matrisi (haftalık ızgara).
-final tasksForWeekProvider =
-    Provider.family<List<List<Task>>, DateTime>((ref, monday) {
+final tasksForWeekProvider = Provider.family<List<List<Task>>, DateTime>((
+  ref,
+  monday,
+) {
   return ref.watch(appStoreProvider).tasksForWeek(monday);
 });
 
+/// Havuzda bekleyen işler ("Kenarda Bekleyenler"), en eski önce.
+///
+/// Sıralama bilinçli: havuzun asıl riski çöp kutusuna dönmesi. En uzun
+/// bekleyen üstte durursa unutulmuş iş göze çarpar; en yeni üstte olsaydı
+/// eskiler listenin dibinde sessizce yaşlanırdı.
+final poolProvider = Provider<List<Task>>((ref) {
+  return ref.watch(appStoreProvider).tasks.where((t) => t.inPool).toList()
+    ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+});
+
 /// Rutin olmayan tek günlük işler (Yapılacaklar ekranı).
+///
+/// Havuzdakiler **burada kalır.** Havuz "takvimden çekildi" demek, "yok oldu"
+/// değil; Yapılacaklar bir takvim görünümü değil, işlerin düz listesi. Havuza
+/// atılan bir iş buradan da düşseydi, paneli açmayan biri onu hiçbir yerde
+/// bulamazdı — kaybolan iş, kaybolan güven demek.
 final todosProvider = Provider<List<Task>>((ref) {
   final list =
       ref.watch(appStoreProvider).tasks.where((t) => !t.isRoutine).toList()

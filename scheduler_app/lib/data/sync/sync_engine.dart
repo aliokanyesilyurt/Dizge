@@ -39,10 +39,10 @@ class SyncEngine {
     required RemoteGateway gateway,
     required ConnectivityService connectivity,
     Telemetry telemetry = const NoopTelemetry(),
-  })  : _outbox = outbox,
-        _gateway = gateway,
-        _connectivity = connectivity,
-        _telemetry = telemetry;
+  }) : _outbox = outbox,
+       _gateway = gateway,
+       _connectivity = connectivity,
+       _telemetry = telemetry;
 
   final Outbox _outbox;
   final RemoteGateway _gateway;
@@ -130,9 +130,10 @@ class SyncEngine {
       if (result.rejected.isEmpty) {
         _failureStreak = 0;
         _state.value = _outbox.isEmpty ? SyncState.idle : SyncState.syncing;
-        _telemetry.capture(Ev.syncFlushed, props: {
-          'count': result.accepted.length,
-        });
+        _telemetry.capture(
+          Ev.syncFlushed,
+          props: {'count': result.accepted.length},
+        );
       } else {
         _scheduleRetry();
       }

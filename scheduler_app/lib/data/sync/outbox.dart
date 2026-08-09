@@ -90,7 +90,9 @@ class Outbox {
       if (!ids.contains(_pending[i].id)) continue;
       final next = _pending[i].withAttempt();
       if (next.attempts >= maxAttempts) {
-        debugPrint('Outbox: $next $maxAttempts denemede gönderilemedi, düşürüldü.');
+        debugPrint(
+          'Outbox: $next $maxAttempts denemede gönderilemedi, düşürüldü.',
+        );
         _pending.removeAt(i);
         needsFullPush = true;
       } else {

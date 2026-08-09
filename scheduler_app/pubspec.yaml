@@ -65,6 +65,7 @@ dependencies:
   # Tarih/saat seçicileri ve Material metinleri Türkçe gelsin diye.
   flutter_localizations:
     sdk: flutter
+  shadcn_ui: ^0.56.0
 
 dev_dependencies:
   flutter_test:
@@ -89,12 +90,22 @@ flutter:
   uses-material-design: true
 
   fonts:
-    - family: PatrickHand
+    # Gövde yazı tipi. Statik ağırlıklar bilinçli tercih: değişken sürüm
+    # (InterVariable.ttf) her `fontWeight` için ayrıca `FontVariation`
+    # verilmesini gerektirirdi. Lisans: assets/fonts/Inter-LICENSE.txt (OFL).
+    - family: Inter
       fonts:
-        - asset: assets/fonts/PatrickHand-Regular.ttf
-    - family: PermanentMarker
-      fonts:
-        - asset: assets/fonts/PermanentMarker-Regular.ttf
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+    # PatrickHand ve PermanentMarker kaldırıldı (D7): paketleniyorlardı ama
+    # `lib/` içinde hiç kullanılmıyorlardı — her kuruluma ~283 KB ölü yük.
+    # El yazısı notlar gerçekten gelirse `git show` ile geri dönmek tek adım.
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -12,8 +12,9 @@ void main() {
   Future<void> pumpDay(WidgetTester tester, DateTime date) =>
       pumpApp(tester, DayViewScreen(date: date));
 
-  testWidgets('haftalık rutin ekleme akışı ve tekrar eden günler',
-      (tester) async {
+  testWidgets('haftalık rutin ekleme akışı ve tekrar eden günler', (
+    tester,
+  ) async {
     // Sabit bir Pazartesi seç.
     final monday = DateTime(2026, 7, 20);
     expect(monday.weekday, DateTime.monday);
@@ -56,15 +57,18 @@ void main() {
     expect(task.occursOn(monday.subtract(const Duration(days: 7))), isFalse);
   });
 
-  testWidgets('tek günlük iş sadece kendi gününde görünür ve tamamlanabilir',
-      (tester) async {
+  testWidgets('tek günlük iş sadece kendi gününde görünür ve tamamlanabilir', (
+    tester,
+  ) async {
     final day = DateTime(2026, 7, 20);
     await pumpDay(tester, day);
 
     await tester.tap(find.text('Yeni iş'));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextField, 'Başlıksız'), 'Fatura öde');
+      find.widgetWithText(TextField, 'Başlıksız'),
+      'Fatura öde',
+    );
 
     // Saat + süre: saat satırını aç, 12:00 seç.
     await tester.tap(find.text('Saat'));
@@ -94,8 +98,9 @@ void main() {
     expect(find.textContaining('1/1 tamam'), findsOneWidget);
   });
 
-  testWidgets('telefon genişliğinde tüm özellik satırları taşmadan açılır',
-      (tester) async {
+  testWidgets('telefon genişliğinde tüm özellik satırları taşmadan açılır', (
+    tester,
+  ) async {
     useScreenSize(tester, const Size(390, 844));
 
     await pumpDay(tester, DateTime(2026, 7, 20));
@@ -112,24 +117,35 @@ void main() {
 
     // Sırayla her satırı aç; taşma olursa pump sırasında hata fırlar.
     // (Rutinde tarih satırının etiketi "Başlangıç" olur.)
-    for (final label in ['Başlangıç', 'Saat', 'Kategori', 'Yer', 'Açıklama']) {
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
+    //
+    // Kaydırarak: satır listesi telefon boyunda ekrandan uzun ve açılan her
+    // satır sonrakileri aşağı itiyor. Kaydırmadan arayan bir test, listeye
+    // yeni bir satır eklendiği gün taşma değil "bulunamadı" diye düşer —
+    // sınamak istediği şeyi sınamaz.
+    for (final label in [
+      'Başlangıç',
+      'Saat',
+      'Kategori',
+      'Efor',
+      'Sabit',
+      'Yer',
+      'Açıklama',
+    ]) {
+      await tapRow(tester, label);
     }
     // "Süre" satırı ancak saat seçilince görünür.
-    await tester.tap(find.text('Saat'));
-    await tester.pumpAndSettle();
+    await tapRow(tester, 'Saat');
     await tester.tap(find.text('09:00'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Süre'));
-    await tester.pumpAndSettle();
+    await tapRow(tester, 'Süre');
 
     expect(find.text('1 sa'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('aylık ızgarada kalabalık bir gün hücreyi taşırmaz',
-      (tester) async {
+  testWidgets('aylık ızgarada kalabalık bir gün hücreyi taşırmaz', (
+    tester,
+  ) async {
     useScreenSize(tester, const Size(390, 844));
 
     final today = DateTime.now();
@@ -138,12 +154,14 @@ void main() {
       const MonthlyViewScreen(),
       seed: (store) {
         for (var i = 0; i < 10; i++) {
-          store.addTask(Task(
-            title: 'Uzunca bir iş başlığı $i',
-            color: Colors.blue,
-            date: today,
-            startHour: 8.0 + i * 0.5,
-          ));
+          store.addTask(
+            Task(
+              title: 'Uzunca bir iş başlığı $i',
+              color: Colors.blue,
+              date: today,
+              startHour: 8.0 + i * 0.5,
+            ),
+          );
         }
       },
     );
@@ -183,4 +201,19 @@ void main() {
     TaskRepository.endRoutineBefore(task, start);
     expect(TaskRepository.all, isEmpty);
   });
+}
+
+/// Düzenleyicideki bir özellik satırını görünür alana kaydırıp açar.
+///
+/// Doğrudan `tap` yetmiyor: satır listesi telefon boyunda ekrandan uzun ve
+/// `ListView` görünmeyen satırları hiç kurmuyor.
+Future<void> tapRow(WidgetTester tester, String label) async {
+  await tester.scrollUntilVisible(
+    find.text(label),
+    80,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label));
+  await tester.pumpAndSettle();
 }

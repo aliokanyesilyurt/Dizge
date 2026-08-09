@@ -6,6 +6,7 @@ import '../models/node.dart';
 import '../services/link_index.dart';
 import '../theme.dart';
 import 'section_header.dart';
+import 'task_list_scaffold.dart' show EmptyState;
 
 /// Bilgi bankası: Markdown notlar + Obsidian tarzı [[çift yönlü bağlantı]].
 /// Bir notu açınca hem verdiği bağlantılar hem de ona gelen backlink'ler
@@ -51,18 +52,19 @@ class _NoteList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     final notes = ref.watch(notesProvider);
     final store = ref.read(appStoreProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: c.bg,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           final note = Note(title: 'Yeni not');
           store.addNote(note);
           onOpen(note.id);
         },
-        child: const Icon(Icons.add, size: 22),
+        child: const Icon(Icons.add_rounded, size: 24),
       ),
       body: SafeArea(
         child: Column(
@@ -74,17 +76,19 @@ class _NoteList extends ConsumerWidget {
                   ? 'Bilgi bankası'
                   : '${notes.length} not · [[ ]] ile bağla',
             ),
-            const Divider(color: AppColors.lineSoft, height: 1),
             Expanded(
               child: notes.isEmpty
-                  ? const _Empty()
+                  ? const EmptyState(
+                      icon: Icons.article_rounded,
+                      title: 'Henüz not yok.',
+                      text: 'Bir görevden [[Not Adı]] yazınca köprü kurulur.',
+                    )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 90),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
                       itemCount: notes.length,
                       itemBuilder: (_, i) => _NoteRow(
                         note: notes[i],
-                        backlinkCount:
-                            store.backlinkNodes(notes[i].id).length,
+                        backlinkCount: store.backlinkNodes(notes[i].id).length,
                         onTap: () => onOpen(notes[i].id),
                       ),
                     ),
@@ -96,31 +100,7 @@ class _NoteList extends ConsumerWidget {
   }
 }
 
-class _Empty extends StatelessWidget {
-  const _Empty();
-  @override
-  Widget build(BuildContext context) => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.article_outlined, size: 34, color: AppColors.inkFaint),
-            SizedBox(height: 12),
-            Text(
-              'Henüz not yok.\nBir görevden [[Not Adı]] yazınca köprü kurulur.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.inkFaint,
-                fontSize: 13.5,
-                height: 1.45,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-class _NoteRow extends StatelessWidget {
+class _NoteRow extends StatefulWidget {
   final Note note;
   final int backlinkCount;
   final VoidCallback onTap;
@@ -131,79 +111,99 @@ class _NoteRow extends StatelessWidget {
   });
 
   @override
+  State<_NoteRow> createState() => _NoteRowState();
+}
+
+class _NoteRowState extends State<_NoteRow> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final preview = note.body.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: AppColors.lineSoft),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.description_outlined,
-                size: 18, color: AppColors.inkDim),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    note.title.isEmpty ? 'Başlıksız' : note.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
+    final c = context.colors;
+    final preview = widget.note.body.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: Motion.fast,
+          curve: Motion.curve,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: R.radiusMd,
+            border: Border.all(color: _hovered ? c.line : c.lineSoft),
+            boxShadow: _hovered ? c.shadowMd : c.shadowSm,
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.description_rounded, size: 18, color: c.inkDim),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.note.title.isEmpty
+                          ? 'Başlıksız'
+                          : widget.note.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: c.ink,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.1,
+                      ),
                     ),
-                  ),
-                  if (preview.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        preview,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.inkFaint,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                    if (preview.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          preview,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: c.inkFaint,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-            if (backlinkCount > 0)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.hover,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.link_rounded,
-                        size: 13, color: AppColors.inkDim),
-                    const SizedBox(width: 3),
-                    Text(
-                      '$backlinkCount',
-                      style: const TextStyle(
-                        color: AppColors.inkDim,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ],
                 ),
               ),
-          ],
+              if (widget.backlinkCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.hover,
+                    borderRadius: R.radiusPill,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.link_rounded, size: 13, color: c.inkDim),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${widget.backlinkCount}',
+                        style: TextStyle(
+                          color: c.inkDim,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -302,26 +302,31 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final store = ref.watch(appStoreProvider);
 
     final outTitles = LinkIndex.extractLinkTitles(_bodyCtrl.text);
     final backlinks = store.backlinkNodes(widget.note.id);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: c.bg,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Üst bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 12, 4),
+              padding: const EdgeInsets.fromLTRB(10, 10, 16, 4),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: _back,
-                    icon: const Icon(Icons.arrow_back_rounded,
-                        size: 20, color: AppColors.inkDim),
+                    tooltip: 'Geri',
+                    icon: Icon(
+                      Icons.arrow_back_rounded,
+                      size: 20,
+                      color: c.inkDim,
+                    ),
                   ),
                   const Spacer(),
                   TextButton.icon(
@@ -333,91 +338,113 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
               ),
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-                children: [
-                  TextField(
-                    controller: _titleCtrl,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Başlık',
-                      hintStyle: TextStyle(color: AppColors.inkFaint),
-                      isDense: true,
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _bodyCtrl,
-                    focusNode: _bodyFocus,
-                    maxLines: null,
-                    minLines: 6,
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 15,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText:
-                          'Markdown yaz… başka bir nota köprü için [[Not Adı]].',
-                      hintStyle: TextStyle(color: AppColors.inkFaint),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 24),
-                  if (outTitles.isNotEmpty) ...[
-                    const _PanelLabel(
-                        icon: Icons.north_east_rounded,
-                        text: 'Bu notun bağlantıları'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final t in outTitles.toSet())
-                          _LinkChip(
-                            title: t,
-                            target: store.resolveLink(t),
-                            onOpenNote: widget.onOpenNote,
+              child: Center(
+                child: ConstrainedBox(
+                  // Uzun satırlar okunmaz olmasın: ölçü ~70 karakter.
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 6, 24, 48),
+                    children: [
+                      TextField(
+                        controller: _titleCtrl,
+                        style: TextStyle(
+                          color: c.ink,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.6,
+                        ),
+                        decoration: InputDecoration(
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          hintText: 'Başlık',
+                          hintStyle: TextStyle(
+                            color: c.inkFaint,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.6,
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 22),
-                  ],
-                  const _PanelLabel(
-                      icon: Icons.south_west_rounded,
-                      text: 'Backlinks (buraya bağlananlar)'),
-                  const SizedBox(height: 8),
-                  if (backlinks.isEmpty)
-                    Text(
-                      'Henüz kimse bu nota bağlanmadı. Bir görevin ya da notun '
-                      'açıklamasında [[${widget.note.title}]] yaz.',
-                      style: const TextStyle(
-                        color: AppColors.inkFaint,
-                        fontSize: 12.5,
-                        height: 1.4,
+                          isDense: true,
+                        ),
+                        onChanged: (_) => setState(() {}),
                       ),
-                    )
-                  else
-                    Column(
-                      children: [
-                        for (final n in backlinks)
-                          _BacklinkRow(
-                            node: n,
-                            onTap: n.kind == NodeKind.note
-                                ? () => widget.onOpenNote(n.id)
-                                : null,
-                          ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _bodyCtrl,
+                        focusNode: _bodyFocus,
+                        maxLines: null,
+                        minLines: 6,
+                        style: TextStyle(
+                          color: c.ink,
+                          fontSize: 15,
+                          height: 1.6,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          hintText:
+                              'Markdown yaz… başka bir nota köprü için [[Not Adı]].',
+                          hintStyle: TextStyle(color: c.inkFaint),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 32),
+                      if (outTitles.isNotEmpty) ...[
+                        const _PanelLabel(
+                          icon: Icons.north_east_rounded,
+                          text: 'Bu notun bağlantıları',
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final t in outTitles.toSet())
+                              _LinkChip(
+                                title: t,
+                                target: store.resolveLink(t),
+                                onOpenNote: widget.onOpenNote,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 26),
                       ],
-                    ),
-                ],
+                      const _PanelLabel(
+                        icon: Icons.south_west_rounded,
+                        text: 'Backlinks (buraya bağlananlar)',
+                      ),
+                      const SizedBox(height: 10),
+                      if (backlinks.isEmpty)
+                        Text(
+                          'Henüz kimse bu nota bağlanmadı. Bir görevin ya da '
+                          'notun açıklamasında [[${widget.note.title}]] yaz.',
+                          style: TextStyle(
+                            color: c.inkFaint,
+                            fontSize: 12.5,
+                            height: 1.5,
+                          ),
+                        )
+                      else
+                        Column(
+                          children: [
+                            for (final n in backlinks)
+                              _BacklinkRow(
+                                node: n,
+                                onTap: n.kind == NodeKind.note
+                                    ? () => widget.onOpenNote(n.id)
+                                    : null,
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -434,17 +461,21 @@ class _PanelLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Row(
       children: [
-        Icon(icon, size: 14, color: AppColors.inkFaint),
-        const SizedBox(width: 6),
+        Icon(icon, size: 13, color: c.inkFaint),
+        const SizedBox(width: 7),
+        // Karışık büyük/küçük harf olduğu için `labelSmall`ın geniş harf
+        // aralığı yerine daha sıkı bir ölçü.
         Text(
           text,
-          style: const TextStyle(
-            color: AppColors.inkFaint,
+          style: TextStyle(
+            color: c.inkFaint,
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+            letterSpacing: 0.2,
           ),
         ),
       ],
@@ -464,41 +495,45 @@ class _LinkChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final broken = target == null;
     final isNote = target?.kind == NodeKind.note;
-    final color = broken ? AppColors.amber : AppColors.blue;
+    final color = broken ? c.warning : c.accent;
 
     return GestureDetector(
       onTap: isNote ? () => onOpenNote(target!.id) : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(7),
-          border: Border.all(color: color.withValues(alpha: 0.5)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              broken
-                  ? Icons.link_off_rounded
-                  : (isNote
-                      ? Icons.description_outlined
-                      : Icons.check_circle_outline_rounded),
-              size: 13,
-              color: color,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              title,
-              style: TextStyle(
+      child: MouseRegion(
+        cursor: isNote ? SystemMouseCursors.click : MouseCursor.defer,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: c.isDark ? 0.13 : 0.09),
+            borderRadius: R.radiusPill,
+            border: Border.all(color: color.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                broken
+                    ? Icons.link_off_rounded
+                    : (isNote
+                          ? Icons.description_rounded
+                          : Icons.check_circle_rounded),
+                size: 13,
                 color: color,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
               ),
-            ),
-          ],
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -512,46 +547,52 @@ class _BacklinkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final isTask = node.kind == NodeKind.task;
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: AppColors.lineSoft),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isTask ? Icons.check_circle_outline_rounded : Icons.description_outlined,
-              size: 16,
-              color: isTask ? AppColors.pink : AppColors.blue,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                node.title.isEmpty ? 'Başlıksız' : node.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
+      child: MouseRegion(
+        cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: R.radiusMd,
+            border: Border.all(color: c.lineSoft),
+            boxShadow: c.shadowSm,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isTask ? Icons.check_circle_rounded : Icons.description_rounded,
+                size: 16,
+                color: isTask ? c.secondary : c.accent,
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Text(
+                  node.title.isEmpty ? 'Başlıksız' : node.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: c.ink,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            Text(
-              isTask ? 'Görev' : 'Not',
-              style: const TextStyle(
-                color: AppColors.inkFaint,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+              Text(
+                isTask ? 'Görev' : 'Not',
+                style: TextStyle(
+                  color: c.inkFaint,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -579,82 +620,84 @@ class _LinkPickerState extends State<_LinkPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final q = _query.text.trim().toLowerCase();
     final matches = widget.nodes
         .where((n) => n.title.toLowerCase().contains(q))
         .take(30)
         .toList();
-    final canCreate = q.isNotEmpty &&
-        !widget.nodes.any((n) => n.title.toLowerCase() == q);
+    final canCreate =
+        q.isNotEmpty && !widget.nodes.any((n) => n.title.toLowerCase() == q);
 
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 6),
+              decoration: BoxDecoration(
+                color: c.line,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
               child: TextField(
                 controller: _query,
                 autofocus: true,
-                style: const TextStyle(color: AppColors.ink),
+                style: TextStyle(color: c.ink),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search_rounded,
-                      size: 18, color: AppColors.inkFaint),
-                  hintText: 'Not/görev ara ya da yeni not adı yaz…',
-                  hintStyle: const TextStyle(color: AppColors.inkFaint),
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(9),
-                    borderSide: BorderSide.none,
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 18,
+                    color: c.inkFaint,
                   ),
+                  hintText: 'Not/görev ara ya da yeni not adı yaz…',
                 ),
               ),
             ),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 children: [
                   if (canCreate)
                     ListTile(
-                      leading: const Icon(Icons.add_rounded,
-                          color: AppColors.blue),
-                      title: Text('"${_query.text.trim()}" notunu oluştur ve bağla',
-                          style: const TextStyle(
-                              color: AppColors.ink, fontSize: 14)),
-                      onTap: () =>
-                          Navigator.pop(context, _query.text.trim()),
+                      shape: RoundedRectangleBorder(borderRadius: R.radiusSm),
+                      leading: Icon(Icons.add_rounded, color: c.accent),
+                      title: Text(
+                        '"${_query.text.trim()}" notunu oluştur ve bağla',
+                        style: TextStyle(color: c.ink, fontSize: 14),
+                      ),
+                      onTap: () => Navigator.pop(context, _query.text.trim()),
                     ),
                   for (final n in matches)
                     ListTile(
+                      shape: RoundedRectangleBorder(borderRadius: R.radiusSm),
                       leading: Icon(
                         n.kind == NodeKind.task
-                            ? Icons.check_circle_outline_rounded
-                            : Icons.description_outlined,
+                            ? Icons.check_circle_rounded
+                            : Icons.description_rounded,
                         size: 18,
-                        color: n.kind == NodeKind.task
-                            ? AppColors.pink
-                            : AppColors.blue,
+                        color: n.kind == NodeKind.task ? c.secondary : c.accent,
                       ),
                       title: Text(
                         n.title.isEmpty ? 'Başlıksız' : n.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: AppColors.ink, fontSize: 14),
+                        style: TextStyle(color: c.ink, fontSize: 14),
                       ),
                       onTap: () => Navigator.pop(context, n.title),
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
           ],
         ),
       ),

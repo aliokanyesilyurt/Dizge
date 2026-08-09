@@ -25,6 +25,7 @@ class HabitHeatmap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final today = dayOnly(DateTime.now());
     // Izgaranın sağ-alt köşesi bugün olacak şekilde, en soldaki Pazartesi'yi bul.
     final thisWeekMon = Habit.weekStart(today);
@@ -38,7 +39,7 @@ class HabitHeatmap extends StatelessWidget {
           children: [
             // Sol: gün etiketleri (Pzt / Çar / Cum hizası)
             Padding(
-              padding: const EdgeInsets.only(right: 6, top: 0),
+              padding: const EdgeInsets.only(right: 8),
               child: Column(
                 children: List.generate(7, (r) {
                   final show = r == 0 || r == 2 || r == 4;
@@ -47,8 +48,8 @@ class HabitHeatmap extends StatelessWidget {
                     child: show
                         ? Text(
                             _weekdayLabels[r],
-                            style: const TextStyle(
-                              color: AppColors.inkFaint,
+                            style: TextStyle(
+                              color: c.inkFaint,
                               fontSize: 9,
                               fontWeight: FontWeight.w500,
                             ),
@@ -70,8 +71,11 @@ class HabitHeatmap extends StatelessWidget {
                       Column(
                         children: [
                           for (var d = 0; d < 7; d++)
-                            _cellFor(firstMon.add(Duration(days: w * 7 + d)),
-                                today),
+                            _cellFor(
+                              c,
+                              firstMon.add(Duration(days: w * 7 + d)),
+                              today,
+                            ),
                         ],
                       ),
                   ],
@@ -80,7 +84,7 @@ class HabitHeatmap extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _Legend(color: habit.color),
       ],
     );
@@ -89,26 +93,27 @@ class HabitHeatmap extends StatelessWidget {
   static const _cell = 13.0;
   static const _gap = 3.0;
 
-  Widget _cellFor(DateTime day, DateTime today) {
+  Widget _cellFor(AppPalette c, DateTime day, DateTime today) {
     final future = day.isAfter(today);
     final done = habit.isDoneOn(day);
     Color fill;
     if (future) {
       fill = Colors.transparent;
     } else if (done) {
-      fill = habit.color.withValues(alpha: 0.9);
+      fill = habit.color;
     } else {
-      fill = AppColors.hover;
+      fill = c.hover;
     }
 
-    final cell = Container(
+    final cell = AnimatedContainer(
+      duration: Motion.fast,
       width: _cell,
       height: _cell,
       margin: const EdgeInsets.all(_gap / 2),
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(3),
-        border: future ? Border.all(color: AppColors.lineSoft) : null,
+        borderRadius: BorderRadius.circular(4),
+        border: future ? Border.all(color: c.lineSoft) : null,
       ),
     );
 
@@ -126,26 +131,29 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget box(Color c) => Container(
-          width: 11,
-          height: 11,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          decoration: BoxDecoration(
-            color: c,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        );
+    final c = context.colors;
+
+    Widget box(Color fill) => Container(
+      width: 11,
+      height: 11,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(3),
+      ),
+    );
+
+    final label = TextStyle(color: c.inkFaint, fontSize: 10);
+
     return Row(
       children: [
-        const Text('Az',
-            style: TextStyle(color: AppColors.inkFaint, fontSize: 10)),
-        const SizedBox(width: 4),
-        box(AppColors.hover),
+        Text('Az', style: label),
+        const SizedBox(width: 5),
+        box(c.hover),
         box(color.withValues(alpha: 0.5)),
-        box(color.withValues(alpha: 0.9)),
-        const SizedBox(width: 4),
-        const Text('Çok',
-            style: TextStyle(color: AppColors.inkFaint, fontSize: 10)),
+        box(color),
+        const SizedBox(width: 5),
+        Text('Çok', style: label),
       ],
     );
   }

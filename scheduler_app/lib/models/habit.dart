@@ -30,9 +30,9 @@ class Habit {
     this.targetPerWeek = 3,
     Set<DateTime>? doneDates,
     DateTime? createdAt,
-  })  : id = id ?? newNodeId(),
-        doneDates = doneDates ?? <DateTime>{},
-        createdAt = createdAt ?? DateTime.now();
+  }) : id = id ?? newNodeId(),
+       doneDates = doneDates ?? <DateTime>{},
+       createdAt = createdAt ?? DateTime.now();
 
   bool isDoneOn(DateTime day) => doneDates.contains(dayOnly(day));
 
@@ -48,6 +48,10 @@ class Habit {
     final day = dayOnly(d);
     return day.subtract(Duration(days: day.weekday - 1));
   }
+
+  /// [day]'in içinde bulunduğu haftada kaç kez yapıldı. Haftalık ritimde
+  /// ilerlemeyi ("2/3") göstermek için; seri sayısı bu soruya cevap vermiyor.
+  int doneInWeekOf(DateTime day) => _doneInWeek(weekStart(day));
 
   int _doneInWeek(DateTime weekStartDay) {
     var c = 0;
@@ -105,30 +109,31 @@ class Habit {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'colorHex': colorToHex(color),
-        'cadence': cadence.name,
-        'targetPerWeek': targetPerWeek,
-        'doneDates': doneDates.map(dateToKey).toList(),
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'colorHex': colorToHex(color),
+    'cadence': cadence.name,
+    'targetPerWeek': targetPerWeek,
+    'doneDates': doneDates.map(dateToKey).toList(),
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   factory Habit.fromJson(Map<String, dynamic> j) => Habit(
-        id: j['id'] as String?,
-        title: (j['title'] as String?) ?? '',
-        color: colorFromHex(j['colorHex'] as String?),
-        cadence: HabitCadence.values.firstWhere(
-          (c) => c.name == j['cadence'],
-          orElse: () => HabitCadence.daily,
-        ),
-        targetPerWeek: (j['targetPerWeek'] as num?)?.toInt() ?? 3,
-        doneDates: (j['doneDates'] as List?)
-                ?.map((e) => dateFromKeyOrNull(e as String?))
-                .whereType<DateTime>()
-                .map(dayOnly)
-                .toSet() ??
-            <DateTime>{},
-        createdAt: readDate(j['createdAt']),
-      );
+    id: j['id'] as String?,
+    title: (j['title'] as String?) ?? '',
+    color: colorFromHex(j['colorHex'] as String?),
+    cadence: HabitCadence.values.firstWhere(
+      (c) => c.name == j['cadence'],
+      orElse: () => HabitCadence.daily,
+    ),
+    targetPerWeek: (j['targetPerWeek'] as num?)?.toInt() ?? 3,
+    doneDates:
+        (j['doneDates'] as List?)
+            ?.map((e) => dateFromKeyOrNull(e as String?))
+            .whereType<DateTime>()
+            .map(dayOnly)
+            .toSet() ??
+        <DateTime>{},
+    createdAt: readDate(j['createdAt']),
+  );
 }

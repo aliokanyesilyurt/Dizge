@@ -24,10 +24,12 @@ void main() {
     late BuildContext ctx;
     final container = await pumpApp(
       tester,
-      Builder(builder: (context) {
-        ctx = context;
-        return const Scaffold(body: SizedBox.shrink());
-      }),
+      Builder(
+        builder: (context) {
+          ctx = context;
+          return const Scaffold(body: SizedBox.shrink());
+        },
+      ),
     );
     // Sayfanın kapanmasını beklemiyoruz; testler açıkken etkileşiyor.
     unawaited(showQuickAdd(ctx, date: day, startHour: startHour));
@@ -39,7 +41,9 @@ void main() {
     final container = await openSheet(tester, startHour: 14.0);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Ne yapacaksın?'), 'Diş hekimi');
+      find.widgetWithText(TextField, 'Ne yapacaksın?'),
+      'Diş hekimi',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
@@ -75,30 +79,38 @@ void main() {
     expect(button.onPressed, isNull);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Ne yapacaksın?'), 'Bir şey');
+      find.widgetWithText(TextField, 'Ne yapacaksın?'),
+      'Bir şey',
+    );
     await tester.pumpAndSettle();
 
     final enabled = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Ekle'),
     );
     expect(enabled.onPressed, isNotNull);
-    expect(container.read(appStoreProvider).tasks, isEmpty,
-        reason: 'yalnızca yazmak kayıt oluşturmamalı');
+    expect(
+      container.read(appStoreProvider).tasks,
+      isEmpty,
+      reason: 'yalnızca yazmak kayıt oluşturmamalı',
+    );
   });
 
   testWidgets('sadece boşluk yazmak iş eklemez', (tester) async {
     final container = await openSheet(tester);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Ne yapacaksın?'), '   ');
+      find.widgetWithText(TextField, 'Ne yapacaksın?'),
+      '   ',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     expect(container.read(appStoreProvider).tasks, isEmpty);
   });
 
-  testWidgets('süre rozetine dokunmak süreyi döngüsel değiştirir',
-      (tester) async {
+  testWidgets('süre rozetine dokunmak süreyi döngüsel değiştirir', (
+    tester,
+  ) async {
     await openSheet(tester, startHour: 9.0);
 
     expect(find.text('1 sa'), findsOneWidget);
@@ -111,7 +123,9 @@ void main() {
     final container = await openSheet(tester, startHour: 9.0);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Ne yapacaksın?'), 'Rapor yaz');
+      find.widgetWithText(TextField, 'Ne yapacaksın?'),
+      'Rapor yaz',
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Ayrıntılar'));

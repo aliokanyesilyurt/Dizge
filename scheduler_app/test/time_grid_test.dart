@@ -132,8 +132,11 @@ void main() {
         ev('y', 18.5, 20),
         ev('z', 19, 21),
       ]);
-      expect(byId(slots, 'sabah').columns, 1,
-          reason: 'akşamki kalabalık sabahı daraltmamalı');
+      expect(
+        byId(slots, 'sabah').columns,
+        1,
+        reason: 'akşamki kalabalık sabahı daraltmamalı',
+      );
       expect(byId(slots, 'x').columns, 3);
     });
 

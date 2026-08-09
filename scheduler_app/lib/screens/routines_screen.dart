@@ -17,7 +17,8 @@ class RoutinesScreen extends ConsumerWidget {
       title: 'Rutinler',
       subtitle: '${routines.length} tekrar eden iş',
       emptyIcon: Icons.repeat_rounded,
-      emptyText: 'Henüz rutin yok.\nTekrar eden bir iş ekleyince burada görünür.',
+      emptyText:
+          'Henüz rutin yok.\nTekrar eden bir iş ekleyince burada görünür.',
       tasks: routines,
       trailingTextFor: (t) => t.repeat.describe(t.date),
       onTap: (t) => showTaskEditor(context, date: t.date, existing: t),

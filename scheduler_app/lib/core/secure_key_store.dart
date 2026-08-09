@@ -19,14 +19,15 @@ import 'app_config.dart';
 /// okunamıyorsa çağıran taraf şifresiz düşüşe geçmek yerine hata almalıdır.
 class SecureKeyStore {
   SecureKeyStore({FlutterSecureStorage? storage})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              // Cihaz kilidi ilk kez açıldıktan sonra erişilebilir, yedeklere
-              // taşınmaz: anahtar bu cihaza çakılıdır.
-              iOptions: IOSOptions(
-                accessibility: KeychainAccessibility.first_unlock_this_device,
-              ),
-            );
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            // Cihaz kilidi ilk kez açıldıktan sonra erişilebilir, yedeklere
+            // taşınmaz: anahtar bu cihaza çakılıdır.
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock_this_device,
+            ),
+          );
 
   final FlutterSecureStorage _storage;
 
@@ -39,7 +40,9 @@ class SecureKeyStore {
       if (bytes.length == 32) return Uint8List.fromList(bytes);
       // Bozuk/eksik anahtar: kutuyu açamayacağımız için yenisini üretmek
       // eski veriyi kurtarmaz ama uygulamayı kilitlenmekten çıkarır.
-      debugPrint('Şifreleme anahtarı bozuk (${bytes.length} bayt), yenisi üretiliyor.');
+      debugPrint(
+        'Şifreleme anahtarı bozuk (${bytes.length} bayt), yenisi üretiliyor.',
+      );
     }
 
     final key = Hive.generateSecureKey(); // 32 bayt, Fortuna CSPRNG

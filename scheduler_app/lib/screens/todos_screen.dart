@@ -15,8 +15,18 @@ class TodosScreen extends ConsumerWidget {
   const TodosScreen({super.key});
 
   static const _months = [
-    'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
-    'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'
+    'Oca',
+    'Şub',
+    'Mar',
+    'Nis',
+    'May',
+    'Haz',
+    'Tem',
+    'Ağu',
+    'Eyl',
+    'Eki',
+    'Kas',
+    'Ara',
   ];
 
   @override
@@ -28,7 +38,8 @@ class TodosScreen extends ConsumerWidget {
       title: 'Yapılacaklar',
       subtitle: '$open açık · ${todos.length} toplam',
       emptyIcon: Icons.checklist_rounded,
-      emptyText: 'Yapılacak iş yok.\nTek günlük bir iş ekleyince burada görünür.',
+      emptyText:
+          'Yapılacak iş yok.\nTek günlük bir iş ekleyince burada görünür.',
       tasks: todos,
       trailingTextFor: (t) => '${t.date.day} ${_months[t.date.month - 1]}',
       onTap: (t) => showTaskEditor(context, date: t.date, existing: t),
