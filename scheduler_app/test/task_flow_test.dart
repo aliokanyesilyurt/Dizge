@@ -112,17 +112,27 @@ void main() {
 
     // Sırayla her satırı aç; taşma olursa pump sırasında hata fırlar.
     // (Rutinde tarih satırının etiketi "Başlangıç" olur.)
-    for (final label in ['Başlangıç', 'Saat', 'Kategori', 'Yer', 'Açıklama']) {
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
+    //
+    // Kaydırarak: satır listesi telefon boyunda ekrandan uzun ve açılan her
+    // satır sonrakileri aşağı itiyor. Kaydırmadan arayan bir test, listeye
+    // yeni bir satır eklendiği gün taşma değil "bulunamadı" diye düşer —
+    // sınamak istediği şeyi sınamaz.
+    for (final label in [
+      'Başlangıç',
+      'Saat',
+      'Kategori',
+      'Efor',
+      'Sabit',
+      'Yer',
+      'Açıklama',
+    ]) {
+      await tapRow(tester, label);
     }
     // "Süre" satırı ancak saat seçilince görünür.
-    await tester.tap(find.text('Saat'));
-    await tester.pumpAndSettle();
+    await tapRow(tester, 'Saat');
     await tester.tap(find.text('09:00'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Süre'));
-    await tester.pumpAndSettle();
+    await tapRow(tester, 'Süre');
 
     expect(find.text('1 sa'), findsWidgets);
     expect(tester.takeException(), isNull);
@@ -183,4 +193,19 @@ void main() {
     TaskRepository.endRoutineBefore(task, start);
     expect(TaskRepository.all, isEmpty);
   });
+}
+
+/// Düzenleyicideki bir özellik satırını görünür alana kaydırıp açar.
+///
+/// Doğrudan `tap` yetmiyor: satır listesi telefon boyunda ekrandan uzun ve
+/// `ListView` görünmeyen satırları hiç kurmuyor.
+Future<void> tapRow(WidgetTester tester, String label) async {
+  await tester.scrollUntilVisible(
+    find.text(label),
+    80,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label));
+  await tester.pumpAndSettle();
 }

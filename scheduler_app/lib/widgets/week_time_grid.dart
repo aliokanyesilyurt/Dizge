@@ -40,6 +40,7 @@ class WeekTimeGrid extends StatefulWidget {
     this.energyLimit,
     this.isOverPool,
     this.onDropToPool,
+    this.onToggleSkip,
     this.onPullFromPool,
     this.poolHover,
   }) : assert(tasksByDay.length == 7, 'Haftalık ızgara tam 7 gün bekler');
@@ -86,6 +87,10 @@ class WeekTimeGrid extends StatefulWidget {
 
   /// Blok havuzun üstüne bırakıldı.
   final void Function(Task task)? onDropToPool;
+
+  /// Rutinin verilen günü atlanacak / atlaması kaldırılacak. Rutinler havuza
+  /// giremediği için (K2) bloğun "kenara alma" karşılığı bu.
+  final void Function(Task task, DateTime day)? onToggleSkip;
 
   /// Havuzdan sürüklenen iş ızgaraya bırakıldı.
   final void Function(Task task, DateTime day, double hour)? onPullFromPool;
@@ -527,6 +532,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
         final task = slot.item;
         final dragging = _drag?.task.id == task.id;
         final dimmed = task.exceedsEnergy(widget.energyLimit);
+        final skipped = task.isSkippedOn(day);
 
         // Süre değiştiriliyorsa canlı önizleme göster.
         final duration = (_resize?.task.id == task.id)
@@ -559,17 +565,29 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
               // Sürüklenen bloğun aslı soluklaşır; hayaleti parmağı takip eder.
               // Enerji filtresi de aynı kanaldan geçiyor: sürüklenen blok zaten
               // en solgun hâlinde olmalı, iki solgunluk çarpışmamalı.
-              opacity: dragging ? 0.28 : (dimmed ? _dimmedOpacity : 1),
+              //
+              // Atlanan rutin de aynı solgunluğa iniyor — "bugün bu yok"
+              // demenin en sessiz yolu. Silmiyoruz: yarın yine gelecek.
+              opacity: dragging
+                  ? 0.28
+                  : ((dimmed || skipped) ? _dimmedOpacity : 1),
               child: _EventBlock(
                 task: task,
                 day: day,
                 done: task.isDoneOn(day),
+                skipped: skipped,
                 dimmed: dimmed,
                 // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
                 compact: height < 34,
                 onMoveToPool: (widget.onDropToPool == null || task.isRoutine)
                     ? null
                     : () => widget.onDropToPool!(task),
+                // Aynanın öteki yüzü: "Kenara al" rutinde hiç yok, "Bugün
+                // atla" da tek günlük işte hiç yok. Her blokta o işin
+                // yapabileceği tek "bugün bunu geç" eylemi duruyor.
+                onToggleSkip: (widget.onToggleSkip == null || !task.isRoutine)
+                    ? null
+                    : () => widget.onToggleSkip!(task, day),
                 onEdit: () => widget.onTapTask(task, day),
                 onDuplicate: () => widget.onDuplicate(task, day),
                 onDelete: () => widget.onDelete(task),
@@ -768,9 +786,11 @@ class _EventBlock extends StatefulWidget {
     required this.task,
     required this.day,
     required this.done,
+    required this.skipped,
     required this.compact,
     this.dimmed = false,
     this.onMoveToPool,
+    this.onToggleSkip,
     required this.onEdit,
     required this.onDuplicate,
     required this.onDelete,
@@ -786,6 +806,11 @@ class _EventBlock extends StatefulWidget {
   final DateTime day;
   final bool done;
 
+  /// Rutin bugünlüğüne atlandı mı? Tamamlanmadan ayrı bir durum: ikisi de üstü
+  /// çizili görünür ama atlanan iş **yapılmadı**, yalnız bugünlüğüne geçildi.
+  /// Ayrımı yalnız ekran okuyucu cümlesi ve [Task.completedOn] taşıyor.
+  final bool skipped;
+
   /// Blok kısaysa başlık ve saat tek satırda birleşir.
   final bool compact;
 
@@ -796,6 +821,11 @@ class _EventBlock extends StatefulWidget {
 
   /// İşi havuza alır. Rutinlerde ve havuz bağlanmamışken null.
   final VoidCallback? onMoveToPool;
+
+  /// Rutinin bu gününü atlar / atlamayı kaldırır. Havuzun rutindeki karşılığı:
+  /// tek günlük işin "Kenara al"ı neyse, rutinin "Bugün atla"sı o (plan K2/K4).
+  /// Tek günlük işlerde null.
+  final VoidCallback? onToggleSkip;
 
   /// Tam düzenleyiciyi açar. Bloğa tıklamak artık doğrudan buraya gitmiyor —
   /// önce hafif bir önizleme açılıyor, "Düzenle" oradan çağırıyor.
@@ -869,6 +899,9 @@ class _EventBlockState extends State<_EventBlock> {
       '${_weekdayNames[widget.day.weekday - 1]} ${task.timeString}',
       if (task.isRoutine) 'rutin',
       if (widget.done) 'tamamlandı',
+      // Üstü çizili iki farklı sebeple olabiliyor; ekranda ikisi de aynı
+      // görünüyorsa kulağa ayrı gelmeli.
+      if (widget.skipped) 'bugünlük atlandı',
       if (widget.dimmed) 'bugünkü enerjinin üstünde',
     ];
     return parts.join(', ');
@@ -898,7 +931,7 @@ class _EventBlockState extends State<_EventBlock> {
       fontSize: 11.5,
       height: 1.2,
       fontWeight: FontWeight.w600,
-      decoration: done ? TextDecoration.lineThrough : null,
+      decoration: (done || widget.skipped) ? TextDecoration.lineThrough : null,
       decorationColor: style.ink.withValues(alpha: 0.7),
     );
     final timeStyle = TextStyle(
@@ -911,6 +944,14 @@ class _EventBlockState extends State<_EventBlock> {
     // Tamamlandı yalnız renge/çizgiye dayanmaz: ✓ ikonu da var (WCAG 1.4.1).
     final marks = <Widget>[
       if (done) Icon(Icons.check, size: compact ? 10 : 11, color: style.ink),
+      // Atlanan gün de kendi işaretini taşıyor. ✓ ile aynı ikonu paylaşsaydı
+      // "yaptım" ile "geçtim" ekranda ayırt edilemezdi.
+      if (widget.skipped && !done)
+        Icon(
+          Icons.redo_rounded,
+          size: compact ? 10 : 11,
+          color: style.ink.withValues(alpha: 0.85),
+        ),
       if (task.isRoutine)
         Icon(
           Icons.repeat,
@@ -1011,6 +1052,13 @@ class _EventBlockState extends State<_EventBlock> {
                             _preview.hide();
                             widget.onMoveToPool!();
                           },
+                    skipped: widget.skipped,
+                    onToggleSkip: widget.onToggleSkip == null
+                        ? null
+                        : () {
+                            _preview.hide();
+                            widget.onToggleSkip!();
+                          },
                   ),
                   // Sağ tık menüsü: içerideki uzun basma sürükleme başlatıyor ve
                   // `longPressEnabled` açık olsaydı taşımaya çalışan her el hareketi
@@ -1035,6 +1083,20 @@ class _EventBlockState extends State<_EventBlock> {
                           leading: const Icon(Icons.inbox_rounded, size: 16),
                           onPressed: widget.onMoveToPool,
                           child: const Text('Kenara al'),
+                        ),
+                      // Rutinde havuzun yerini bu alıyor (K4).
+                      if (widget.onToggleSkip != null)
+                        ShadContextMenuItem(
+                          leading: Icon(
+                            widget.skipped
+                                ? Icons.undo_rounded
+                                : Icons.redo_rounded,
+                            size: 16,
+                          ),
+                          onPressed: widget.onToggleSkip,
+                          child: Text(
+                            widget.skipped ? 'Atlamayı kaldır' : 'Bugün atla',
+                          ),
                         ),
                       ShadContextMenuItem(
                         leading: const Icon(Icons.delete_outline, size: 16),
@@ -1151,6 +1213,8 @@ class _Preview extends StatelessWidget {
     required this.done,
     required this.onEdit,
     this.onMoveToPool,
+    this.skipped = false,
+    this.onToggleSkip,
   });
 
   final Task task;
@@ -1161,6 +1225,13 @@ class _Preview extends StatelessWidget {
   /// Rutinlerde ve havuz kapalıyken null — o zaman düğme hiç çizilmiyor
   /// (bkz. plan K2).
   final VoidCallback? onMoveToPool;
+
+  final bool skipped;
+
+  /// Rutinin bu gününü atlar. Tek günlük işte null: onun karşılığı
+  /// [onMoveToPool]. İkisi hiçbir zaman birlikte çizilmiyor, bu yüzden
+  /// önizleme kartı ikinci bir düğme sırası daha büyümüyor.
+  final VoidCallback? onToggleSkip;
 
   @override
   Widget build(BuildContext context) {
@@ -1208,7 +1279,9 @@ class _Preview extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     height: 1.25,
-                    decoration: done ? TextDecoration.lineThrough : null,
+                    decoration: (done || skipped)
+                        ? TextDecoration.lineThrough
+                        : null,
                   ),
                 ),
               ),
@@ -1253,6 +1326,21 @@ class _Preview extends StatelessWidget {
                   onPressed: onMoveToPool,
                   leading: const Icon(Icons.inbox_rounded, size: 15),
                   child: const Text('Kenara al'),
+                ),
+                const SizedBox(width: 6),
+              ],
+              // Rutinin karşılığı. [onMoveToPool] ile aynı yerde ve aynı
+              // sessizlikte duruyor çünkü kullanıcı için aynı şey: "bugün
+              // bunu geçiyorum".
+              if (onToggleSkip != null) ...[
+                ShadButton.ghost(
+                  size: ShadButtonSize.sm,
+                  onPressed: onToggleSkip,
+                  leading: Icon(
+                    skipped ? Icons.undo_rounded : Icons.redo_rounded,
+                    size: 15,
+                  ),
+                  child: Text(skipped ? 'Atlamayı kaldır' : 'Bugün atla'),
                 ),
                 const SizedBox(width: 6),
               ],

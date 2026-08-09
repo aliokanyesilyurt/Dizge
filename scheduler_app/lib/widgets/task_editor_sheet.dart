@@ -65,6 +65,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   late Color _color;
   late String _categoryName;
   late Energy? _energy;
+  late bool _isFixed;
   late bool _drawMode;
 
   /// Aynı anda tek bir özellik satırı açık kalır (sade tutmak için).
@@ -97,6 +98,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     _categoryName = e?.categoryName ?? cat.name;
     // Varsayılan yok: efor belirtmek isteğe bağlı kalmalı.
     _energy = e?.energy;
+    // Varsayılanı esnek: kullanıcı hiçbir şey işaretlemezse "Günü kurtar"
+    // çalışsın (bkz. plan K3).
+    _isFixed = e?.isFixed ?? false;
     _drawMode = e?.sketch != null && !e!.sketch!.isEmpty;
 
     ref
@@ -154,6 +158,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       ..color = _color
       ..categoryName = _categoryName
       ..energy = _energy
+      ..isFixed = _isFixed
       ..repeat = repeat
       ..date = _date;
 
@@ -231,6 +236,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                   if (_start != null) _durationRow(c),
                   _categoryRow(c),
                   _energyRow(c),
+                  _fixedRow(c),
                   _placeRow(c),
                   _noteRow(c),
                 ],
@@ -674,6 +680,39 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               // dönemezdi.
               () => setState(() => _energy = _energy == level ? null : level),
             ),
+        ],
+      ),
+    );
+  }
+
+  /// "Sabit" anahtarı — "Günü kurtar" bu işe dokunmasın.
+  ///
+  /// Eforun hemen altında, çünkü ikisi de aynı soruyu ayrı eksenlerden
+  /// soruyor: efor "ne kadar yorar", sabitlik "kımıldatılabilir mi". Öncelikle
+  /// karıştırılmaması için bilerek ayrı bir satır (bkz. plan K3).
+  Widget _fixedRow(AppPalette c) {
+    return _PropertyRow(
+      icon: _isFixed ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+      label: 'Sabit',
+      value: _isFixed ? 'Kımıldatılamaz' : 'Esnek',
+      // Varsayılan olan "Esnek" sessiz kalıyor: işaretlenen şey istisna.
+      valueColor: _isFixed ? c.ink : c.inkFaint,
+      open: _open == 'fixed',
+      onTap: () => _toggle('fixed'),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Randevu, ders, uçuş gibi kımıldatılamayan işler. '
+              '"Günü kurtar" bunlara dokunmaz.',
+              style: TextStyle(color: c.inkDim, fontSize: 12, height: 1.35),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch(
+            value: _isFixed,
+            onChanged: (v) => setState(() => _isFixed = v),
+          ),
         ],
       ),
     );

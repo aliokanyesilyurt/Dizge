@@ -1,6 +1,7 @@
 # Esnek Plan Sistemi Planı — Havuz · Kaos · Tikler · Enerji
 
-**Durum:** onaylandı, sıraya alındı · **Tarih:** 3 Ağustos 2026
+**Durum:** **tamamlandı** — beş dilimin beşi indi (9 Ağustos 2026)
+**Tarih:** 3 Ağustos 2026
 **Başlama koşulu:** ana ekran planı (`ana-ekran-plani.md`) D7'ye kadar bitecek;
 bu plan ondan sonra Ö3'ten başlar.
 
@@ -154,7 +155,7 @@ Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit
 | ~~**Ö4b**~~ | ~~Enerji filtresi~~ | Başlıkta "Bugün enerjim" seçici; ızgara yüksek eforluları soluklaştırır (gizlemez) | **İndi (4 Ağustos).** Bkz. §5.3 |
 | ~~**Ö1a**~~ | ~~Havuz modeli~~ | `inPool`, `occursOn` kapısı, `AppStore.moveToPool` / `pullFromPool`, mutasyon kaydı | **İndi (4 Ağustos).** Bkz. §5.4 |
 | ~~**Ö1b**~~ | ~~Havuz paneli~~ | "Kenarda Bekleyenler" — sağda daraltılabilir sütun; ızgaradan sürükleyip bırakma çift yönlü | **İndi (4 Ağustos).** Bkz. §5.5 |
-| **Ö2** | Kaos düğmesi | `isFixed`, `skippedOn`, "Günü kurtar" eylemi + onay + **geri al** | Sabitler yerinde kalır, tamamlananlar dokunulmaz, tek tıkla geri alınır |
+| ~~**Ö2**~~ | ~~Kaos düğmesi~~ | `isFixed`, `skippedOn`, "Günü kurtar" eylemi + onay + **geri al** | **İndi (9 Ağustos).** Bkz. §5.6 |
 
 **Sıralama gerekçesi:** Ö3 en ucuz ve en yüksek duygusal getiri — önce o.
 Ö2 en son, çünkü hem Ö1'in havuzuna hem D6'nın geri alma altyapısına yaslanıyor.
@@ -296,6 +297,56 @@ düşmüyor, kartın dışına bırakmak gerekiyor. Kartı sürükleme sırasın
 ekran düzeyinde bir sürükleme durumu taşımayı gerektiriyor; şimdilik not
 edildi, düzeltilmedi.
 
+### 5.6 Ö2 kapanış notu (9 Ağustos)
+
+`core/day_rescue.dart` (`planDayRescue` + `DayRescuePlan`),
+`AppStore.applyDayRescue` / `undoDayRescue` / `skipRoutineOn`,
+başlıkta "Günü kurtar". 20 test, toplam 223 test yeşil, `flutter analyze`
+temiz, derleme ayakta.
+
+**Sözleşme koddan ayrı duruyor.** §6'nın kuralları bir widget'ın içine değil
+saf bir fonksiyona yazıldı. Sebebi tek: tek tıkla sekiz işi kımıldatan bir
+düğmenin hangi işi neden seçtiği, ekran açmadan sınanabilmeli. Testlerin
+ağırlığı orada — bu özelliğin asıl riski görünmemesi değil, **yanlış işi
+süpürmesi**.
+
+**§5.3'te açık bırakılan başlık sorusu kapandı — genişlik hiç artmadan.**
+"Bugün" ile "Günü kurtar" aynı yuvayı paylaşıyor: ikisi hiçbir zaman birlikte
+anlamlı değil ("Bugün" zaten bugündeyken anlamsız, kurtarma ise tanımı gereği
+yalnız bugüne dokunuyor — geçen haftayı kurtarmak diye bir şey yok). 390px'te
+altıncı denetim böylece bedelsiz eklendi; bir test bunu bekçiliyor.
+
+Plana ek dört karar:
+
+* **Başlamış iş süpürülmüyor.** Ölçüt bitiş değil başlangıç saati: 14:00'te
+  başlayıp 16:00'da biten bir işe 15:00'te basıldığında iş muhtemelen o an
+  yapılıyordur. Onu kenara almak kullanıcının elindeki şeyi masadan almak
+  olurdu. Saatsiz işler ise her zaman kapsamda — saatleri olmadığı için
+  "geçmiş" sayılamazlar ve günün en çok suçluluk üreten yığını zaten onlar.
+* **Atlanan rutin `occursOn`'dan düşmüyor.** Havuzun aksine bu bir görünürlük
+  kuralı değil, gün üstünde bir durum — tıpkı `completedOn` gibi. Düşseydi
+  atlamak silmekten ayırt edilemez, kullanıcı fikrini değiştirdiğinde
+  dokunacağı bir şey kalmazdı. Blok yerinde duruyor: soluk, üstü çizili ve
+  kendi ikonuyla (↷, ✓ değil — "yaptım" ile "geçtim" ekranda ayrışmalı).
+* **Rutine "Bugün atla" eylemi eklendi.** K2 rutini havuzdan dışarıda
+  bırakıyordu ama yerine bir şey koymuyordu; blok menüsünde tek günlük işin
+  "Kenara al"ı neyse rutinin "Bugün atla"sı o. İkisi hiçbir zaman birlikte
+  çizilmiyor, önizleme kartı büyümedi. Atlamayı elle kaldırmanın yolu da bu.
+* **`duplicateTo` `isFixed`'i devralıyor** (`inPool` ve `skippedOn`'un
+  aksine): kımıldatılamazlık işin kendi doğası. Kopyada kaybolsaydı kopya
+  sessizce esnek doğar ve ilk kurtarmada süpürülürdü.
+
+Telemetride `day_rescued` ve `day_rescue_undone` **ayrı** olaylar. Asıl soru
+düğmeye kaç kez basıldığı değil, bastıktan sonra pişman olunup olunmadığı:
+yüksek bir geri alma oranı sözleşmenin yanlış işleri süpürdüğünü söyler ve bu
+özelliğin tek erken uyarısı o.
+
+**Yol boyunca çıkan:** düzenleyiciye "Sabit" satırı eklenince telefon boyunda
+satır listesi ekrandan taştı ve `task_flow_test`'in taşma testi "bulunamadı"
+diye düştü — sınamak istediği şeyi sınayamaz hâle geldi. Test artık her satırı
+görünür alana kaydırıyor; listeye bir satır daha eklendiğinde aynı yalancı
+başarısızlığı vermeyecek.
+
 ---
 
 ## 6. Kaos Butonunun Davranış Sözleşmesi
@@ -304,7 +355,7 @@ Belirsiz bırakılırsa yıkıcı olabilecek tek özellik bu. Kuralları önden 
 
 | Durum | Davranış |
 |---|---|
-| Kapsam | Yalnız **bugün**, yalnız **şu andan sonrası** |
+| Kapsam | Yalnız **bugün**, yalnız **şu andan sonrası** (ölçüt başlangıç saati — başlamış iş dokunulmaz; saatsiz iş her zaman kapsamda) |
 | Tamamlanmış iş | Dokunulmaz |
 | `isFixed` iş | Dokunulmaz |
 | Tek günlük, esnek | **Havuza** taşınır (`date` korunur) — karar 3 Ağustos |

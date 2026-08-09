@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../core/day_rescue.dart';
 import '../core/energy_filter_controller.dart';
 import '../core/grid_density_controller.dart';
 import '../core/pool_panel_controller.dart';
@@ -245,8 +246,132 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     );
   }
 
+  // --- "Günü kurtar" ----------------------------------------------------------
+
+  /// Bugünün kurtarma planı (plan §6'nın sözleşmesi [planDayRescue]'da).
+  ///
+  /// Her build'de yeniden hesaplanıyor — bilinçli: kapsam "şu andan sonrası"
+  /// olduğu için gün ilerledikçe daralır, düğmedeki sayı da onunla küçülmeli.
+  /// Önbelleğe alınsaydı sabah açılan uygulamada akşam hâlâ sabahki sayı
+  /// yazardı.
+  DayRescuePlan _rescuePlan(AppStore store, DateTime today) => planDayRescue(
+    store.tasksForDate(today),
+    day: today,
+    afterHour: hourOf(DateTime.now()),
+  );
+
+  Future<void> _rescueDay(AppStore store, DateTime today) async {
+    final plan = _rescuePlan(store, today);
+    if (plan.isEmpty) return;
+
+    // Beş ve üzeri: önce özet. Altında doğrudan uygulanır — iki işi kenara
+    // almak için onay istemek düğmeyi iki tıklık bir işe çevirir ve "hızlı
+    // kaçış" olma sebebini siler. Geri alma her iki hâlde de var.
+    if (plan.total >= 5) {
+      final ok = await _confirmRescue(plan);
+      if (!ok || !mounted) return;
+    }
+
+    store.applyDayRescue(plan);
+    _offerUndo(
+      plan.describe(),
+      () => store.undoDayRescue(plan),
+      // Tek işlik bir geri almadan uzun: burada kımıldayan sekiz iş var,
+      // kullanıcının ekranı taraması zaman alıyor.
+      duration: const Duration(seconds: 10),
+    );
+  }
+
+  /// Kalabalık kurtarmalarda önce ne olacağını gösterir.
+  ///
+  /// Liste süs değil: "6 iş taşınacak" cümlesi hangi altı iş olduğunu
+  /// söylemiyor ve kullanıcının güvenmesi için tam olarak o lazım.
+  Future<bool> _confirmRescue(DayRescuePlan plan) async {
+    const shown = 6;
+    final all = [...plan.toPool, ...plan.toSkip];
+    final rest = all.length - shown;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Günü kurtaralım mı?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bugünün kalanından ${plan.total} iş çekilecek. '
+              'Sabit işler, başlamış işler ve tamamladıkların yerinde kalıyor.',
+            ),
+            const SizedBox(height: 14),
+            for (final task in all.take(shown))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      task.isRoutine
+                          ? Icons.repeat_rounded
+                          : Icons.inbox_rounded,
+                      size: 14,
+                      color: context.colors.inkFaint,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        task.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (rest > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  've $rest tane daha',
+                  style: TextStyle(
+                    color: context.colors.inkFaint,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Kurtar'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  /// Bir rutinin tek gününü atlar / atlamayı geri alır.
+  void _toggleSkip(Task task, DateTime day) {
+    final store = ref.read(appStoreProvider);
+    final next = !task.isSkippedOn(day);
+    store.skipRoutineOn(task, day, next);
+    _offerUndo(
+      next ? 'Bugünlük atlandı' : 'Atlama kaldırıldı',
+      () => store.skipRoutineOn(task, day, !next),
+    );
+  }
+
   /// Mutasyondan sonra "Geri al" bildirimi gösterir.
-  void _offerUndo(String label, VoidCallback undo) {
+  void _offerUndo(
+    String label,
+    VoidCallback undo, {
+    Duration duration = const Duration(seconds: 5),
+  }) {
     final sonner = ShadSonner.maybeOf(context);
     // Toaster yoksa (ör. ekranı tek başına kuran bir test) sessizce geç:
     // geri alma bir kolaylık, mutasyonun kendisi zaten gerçekleşti.
@@ -257,7 +382,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
       ShadToast(
         id: id,
         title: Text(label),
-        duration: const Duration(seconds: 5),
+        duration: duration,
         action: ShadButton.ghost(
           child: const Text('Geri al'),
           onPressed: () {
@@ -365,6 +490,8 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
           onEnergyChanged: (next) =>
               ref.read(energyFilterProvider.notifier).set(next),
           onCreate: _createFromHeader,
+          rescuableCount: _rescuePlan(store, today).total,
+          onRescue: () => _rescueDay(store, today),
         ),
         // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
         // her zaman bugüne yazılır (bkz. [DailyHabitStrip]).
@@ -446,6 +573,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                             onDelete: _delete,
                             isOverPool: _isOverPool,
                             onDropToPool: _moveToPool,
+                            onToggleSkip: _toggleSkip,
                             onPullFromPool: _pullFromPool,
                             poolHover: _poolHover,
                           ),
@@ -923,6 +1051,10 @@ class _UntimedChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final done = task.isDoneOn(day);
+    // Atlanan rutin şeritte de üstü çizili ve solgun görünmeli: "Günü kurtar"
+    // saatsiz rutinlere de dokunuyor, ızgarada değişip burada değişmemesi
+    // düğmenin yarım çalıştığı izlenimi verirdi.
+    final skipped = task.isSkippedOn(day);
     final style = c.tag(task.color);
 
     return GestureDetector(
@@ -931,7 +1063,7 @@ class _UntimedChip extends StatelessWidget {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: Opacity(
-          opacity: dimmed ? 0.4 : 1,
+          opacity: (dimmed || skipped) ? 0.4 : 1,
           child: AnimatedContainer(
             duration: Motion.fast,
             height: _UntimedRow._chipHeight,
@@ -944,7 +1076,9 @@ class _UntimedChip extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  done ? Icons.check_circle_rounded : Icons.circle_outlined,
+                  done
+                      ? Icons.check_circle_rounded
+                      : (skipped ? Icons.redo_rounded : Icons.circle_outlined),
                   size: 11,
                   color: style.text.withValues(alpha: 0.85),
                 ),
@@ -958,7 +1092,9 @@ class _UntimedChip extends StatelessWidget {
                       color: style.text,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      decoration: done ? TextDecoration.lineThrough : null,
+                      decoration: (done || skipped)
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                 ),

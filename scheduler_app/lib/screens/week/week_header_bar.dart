@@ -32,6 +32,8 @@ class WeekHeaderBar extends StatelessWidget {
     required this.onDensityChanged,
     required this.onEnergyChanged,
     required this.onCreate,
+    required this.rescuableCount,
+    required this.onRescue,
   });
 
   /// "3 – 9 Ağustos 2026" — ekranın tek vurgulu satırı.
@@ -52,6 +54,13 @@ class WeekHeaderBar extends StatelessWidget {
   final ValueChanged<GridDensity> onDensityChanged;
   final ValueChanged<Energy?> onEnergyChanged;
   final VoidCallback onCreate;
+
+  /// Bugün "Günü kurtar"ın dokunabileceği iş sayısı. 0 ise düğme pasif —
+  /// basıldığında hiçbir şey olmayan bir düğme, kullanıcıya özelliğin
+  /// bozuk olduğunu düşündürür.
+  final int rescuableCount;
+
+  final VoidCallback onRescue;
 
   /// Bu genişliğin altında yoğunluk seçici ile "+ Yeni"nin yazısı düşer.
   /// 390px telefonda beş öğe yan yana sığmıyor; sığdırmaya çalışmak yerine
@@ -79,20 +88,30 @@ class WeekHeaderBar extends StatelessWidget {
             onPressed: onNext,
           ),
 
-          // "Bugün" yalnızca gerektiğinde belirir — bu haftadayken anlamsız bir
-          // düğme, sakin kromun ilk kuralına aykırı olurdu.
+          // Gezinmenin yanındaki tek yuva, haftaya göre yer değiştiriyor:
+          // bu haftadayken "Günü kurtar", başka haftadayken "Bugün".
           //
-          // Dar ekranda yazısı düşer: 390px'te "Bugün" + iki seçici + "Yeni"
-          // yan yana sığmıyor. Başlık zaten yoğunluk ve "Yeni" için aynı kuralı
-          // uyguluyordu; "Bugün"ün yazısını korumak tutarsızlıktı.
+          // İkisi aynı yuvada durabiliyor çünkü hiçbir zaman ikisi birden
+          // anlamlı değil: "Bugün" zaten bugündeyken anlamsız, "Günü kurtar"
+          // ise tanımı gereği yalnız bugüne dokunuyor — geçen haftayı
+          // kurtarmak diye bir şey yok. Bu, başlığın 390px'teki genişliğini
+          // **hiç artırmadan** altıncı denetimi eklemenin tek yolu (plan
+          // §5.3'te açık bırakılan soru).
+          //
+          // Dar ekranda ikisinin de yazısı düşer; başlık zaten yoğunluk ve
+          // "Yeni" için aynı kuralı uyguluyor.
           AnimatedSize(
             duration: Motion.base,
             curve: Motion.curve,
-            child: isCurrentWeek
-                ? const SizedBox(width: 0)
-                : Padding(
-                    padding: EdgeInsets.only(left: tight ? 0 : 8),
-                    child: tight
+            child: Padding(
+              padding: EdgeInsets.only(left: tight ? 0 : 8),
+              child: isCurrentWeek
+                  ? _RescueButton(
+                      count: rescuableCount,
+                      onPressed: onRescue,
+                      iconOnly: tight,
+                    )
+                  : (tight
                         ? _IconButton(
                             icon: Icons.today_rounded,
                             label: 'Bugün',
@@ -102,8 +121,8 @@ class WeekHeaderBar extends StatelessWidget {
                             size: ShadButtonSize.sm,
                             onPressed: onToday,
                             child: const Text('Bugün'),
-                          ),
-                  ),
+                          )),
+            ),
           ),
 
           const SizedBox(width: 16),
@@ -160,6 +179,43 @@ class WeekHeaderBar extends StatelessWidget {
             child: tight ? null : const Text('Yeni'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Günü kurtar" — günün geri kalanındaki esnek işleri kenara alan düğme.
+///
+/// Sessiz bir varyant (`outline`, birincil değil) bilinçli: bu düğme tek tıkla
+/// sekiz işi kımıldatıyor, ekranın en yüksek sesli öğesi olması onu kazayla
+/// basılası yapardı. Aradığında bulunacak kadar görünür, göze batmayacak
+/// kadar sakin.
+class _RescueButton extends StatelessWidget {
+  const _RescueButton({
+    required this.count,
+    required this.onPressed,
+    required this.iconOnly,
+  });
+
+  final int count;
+  final VoidCallback onPressed;
+  final bool iconOnly;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = count > 0;
+
+    // Pasif hâlde ipucu sebebini söylüyor: sönük bir düğmeye basıp hiçbir şey
+    // olmaması, sebebi yazmaktan çok daha sinir bozucu.
+    return Tooltip(
+      message: enabled
+          ? 'Günü kurtar — bugünün kalan $count esnek işini kenara alır'
+          : 'Kurtarılacak iş yok',
+      child: ShadButton.outline(
+        size: ShadButtonSize.sm,
+        onPressed: enabled ? onPressed : null,
+        leading: const Icon(Icons.cleaning_services_rounded, size: 15),
+        child: iconOnly ? null : const Text('Günü kurtar'),
       ),
     );
   }

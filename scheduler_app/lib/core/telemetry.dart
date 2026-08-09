@@ -31,6 +31,17 @@ class Ev {
   static const taskPooled = 'task_pooled';
   static const taskUnpooled = 'task_unpooled';
 
+  /// "Günü kurtar". Geri alma **ayrı bir olay**, çünkü asıl soru düğmeye kaç
+  /// kez basıldığı değil: bastıktan sonra pişman olunuyor mu. Yüksek bir geri
+  /// alma oranı sözleşmenin (§6) yanlış işleri süpürdüğünü söyler — özelliğin
+  /// tek erken uyarısı bu.
+  static const dayRescued = 'day_rescued';
+  static const dayRescueUndone = 'day_rescue_undone';
+
+  /// Rutinin tek bir günü elle atlandı (kurtarma dışında, bloğun kendi
+  /// menüsünden).
+  static const routineSkipped = 'routine_skipped';
+
   // Gezinme / görünüm
   static const screenViewed = 'screen_viewed';
   static const weekChanged = 'week_changed';

@@ -212,8 +212,32 @@ class Task implements Node {
   /// lazım — havuzdan çıkarken "eskiden Salı'daydı" diyebilmek için.
   bool inPool;
 
+  /// "Günü kurtar"ın (Kaos düğmesi) dokunamayacağı iş: randevu, ders, uçuş.
+  ///
+  /// Neden `priority` değil: aciliyet ile **kımıldatılamazlık** aynı şey değil.
+  /// Doktor randevusu düşük öncelikli ama sabittir; refactor yüksek öncelikli
+  /// ama esnektir. İki eksen tek alana yüklenirse ikisi de anlamını yitirir.
+  ///
+  /// Varsayılan `false` bilinçli: kullanıcı hiçbir şey işaretlemezse düğme
+  /// **çalışır**. Tersi olsaydı özellik sessizce ölü doğardı — kimse önceden
+  /// bütün işlerini "esnek" diye işaretlemez.
+  bool isFixed;
+
   /// Rutinlerde hangi günlerde tamamlandığı; tek günlük işte 0 veya 1 eleman.
   final Set<DateTime> completedOn;
+
+  /// Rutinin **bilerek** atlandığı günler.
+  ///
+  /// [completedOn]'dan ayrı tutuluyor: "yapmadım" ile "bugün geçiyorum" aynı
+  /// şey değil. Tek kümede toplansalardı atlanan gün tamamlanmış sayılır,
+  /// tamamlanma istatistiği yalan söylerdi.
+  ///
+  /// Atlanan gün [occursOn]'dan **düşmez** — iş o günde durmaya devam eder,
+  /// yalnız üstü çizili ve soluk çizilir. Düşseydi atlamak silmekten ayırt
+  /// edilemez, kullanıcı fikrini değiştirdiğinde dokunacağı bir şey kalmazdı.
+  /// Havuzun aksine bu bir görünürlük kuralı değil, gün üstünde bir durum —
+  /// tıpkı [completedOn] gibi.
+  final Set<DateTime> skippedOn;
 
   Task({
     String? id,
@@ -228,7 +252,9 @@ class Task implements Node {
     this.repeat = const Repeat.once(),
     required DateTime date,
     this.inPool = false,
+    this.isFixed = false,
     Set<DateTime>? completedOn,
+    Set<DateTime>? skippedOn,
     Set<String>? tags,
     this.status = TaskStatus.todo,
     this.priority = 0,
@@ -239,6 +265,7 @@ class Task implements Node {
   }) : id = id ?? newNodeId(),
        date = dayKey(date),
        completedOn = completedOn ?? <DateTime>{},
+       skippedOn = skippedOn ?? <DateTime>{},
        tags = tags ?? <String>{},
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -275,6 +302,23 @@ class Task implements Node {
     final k = dayKey(day);
     done ? completedOn.add(k) : completedOn.remove(k);
   }
+
+  /// Bu gün bilerek atlandı mı? (Yalnız rutinlerde anlamlı.)
+  bool isSkippedOn(DateTime day) => skippedOn.contains(dayKey(day));
+
+  void setSkipped(DateTime day, bool skipped) {
+    final k = dayKey(day);
+    skipped ? skippedOn.add(k) : skippedOn.remove(k);
+  }
+
+  /// "Günü kurtar" bu işe [day] gününde dokunabilir mi?
+  ///
+  /// Üç kapı, üçü de plan §6'nın sözleşmesinden: sabit iş yerinde kalır,
+  /// tamamlanmış iş dokunulmaz, zaten atlanmış rutin ikinci kez atlanmaz.
+  /// Havuzdakiler zaten hiçbir günde görünmediği için ayrı bir denetim
+  /// gerektirmiyor.
+  bool isRescuableOn(DateTime day) =>
+      !isFixed && !isDoneOn(day) && !isSkippedOn(day);
 
   /// Bu iş verilen günde görünür mü?
   bool occursOn(DateTime day) {
@@ -348,7 +392,9 @@ class Task implements Node {
     repeat: repeat,
     date: date,
     inPool: inPool,
+    isFixed: isFixed,
     completedOn: {...completedOn},
+    skippedOn: {...skippedOn},
     tags: {...tags},
     status: status,
     priority: priority,
@@ -367,6 +413,11 @@ class Task implements Node {
   /// Havuz bayrağı da devralınmaz: bir güne kopyalamak o işi takvime koymak
   /// demek. Havuzdaki bir işin kopyası yine havuzda doğsaydı, kullanıcı
   /// kopyaladığı şeyi hiçbir yerde göremezdi.
+  ///
+  /// [isFixed] ise **devralınır**: kımıldatılamazlık işin kendi doğası
+  /// (randevu, ders, uçuş), kopyada kaybolursa kopya sessizce esnek doğar ve
+  /// ilk "Günü kurtar"da süpürülür. [skippedOn] devralınmaz — geçmiş,
+  /// [completedOn] gibi, kaynağa ait.
   Task duplicateTo(DateTime day) => Task(
     title: title,
     note: note,
@@ -378,6 +429,7 @@ class Task implements Node {
     categoryName: categoryName,
     repeat: repeat,
     date: day,
+    isFixed: isFixed,
     tags: {...tags},
     status: status,
     priority: priority,
@@ -399,7 +451,9 @@ class Task implements Node {
     'repeat': repeat.toJson(),
     'date': dateToKey(date),
     'inPool': inPool,
+    'isFixed': isFixed,
     'completedOn': completedOn.map(dateToKey).toList(),
+    'skippedOn': skippedOn.map(dateToKey).toList(),
     'tags': tags.toList(),
     'status': status.name,
     'priority': priority,
@@ -430,13 +484,12 @@ class Task implements Node {
     date: dateFromKeyOrNull(j['date'] as String?) ?? DateTime.now(),
     // Anahtar yoksa havuz öncesi bir kayıt: takvimde durmaya devam eder.
     inPool: (j['inPool'] as bool?) ?? false,
-    completedOn:
-        (j['completedOn'] as List?)
-            ?.map((e) => dateFromKeyOrNull(e as String?))
-            .whereType<DateTime>()
-            .map(Task.dayKey)
-            .toSet() ??
-        <DateTime>{},
+    // Anahtar yoksa iş esnek sayılır. Eski kayıtları sabit kabul etmek
+    // güvenli görünürdü ama düğmeyi ilk kullanışta hiçbir şey yapmayan bir
+    // şeye çevirirdi — özellik ölü doğardı (bkz. K3).
+    isFixed: (j['isFixed'] as bool?) ?? false,
+    completedOn: _readDays(j['completedOn']),
+    skippedOn: _readDays(j['skippedOn']),
     tags: readTags(j['tags']),
     status: TaskStatus.values.firstWhere(
       (s) => s.name == j['status'],
@@ -449,6 +502,18 @@ class Task implements Node {
     updatedAt: readDate(j['updatedAt']),
   );
 }
+
+/// `completedOn` / `skippedOn` gibi gün kümelerini kayıttan okur.
+///
+/// Okunamayan gün sessizce düşer: tek bozuk tarih yüzünden bütün kaydı
+/// açılmaz kılmak, o güne ait tik'i kaybetmekten pahalı.
+Set<DateTime> _readDays(Object? raw) =>
+    (raw as List?)
+        ?.map((e) => dateFromKeyOrNull(e as String?))
+        .whereType<DateTime>()
+        .map(Task.dayKey)
+        .toSet() ??
+    <DateTime>{};
 
 /// Görev eklerken/düzenlerken seçilebilecek renk paleti.
 const List<Color> kTaskColors = [

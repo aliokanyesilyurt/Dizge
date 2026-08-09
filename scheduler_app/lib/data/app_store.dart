@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_config.dart';
+import '../core/day_rescue.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
 import '../models/habit.dart';
@@ -322,6 +323,86 @@ class AppStore extends ChangeNotifier {
         'days_waited': waited,
       },
     );
+    _touched();
+  }
+
+  // --- "Günü kurtar" (Kaos düğmesi) -----------------------------------------
+
+  /// Rutinin tek bir gününü atlar / atlamayı geri alır.
+  ///
+  /// Silmekten farkı: rutin yerinde kalır, yarın yine gelir. [Task.completedOn]
+  /// hiç dokunulmaz — atlanan gün tamamlanmış sayılmaz.
+  void skipRoutineOn(
+    Task task,
+    DateTime day,
+    bool skipped, {
+    String source = 'block',
+  }) {
+    if (task.isSkippedOn(day) == skipped) return;
+
+    task.setSkipped(day, skipped);
+    task.updatedAt = DateTime.now();
+    TaskRepository.update(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    if (source != 'rescue') {
+      _telemetry.capture(
+        Ev.routineSkipped,
+        props: {'skipped': skipped, 'source': source},
+      );
+    }
+    _touched();
+  }
+
+  /// Planı uygular: tek günlük işler havuza, rutinler o günün atlananlarına.
+  ///
+  /// Tek bir bildirim atıyor (`_touched` sonda): sekiz işi tek tek bildirmek
+  /// haftalık ızgarayı sekiz kez yeniden kurardı. Telemetri de tek olay —
+  /// ölçülmek istenen "kaç iş süpürüldü", "kaç kez `moveToPool` çağrıldı"
+  /// değil.
+  void applyDayRescue(DayRescuePlan plan) {
+    if (plan.isEmpty) return;
+
+    for (final task in plan.toPool) {
+      task.inPool = true;
+      task.updatedAt = DateTime.now();
+      TaskRepository.update(task);
+      _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    }
+    for (final task in plan.toSkip) {
+      task.setSkipped(plan.day, true);
+      task.updatedAt = DateTime.now();
+      TaskRepository.update(task);
+      _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    }
+
+    _telemetry.capture(
+      Ev.dayRescued,
+      props: {
+        'pooled': plan.toPool.length,
+        'skipped': plan.toSkip.length,
+        'total': plan.total,
+      },
+    );
+    _touched();
+  }
+
+  /// Kurtarmayı geri alır: havuza gidenler eski günlerine döner (saatleri
+  /// zaten hiç değişmedi), atlanan rutinlerin atlaması silinir.
+  void undoDayRescue(DayRescuePlan plan) {
+    for (final task in plan.toPool) {
+      task.inPool = false;
+      task.updatedAt = DateTime.now();
+      TaskRepository.update(task);
+      _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    }
+    for (final task in plan.toSkip) {
+      task.setSkipped(plan.day, false);
+      task.updatedAt = DateTime.now();
+      TaskRepository.update(task);
+      _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    }
+
+    _telemetry.capture(Ev.dayRescueUndone, props: {'total': plan.total});
     _touched();
   }
 
