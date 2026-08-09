@@ -18,13 +18,15 @@ void main() {
 
       final a = AppStore();
       await a.attachPersistence(store);
-      a.addTask(Task(
-        title: 'Toplantı',
-        color: const Color(0xFF529CCA),
-        date: DateTime(2026, 8, 3),
-        startHour: 14,
-        durationHours: 1.5,
-      ));
+      a.addTask(
+        Task(
+          title: 'Toplantı',
+          color: const Color(0xFF529CCA),
+          date: DateTime(2026, 8, 3),
+          startHour: 14,
+          durationHours: 1.5,
+        ),
+      );
       a.addNote(Note(title: 'Notlar', body: 'içerik'));
       a.addHabit(Habit(title: 'Su iç', color: const Color(0xFF81C784)));
       // Debounce'u beklemeden zorla indir.
@@ -77,11 +79,13 @@ void main() {
 
       final a = AppStore();
       await a.attachPersistence(store, outbox: outbox);
-      a.addTask(Task(
-        title: 'X',
-        color: const Color(0xFF529CCA),
-        date: DateTime(2026, 8, 3),
-      ));
+      a.addTask(
+        Task(
+          title: 'X',
+          color: const Color(0xFF529CCA),
+          date: DateTime(2026, 8, 3),
+        ),
+      );
       await a.flush();
       expect(outbox.length, 1);
 
@@ -91,8 +95,11 @@ void main() {
       final b = AppStore();
       await b.attachPersistence(store, outbox: freshOutbox);
       expect(b.tasks, hasLength(1));
-      expect(freshOutbox.length, 1,
-          reason: 'yalnızca diskten yüklenen eski kuyruk; yeni kayıt eklenmemeli');
+      expect(
+        freshOutbox.length,
+        1,
+        reason: 'yalnızca diskten yüklenen eski kuyruk; yeni kayıt eklenmemeli',
+      );
     });
   });
 
@@ -107,11 +114,11 @@ void main() {
     });
 
     Mutation upsert(String id, {String title = 'x'}) => Mutation(
-          kind: EntityKind.task,
-          op: MutationOp.upsert,
-          entityId: id,
-          payload: {'title': title},
-        );
+      kind: EntityKind.task,
+      op: MutationOp.upsert,
+      entityId: id,
+      payload: {'title': title},
+    );
 
     test('aynı kaydın ardışık güncellemeleri tek kayda daraltılır', () {
       // Sürükle-bırak sırasında tipik: aynı işe onlarca kez dokunulur.
@@ -119,19 +126,24 @@ void main() {
         outbox.enqueue(upsert('task-1', title: 'v$i'));
       }
       expect(outbox.length, 1);
-      expect(outbox.pending.single.payload['title'], 'v19',
-          reason: 'kuyruk kaydın son hâlini taşımalı');
+      expect(
+        outbox.pending.single.payload['title'],
+        'v19',
+        reason: 'kuyruk kaydın son hâlini taşımalı',
+      );
     });
 
     test('silme, o kayda ait bekleyen güncellemeleri düşürür', () {
       outbox.enqueue(upsert('task-1'));
       outbox.enqueue(upsert('task-2'));
-      outbox.enqueue(Mutation(
-        kind: EntityKind.task,
-        op: MutationOp.delete,
-        entityId: 'task-1',
-        payload: const {},
-      ));
+      outbox.enqueue(
+        Mutation(
+          kind: EntityKind.task,
+          op: MutationOp.delete,
+          entityId: 'task-1',
+          payload: const {},
+        ),
+      );
 
       expect(outbox.length, 2);
       expect(
@@ -158,8 +170,11 @@ void main() {
         outbox.markFailed([id], maxAttempts: 3);
       }
       expect(outbox.length, 0);
-      expect(outbox.needsFullPush, isTrue,
-          reason: 'kayıp mutasyon sonrası tam senkron gerekir');
+      expect(
+        outbox.needsFullPush,
+        isTrue,
+        reason: 'kayıp mutasyon sonrası tam senkron gerekir',
+      );
     });
 
     test('kuyruk diske yazılıp geri okunur', () async {

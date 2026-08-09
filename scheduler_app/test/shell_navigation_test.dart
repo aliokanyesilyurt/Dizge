@@ -22,8 +22,9 @@ void main() {
   /// yalnız kalıcı çubukta çizilir.
   Finder sidebar() => find.text('Takvim');
 
-  testWidgets('yıl görünümünden bir aya girmek kenar çubuğunu korur',
-      (tester) async {
+  testWidgets('yıl görünümünden bir aya girmek kenar çubuğunu korur', (
+    tester,
+  ) async {
     useScreenSize(tester, wide);
     final container = await pumpApp(tester, const AppShell());
 
@@ -64,7 +65,9 @@ void main() {
     // Önceki hâlinde her gidiş gelişte yığına iki rota ekleniyordu; geri tuşu
     // kimsenin beklemediği bir geçmişte geziniyordu. Artık kök rota tek.
     expect(sidebar(), findsOneWidget);
-    final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+    final navigator = tester.state<NavigatorState>(
+      find.byType(Navigator).first,
+    );
     expect(navigator.canPop(), isFalse, reason: 'geçişler rota yığmamalı');
   });
 
@@ -78,8 +81,11 @@ void main() {
     // Gün açmak iki aşamalı: ilk dokunuş seçer, ikincisi açar.
     await tester.tap(find.text('15').first);
     await tester.pumpAndSettle();
-    expect(container.read(navigationProvider).section, AppSection.month,
-        reason: 'ilk dokunuş yalnız seçmeli');
+    expect(
+      container.read(navigationProvider).section,
+      AppSection.month,
+      reason: 'ilk dokunuş yalnız seçmeli',
+    );
 
     await tester.tap(find.text('15').first);
     await tester.pumpAndSettle();
@@ -90,8 +96,9 @@ void main() {
     expect(nav.day!.day, 15);
   });
 
-  testWidgets('kenar çubuğu seçimi ile ekran içi geçiş aynı yere yazar',
-      (tester) async {
+  testWidgets('kenar çubuğu seçimi ile ekran içi geçiş aynı yere yazar', (
+    tester,
+  ) async {
     useScreenSize(tester, wide);
     final container = await pumpApp(tester, const AppShell());
 

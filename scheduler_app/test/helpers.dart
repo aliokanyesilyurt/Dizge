@@ -18,13 +18,16 @@ Widget testApp({
   required Widget home,
   Brightness brightness = Brightness.dark,
 }) {
-  final palette =
-      brightness == Brightness.light ? AppPalette.light : AppPalette.dark;
+  final palette = brightness == Brightness.light
+      ? AppPalette.light
+      : AppPalette.dark;
 
   return ShadApp.custom(
     theme: shadThemeFrom(AppPalette.light),
     darkTheme: shadThemeFrom(AppPalette.dark),
-    themeMode: brightness == Brightness.light ? ThemeMode.light : ThemeMode.dark,
+    themeMode: brightness == Brightness.light
+        ? ThemeMode.light
+        : ThemeMode.dark,
     appBuilder: (context) => MaterialApp(
       theme: buildAppTheme(brightness: palette.brightness),
       locale: const Locale('tr', 'TR'),

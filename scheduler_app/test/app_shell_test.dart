@@ -14,8 +14,9 @@ void main() {
     await pumpApp(tester, const AppShell());
   }
 
-  testWidgets('kenar çubuğu daralıp genişlerken ara karelerde taşma olmaz',
-      (tester) async {
+  testWidgets('kenar çubuğu daralıp genişlerken ara karelerde taşma olmaz', (
+    tester,
+  ) async {
     await pumpWideShell(tester);
 
     // Daralt: genişlik 248 -> 68 animasyonu boyunca içerik taşmamalı.
@@ -46,13 +47,21 @@ void main() {
 
     await tester.tap(find.text('Rutinler'));
     await tester.pumpAndSettle();
-    expect(find.text('Henüz rutin yok.\nTekrar eden bir iş ekleyince burada görünür.'),
-        findsOneWidget);
+    expect(
+      find.text(
+        'Henüz rutin yok.\nTekrar eden bir iş ekleyince burada görünür.',
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Yapılacaklar'));
     await tester.pumpAndSettle();
-    expect(find.text('Yapılacak iş yok.\nTek günlük bir iş ekleyince burada görünür.'),
-        findsOneWidget);
+    expect(
+      find.text(
+        'Yapılacak iş yok.\nTek günlük bir iş ekleyince burada görünür.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('açılış bölümü haftalık ızgaradır', (tester) async {

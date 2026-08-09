@@ -22,26 +22,28 @@ void main() {
       testWidgets('$name: saat etiketi 4.5:1 kontrastı geçer', (tester) async {
         useScreenSize(tester, const Size(1000, 800));
 
-        await tester.pumpWidget(testApp(
-          brightness: brightness,
-          home: Scaffold(
-            // Izgara gerçek uygulamada kendi yaprağına çizilir; kontrast da
-            // sayfa zeminine değil bu yüzeye göre ölçülmeli.
-            backgroundColor: palette.surface,
-            body: WeekTimeGrid(
-              monday: DateTime(2026, 7, 20),
-              tasksByDay: List.generate(7, (_) => const []),
-              metrics: const GridMetrics(hourHeight: 60),
-              today: DateTime(2026, 7, 20),
-              onTapTask: (task, day) {},
-              onTapEmpty: (day, hour) {},
-              onMove: (task, day, hour) {},
-              onResize: (task, duration) {},
-              onDuplicate: (task, day) {},
-              onDelete: (task) {},
+        await tester.pumpWidget(
+          testApp(
+            brightness: brightness,
+            home: Scaffold(
+              // Izgara gerçek uygulamada kendi yaprağına çizilir; kontrast da
+              // sayfa zeminine değil bu yüzeye göre ölçülmeli.
+              backgroundColor: palette.surface,
+              body: WeekTimeGrid(
+                monday: DateTime(2026, 7, 20),
+                tasksByDay: List.generate(7, (_) => const []),
+                metrics: const GridMetrics(hourHeight: 60),
+                today: DateTime(2026, 7, 20),
+                onTapTask: (task, day) {},
+                onTapEmpty: (day, hour) {},
+                onMove: (task, day, hour) {},
+                onResize: (task, duration) {},
+                onDuplicate: (task, day) {},
+                onDelete: (task) {},
+              ),
             ),
           ),
-        ));
+        );
         await tester.pumpAndSettle();
 
         final label = tester.widget<Text>(find.text('09:00'));

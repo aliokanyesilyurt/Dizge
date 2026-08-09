@@ -50,9 +50,9 @@ void main() {
       // Index yazılsaydı enum'a ileride yeni bir kademe eklendiğinde
       // kullanıcının tercihi sessizce başka bir yoğunluğa dönüşürdü.
       final store = InMemoryStore();
-      await containerWith(store)
-          .read(gridDensityProvider.notifier)
-          .set(GridDensity.compact);
+      await containerWith(
+        store,
+      ).read(gridDensityProvider.notifier).set(GridDensity.compact);
 
       expect(store.readString(kGridDensityKey), 'compact');
       expect(store.readString(kGridDensityKey), isNot('0'));
@@ -60,8 +60,9 @@ void main() {
   });
 
   group('başlık çubuğu', () {
-    testWidgets('yoğunluk seçimi ızgarayı değiştirir ve diske iner',
-        (tester) async {
+    testWidgets('yoğunluk seçimi ızgarayı değiştirir ve diske iner', (
+      tester,
+    ) async {
       useScreenSize(tester, const Size(1400, 1000));
       final store = InMemoryStore();
 
@@ -105,8 +106,9 @@ void main() {
       expect(find.text('Bugün'), findsNothing);
     });
 
-    testWidgets('telefon genişliğinde yazılar düşer, eylemler kalır',
-        (tester) async {
+    testWidgets('telefon genişliğinde yazılar düşer, eylemler kalır', (
+      tester,
+    ) async {
       useScreenSize(tester, const Size(390, 844));
 
       await pumpApp(tester, const WeekViewScreen());

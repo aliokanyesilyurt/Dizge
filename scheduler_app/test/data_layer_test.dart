@@ -59,12 +59,14 @@ void main() {
     final store = AppStore();
     final note = Note(title: 'ESP32 Pinout', body: 'pinler');
     store.addNote(note);
-    store.addTask(Task(
-      title: 'Kod',
-      note: 'bkz [[ESP32 Pinout]]',
-      color: const Color(0xFF4FC3F7),
-      date: DateTime(2026, 7, 20),
-    ));
+    store.addTask(
+      Task(
+        title: 'Kod',
+        note: 'bkz [[ESP32 Pinout]]',
+        color: const Color(0xFF4FC3F7),
+        date: DateTime(2026, 7, 20),
+      ),
+    );
 
     expect(store.resolveLink('ESP32 Pinout')?.id, note.id);
     expect(store.backlinkNodes(note.id), hasLength(1));

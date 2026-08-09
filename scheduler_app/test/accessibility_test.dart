@@ -26,9 +26,8 @@ void main() {
   /// `Focus.of(context)` yeterli değil: blok `ShadPopover` / `ShadTooltip`
   /// içinde duruyor ve bunların kendi odak düğümleri araya girebiliyor.
   /// Anahtarla aramak, testin gerçekten *bloğun* düğümünü tuttuğunu garanti eder.
-  FocusNode blockFocus(WidgetTester tester, Task task) => tester
-      .widget<Focus>(find.byKey(ValueKey('focus-${task.id}')))
-      .focusNode!;
+  FocusNode blockFocus(WidgetTester tester, Task task) =>
+      tester.widget<Focus>(find.byKey(ValueKey('focus-${task.id}'))).focusNode!;
 
   Future<Task> pumpWithTask(WidgetTester tester, {bool done = false}) async {
     final monday = thisMonday();
@@ -95,8 +94,9 @@ void main() {
       expect(find.byType(TextField), findsWidgets);
     });
 
-    testWidgets('odaklı blokta Delete işi siler ve geri alınabilir',
-        (tester) async {
+    testWidgets('odaklı blokta Delete işi siler ve geri alınabilir', (
+      tester,
+    ) async {
       useScreenSize(tester, const Size(1400, 1000));
       final task = await pumpWithTask(tester);
 
@@ -128,8 +128,9 @@ void main() {
   });
 
   group('boş hafta', () {
-    testWidgets('iş yokken kart görünür, ilk işten sonra kaybolur',
-        (tester) async {
+    testWidgets('iş yokken kart görünür, ilk işten sonra kaybolur', (
+      tester,
+    ) async {
       useScreenSize(tester, const Size(1400, 1000));
 
       await pumpApp(tester, const WeekViewScreen());

@@ -33,8 +33,9 @@ Future<void> pumpScreen(
 void main() {
   setUp(TaskRepository.all.clear);
 
-  testWidgets('Alışkanlıklar ekranı seri + ısı haritasıyla çizilir',
-      (tester) async {
+  testWidgets('Alışkanlıklar ekranı seri + ısı haritasıyla çizilir', (
+    tester,
+  ) async {
     await pumpScreen(tester, const HabitsScreen(), (store) {
       final h = Habit(title: 'Sabah koşusu', color: const Color(0xFF81C784));
       h.setDone(DateTime.now(), true);
@@ -46,12 +47,14 @@ void main() {
 
   testWidgets('Raporlar ekranı grafiklerle çizilir', (tester) async {
     await pumpScreen(tester, const ReportsScreen(), (store) {
-      store.addTask(Task(
-        title: 'İş görevi',
-        color: const Color(0xFF529CCA),
-        date: DateTime.now(),
-        categoryName: 'İş',
-      )..setDone(DateTime.now(), true));
+      store.addTask(
+        Task(
+          title: 'İş görevi',
+          color: const Color(0xFF529CCA),
+          date: DateTime.now(),
+          categoryName: 'İş',
+        )..setDone(DateTime.now(), true),
+      );
     });
     expect(find.text('Raporlar'), findsOneWidget);
     expect(find.text('Tamamlanma'), findsOneWidget);
@@ -62,12 +65,14 @@ void main() {
     await pumpScreen(tester, const NotesScreen(), (store) {
       final note = Note(title: 'ESP32 Pinout', body: 'SDA=21');
       store.addNote(note);
-      store.addTask(Task(
-        title: 'Kod yaz',
-        note: 'bkz [[ESP32 Pinout]]',
-        color: const Color(0xFF529CCA),
-        date: DateTime.now(),
-      ));
+      store.addTask(
+        Task(
+          title: 'Kod yaz',
+          note: 'bkz [[ESP32 Pinout]]',
+          color: const Color(0xFF529CCA),
+          date: DateTime.now(),
+        ),
+      );
     });
     // Listede not görünür.
     expect(find.text('ESP32 Pinout'), findsOneWidget);

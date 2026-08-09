@@ -86,16 +86,18 @@ void main() {
     expect(find.text('Toplantı'), findsOneWidget);
   });
 
-  testWidgets('taşımayı geri almak işi eski gün ve saatine koyar',
-      (tester) async {
+  testWidgets('taşımayı geri almak işi eski gün ve saatine koyar', (
+    tester,
+  ) async {
     useScreenSize(tester, const Size(1400, 1000));
     final monday = thisMonday();
     final task = await pumpWithTask(tester, day: monday, startHour: 9);
 
     // Bloğu basılı tutup bir sütun sağa, bir saat aşağı sürükle.
     const columnWidth = (1400 - kTimeGutterWidth) / 7;
-    final gesture =
-        await tester.startGesture(tester.getCenter(find.text('Toplantı')));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Toplantı')),
+    );
     await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
     await gesture.moveBy(const Offset(columnWidth, 60));
     await tester.pump();
@@ -111,8 +113,9 @@ void main() {
     expect(task.startHour, 9);
   });
 
-  testWidgets('kopyalama yeni kimlikli bir iş üretir, geçmişini taşımaz',
-      (tester) async {
+  testWidgets('kopyalama yeni kimlikli bir iş üretir, geçmişini taşımaz', (
+    tester,
+  ) async {
     useScreenSize(tester, const Size(1400, 1000));
     final monday = thisMonday();
     final task = await pumpWithTask(tester, day: monday);

@@ -68,9 +68,15 @@ void main() {
 
       store.moveTask(task, toDay: tuesday, newStartHour: 10.0);
 
-      expect(task.updatedAt.isAfter(before) || task.updatedAt == before, isTrue);
-      expect(TaskRepository.all.single.id, task.id,
-          reason: 'taşıma kopya üretmemeli');
+      expect(
+        task.updatedAt.isAfter(before) || task.updatedAt == before,
+        isTrue,
+      );
+      expect(
+        TaskRepository.all.single.id,
+        task.id,
+        reason: 'taşıma kopya üretmemeli',
+      );
     });
   });
 
@@ -82,8 +88,11 @@ void main() {
       store.moveTask(task, toDay: thursday, newStartHour: 7.0);
 
       expect(task.startHour, 7.0);
-      expect(task.date, monday,
-          reason: 'günlük rutin zaten her gün; gün taşıması anlamsız');
+      expect(
+        task.date,
+        monday,
+        reason: 'günlük rutin zaten her gün; gün taşıması anlamsız',
+      );
       expect(task.occursOn(thursday), isTrue);
       expect(task.occursOn(tuesday), isTrue);
     });

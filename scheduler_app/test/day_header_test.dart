@@ -18,8 +18,9 @@ void main() {
   }
 
   group('gün başlığı', () {
-    testWidgets('iş sayısı rozetle görünür, boş gün sessiz kalır',
-        (tester) async {
+    testWidgets('iş sayısı rozetle görünür, boş gün sessiz kalır', (
+      tester,
+    ) async {
       useScreenSize(tester, const Size(1400, 1000));
       final monday = thisMonday();
 
@@ -28,28 +29,32 @@ void main() {
         const WeekViewScreen(),
         seed: (store) {
           for (var i = 0; i < 3; i++) {
-            store.addTask(Task(
-              title: 'Pazartesi işi $i',
-              color: Colors.blue,
-              date: monday,
-              startHour: 9.0 + i,
-            ));
+            store.addTask(
+              Task(
+                title: 'Pazartesi işi $i',
+                color: Colors.blue,
+                date: monday,
+                startHour: 9.0 + i,
+              ),
+            );
           }
-          store.addTask(Task(
-            title: 'Salı işi',
-            color: Colors.blue,
-            date: monday.add(const Duration(days: 1)),
-            startHour: 10,
-          ));
+          store.addTask(
+            Task(
+              title: 'Salı işi',
+              color: Colors.blue,
+              date: monday.add(const Duration(days: 1)),
+              startHour: 10,
+            ),
+          );
         },
       );
 
       // Rozetler tipiyle aranıyor: sayaç metni ayın gün sayısıyla aynı
       // rakam olabilir (ayın 3'ü + 3 iş), düz `find.text` ikisini ayıramaz.
       Finder badgeText(String text) => find.descendant(
-            of: find.byType(ShadBadge),
-            matching: find.text(text),
-          );
+        of: find.byType(ShadBadge),
+        matching: find.text(text),
+      );
 
       // Pazartesi 3, Salı 1. Kalan beş gün boş: rozet hiç çizilmiyor, yani
       // "0" yazan altı rozet ekranı kirletmiyor.
@@ -58,31 +63,34 @@ void main() {
       expect(badgeText('1'), findsOneWidget);
     });
 
-    testWidgets('ekran okuyucu gün, bugün ve iş sayısını tek etikette duyar',
-        (tester) async {
+    testWidgets('ekran okuyucu gün, bugün ve iş sayısını tek etikette duyar', (
+      tester,
+    ) async {
       useScreenSize(tester, const Size(1400, 1000));
       final today = Task.dayKey(DateTime.now());
 
       await pumpApp(
         tester,
         const WeekViewScreen(),
-        seed: (store) => store.addTask(Task(
-          title: 'Bugünün işi',
-          color: Colors.blue,
-          date: today,
-          startHour: 9,
-        )),
+        seed: (store) => store.addTask(
+          Task(
+            title: 'Bugünün işi',
+            color: Colors.blue,
+            date: today,
+            startHour: 9,
+          ),
+        ),
       );
 
       // Sayının kendisi Semantics'ten dışlanıyor; okunması gereken cümle bu.
       const labels = ['PZT', 'SAL', 'ÇAR', 'PER', 'CUM', 'CMT', 'PAZ'];
-      final expected =
-          '${labels[today.weekday - 1]} ${today.day}, bugün, 1 iş';
+      final expected = '${labels[today.weekday - 1]} ${today.day}, bugün, 1 iş';
       expect(find.bySemanticsLabel(expected), findsOneWidget);
     });
 
-    testWidgets('390px: rozet düşer, gün sayıları taşmadan durur',
-        (tester) async {
+    testWidgets('390px: rozet düşer, gün sayıları taşmadan durur', (
+      tester,
+    ) async {
       useScreenSize(tester, const Size(390, 844));
       final monday = thisMonday();
 
@@ -91,12 +99,14 @@ void main() {
         const WeekViewScreen(),
         seed: (store) {
           for (var i = 0; i < 3; i++) {
-            store.addTask(Task(
-              title: 'Pazartesi işi $i',
-              color: Colors.blue,
-              date: monday,
-              startHour: 9.0 + i,
-            ));
+            store.addTask(
+              Task(
+                title: 'Pazartesi işi $i',
+                color: Colors.blue,
+                date: monday,
+                startHour: 9.0 + i,
+              ),
+            );
           }
         },
       );
