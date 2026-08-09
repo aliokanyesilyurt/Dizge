@@ -38,6 +38,10 @@ class WeekTimeGrid extends StatefulWidget {
     this.scrollOffset,
     this.initialScrollHour,
     this.energyLimit,
+    this.isOverPool,
+    this.onDropToPool,
+    this.onPullFromPool,
+    this.poolHover,
   }) : assert(tasksByDay.length == 7, 'Haftalık ızgara tam 7 gün bekler');
 
   /// Gösterilen haftanın pazartesisi (saat kırpılmış).
@@ -73,6 +77,24 @@ class WeekTimeGrid extends StatefulWidget {
   /// "bugün olmasa da olur" der. null => filtre kapalı.
   final Energy? energyLimit;
 
+  /// Verilen küresel nokta havuz panelinin üstünde mi?
+  ///
+  /// Izgara paneli tanımıyor — yalnız "burası benim dışım mı" diye soruyor.
+  /// Panelin nerede durduğu, ne kadar geniş olduğu, hatta var olup olmadığı
+  /// ekranın bilgisi.
+  final bool Function(Offset globalPosition)? isOverPool;
+
+  /// Blok havuzun üstüne bırakıldı.
+  final void Function(Task task)? onDropToPool;
+
+  /// Havuzdan sürüklenen iş ızgaraya bırakıldı.
+  final void Function(Task task, DateTime day, double hour)? onPullFromPool;
+
+  /// Sürüklenen blok havuzun üstündeyken true olur; panel bunu dinleyip
+  /// kendini vurguluyor. Geri çağırım yerine dinlenebilir bir değer, çünkü
+  /// aradaki ekranı her piksel hareketinde yeniden çizmek gereksiz.
+  final ValueNotifier<bool>? poolHover;
+
   @override
   State<WeekTimeGrid> createState() => _WeekTimeGridState();
 }
@@ -95,6 +117,14 @@ class _DragState {
 
   int dayIndex;
   double startHour;
+
+  /// Parmağın en son bulunduğu küresel nokta. Bırakma anında "ızgaranın
+  /// içinde mi, havuzun üstünde mi" sorusunu cevaplayan tek bilgi;
+  /// `LongPressEndDetails` bunu güvenilir biçimde vermiyor.
+  Offset lastGlobal = Offset.zero;
+
+  /// Havuzun üstünde mi (görsel geri bildirim ve bırakma kararı için).
+  bool overPool = false;
 }
 
 /// Alt kenardan süre değiştirme durumu.
@@ -114,6 +144,9 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
 
   _DragState? _drag;
   _ResizeState? _resize;
+
+  /// Havuzdan sürüklenen iş şu an hangi gün sütununun üstünde (yoksa null).
+  int? _poolDropDay;
 
   /// "Şu an" çizgisini dakikada bir tazeler.
   Timer? _clock;
@@ -208,6 +241,20 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     final drag = _drag;
     if (drag == null) return;
 
+    drag.lastGlobal = details.globalPosition;
+
+    // Havuzun üstündeyken blok bir güne/saate oturmaz: orada saat yok.
+    final overPool = widget.isOverPool?.call(details.globalPosition) ?? false;
+    if (overPool != drag.overPool) {
+      HapticFeedback.selectionClick();
+      setState(() => drag.overPool = overPool);
+      widget.poolHover?.value = overPool;
+    }
+    if (overPool) {
+      _updateAutoScroll(details.globalPosition);
+      return;
+    }
+
     final box = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
     final local = box.globalToLocal(details.globalPosition);
@@ -238,6 +285,15 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     final drag = _drag;
     if (drag == null) return;
     setState(() => _drag = null);
+    widget.poolHover?.value = false;
+
+    // Havuzun üstünde bırakıldı: gün/saat hesabı hiç yapılmıyor, iş takvimden
+    // çekiliyor. Rutinler bu yola giremez (bkz. plan K2) — blok sürüklenebilir
+    // ama havuz onu kabul etmez, yerinde kalır.
+    if (drag.overPool) {
+      if (!drag.task.isRoutine) widget.onDropToPool?.call(drag.task);
+      return;
+    }
 
     final movedDay = drag.dayIndex != drag.sourceDayIndex;
     final movedTime = drag.startHour != (drag.task.startHour ?? 0);
@@ -352,39 +408,17 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final width = constraints.maxWidth;
-                  return Stack(
-                    key: _canvasKey,
-                    children: [
-                      // 1) Zemin: saat çizgileri, gün ayraçları, bugün tonu.
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: _GridPainter(
-                            metrics: _m,
-                            palette: c,
-                            todayIndex: _todayIndex,
-                            dropDayIndex: _drag?.dayIndex,
-                          ),
-                        ),
-                      ),
-
-                      // 2) Boş alan dokunuşları (bloklardan ÖNCE, altta kalsın).
-                      Positioned.fill(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onTapUp: (d) => _onEmptyTap(d.localPosition, width),
-                        ),
-                      ),
-
-                      // 3) Etkinlik blokları.
-                      ..._buildBlocks(width),
-
-                      // 4) "Şu an" çizgisi.
-                      if (_todayIndex != null)
-                        _nowIndicator(c, width, _todayIndex!),
-
-                      // 5) Sürüklenen bloğun hayaleti (en üstte).
-                      if (_drag != null) _dragGhost(width, _drag!),
-                    ],
+                  return DragTarget<Task>(
+                    // Yalnız havuzdan gelen iş kabul ediliyor. Izgaranın kendi
+                    // blokları ayrı bir jest sistemiyle taşınıyor; ikisi
+                    // karışırsa aynı hareket iki kez işlenir.
+                    onWillAcceptWithDetails: (details) =>
+                        widget.onPullFromPool != null && details.data.inPool,
+                    onMove: (details) => _onPoolDragOver(details.offset, width),
+                    onLeave: (_) => _clearPoolDrop(),
+                    onAcceptWithDetails: (details) =>
+                        _onPoolDrop(details.data, details.offset, width),
+                    builder: (context, _, _) => _canvas(c, width),
                   );
                 },
               ),
@@ -394,6 +428,72 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       ),
     );
   }
+
+  /// Havuzdan sürüklenen iş ızgaranın üstünde gezerken hedef sütunu vurgular.
+  void _onPoolDragOver(Offset globalPosition, double width) {
+    final local = _toCanvas(globalPosition);
+    if (local == null) return;
+    final day = _dayIndexAt(local.dx, width);
+    if (day != _poolDropDay) setState(() => _poolDropDay = day);
+  }
+
+  void _clearPoolDrop() {
+    if (_poolDropDay != null) setState(() => _poolDropDay = null);
+  }
+
+  void _onPoolDrop(Task task, Offset globalPosition, double width) {
+    _clearPoolDrop();
+    final local = _toCanvas(globalPosition);
+    if (local == null) return;
+
+    final day = _dayAt(_dayIndexAt(local.dx, width));
+    // Boş alana dokunmayla aynı hassasiyet: kullanıcı 09:00 isterken 09:15
+    // açılmasın.
+    final hour = clampStartWithin(
+      snapHour(_m.hourAt(local.dy), minutes: 30),
+      task.durationHours,
+      dayStart: _m.dayStart,
+      dayEnd: _m.dayEnd,
+    );
+    widget.onPullFromPool?.call(task, day, hour);
+  }
+
+  /// Izgaranın kendisi: zemin, bloklar, şimdi çizgisi.
+  Widget _canvas(AppPalette c, double width) => Stack(
+    key: _canvasKey,
+    children: [
+      // 1) Zemin: saat çizgileri, gün ayraçları, bugün tonu.
+      Positioned.fill(
+        child: CustomPaint(
+          painter: _GridPainter(
+            metrics: _m,
+            palette: c,
+            todayIndex: _todayIndex,
+            // Vurgulanan sütun ya taşınan bloğun ya da havuzdan gelen işin
+            // hedefi; ikisi aynı anda olamaz.
+            dropDayIndex: _drag?.dayIndex ?? _poolDropDay,
+          ),
+        ),
+      ),
+
+      // 2) Boş alan dokunuşları (bloklardan ÖNCE, altta kalsın).
+      Positioned.fill(
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTapUp: (d) => _onEmptyTap(d.localPosition, width),
+        ),
+      ),
+
+      // 3) Etkinlik blokları.
+      ..._buildBlocks(width),
+
+      // 4) "Şu an" çizgisi.
+      if (_todayIndex != null) _nowIndicator(c, width, _todayIndex!),
+
+      // 5) Sürüklenen bloğun hayaleti (en üstte).
+      if (_drag != null && !_drag!.overPool) _dragGhost(width, _drag!),
+    ],
+  );
 
   /// Bugünün hafta içindeki sırası (0-6); bu haftada değilse null.
   int? get _todayIndex {
@@ -467,6 +567,9 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                 dimmed: dimmed,
                 // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
                 compact: height < 34,
+                onMoveToPool: (widget.onDropToPool == null || task.isRoutine)
+                    ? null
+                    : () => widget.onDropToPool!(task),
                 onEdit: () => widget.onTapTask(task, day),
                 onDuplicate: () => widget.onDuplicate(task, day),
                 onDelete: () => widget.onDelete(task),
@@ -667,6 +770,7 @@ class _EventBlock extends StatefulWidget {
     required this.done,
     required this.compact,
     this.dimmed = false,
+    this.onMoveToPool,
     required this.onEdit,
     required this.onDuplicate,
     required this.onDelete,
@@ -689,6 +793,9 @@ class _EventBlock extends StatefulWidget {
   /// burada yalnızca ekran okuyucuya söylemek için duruyor — solgunluk göze
   /// görünüyorsa kulağa da görünmeli.
   final bool dimmed;
+
+  /// İşi havuza alır. Rutinlerde ve havuz bağlanmamışken null.
+  final VoidCallback? onMoveToPool;
 
   /// Tam düzenleyiciyi açar. Bloğa tıklamak artık doğrudan buraya gitmiyor —
   /// önce hafif bir önizleme açılıyor, "Düzenle" oradan çağırıyor.
@@ -898,6 +1005,12 @@ class _EventBlockState extends State<_EventBlock> {
                       _preview.hide();
                       widget.onEdit();
                     },
+                    onMoveToPool: widget.onMoveToPool == null
+                        ? null
+                        : () {
+                            _preview.hide();
+                            widget.onMoveToPool!();
+                          },
                   ),
                   // Sağ tık menüsü: içerideki uzun basma sürükleme başlatıyor ve
                   // `longPressEnabled` açık olsaydı taşımaya çalışan her el hareketi
@@ -915,6 +1028,14 @@ class _EventBlockState extends State<_EventBlock> {
                         onPressed: widget.onDuplicate,
                         child: const Text('Kopyala'),
                       ),
+                      // Rutinde bu eylem hiç görünmüyor: "her gün tekrarlayan
+                      // ama hiçbir gün görünmeyen iş" tanımsız (plan K2).
+                      if (widget.onMoveToPool != null)
+                        ShadContextMenuItem(
+                          leading: const Icon(Icons.inbox_rounded, size: 16),
+                          onPressed: widget.onMoveToPool,
+                          child: const Text('Kenara al'),
+                        ),
                       ShadContextMenuItem(
                         leading: const Icon(Icons.delete_outline, size: 16),
                         onPressed: widget.onDelete,
@@ -1029,12 +1150,17 @@ class _Preview extends StatelessWidget {
     required this.day,
     required this.done,
     required this.onEdit,
+    this.onMoveToPool,
   });
 
   final Task task;
   final DateTime day;
   final bool done;
   final VoidCallback onEdit;
+
+  /// Rutinlerde ve havuz kapalıyken null — o zaman düğme hiç çizilmiyor
+  /// (bkz. plan K2).
+  final VoidCallback? onMoveToPool;
 
   @override
   Widget build(BuildContext context) {
@@ -1053,7 +1179,10 @@ class _Preview extends StatelessWidget {
     ];
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 260),
+      // 260px'ti; "Kenara al" eklenince iki düğme 43 piksel taştı. Düğmelerden
+      // birini ikona indirmek yerine kart genişledi: ikisi de tek kelimeyle
+      // anlaşılmayan eylemler.
+      constraints: const BoxConstraints(maxWidth: 320),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -1112,13 +1241,27 @@ class _Preview extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ShadButton.outline(
-              size: ShadButtonSize.sm,
-              onPressed: onEdit,
-              child: const Text('Düzenle'),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // "Kenara al" burada, sağ tık menüsünde olduğu gibi: sağ tık
+              // dokunmatik ekranda hiç yok, menüye orada ulaşılamıyor.
+              // Önizleme her iki girdi türünde de tek dokunuşla açılıyor.
+              if (onMoveToPool != null) ...[
+                ShadButton.ghost(
+                  size: ShadButtonSize.sm,
+                  onPressed: onMoveToPool,
+                  leading: const Icon(Icons.inbox_rounded, size: 15),
+                  child: const Text('Kenara al'),
+                ),
+                const SizedBox(width: 6),
+              ],
+              ShadButton.outline(
+                size: ShadButtonSize.sm,
+                onPressed: onEdit,
+                child: const Text('Düzenle'),
+              ),
+            ],
           ),
         ],
       ),

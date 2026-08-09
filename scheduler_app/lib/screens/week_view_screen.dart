@@ -5,6 +5,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../core/energy_filter_controller.dart';
 import '../core/grid_density_controller.dart';
+import '../core/pool_panel_controller.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
 import '../data/app_store.dart';
@@ -14,6 +15,7 @@ import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
 import '../widgets/week_time_grid.dart';
 import 'week/daily_habit_strip.dart';
+import 'week/pool_panel.dart';
 import 'week/week_header_bar.dart';
 
 /// Haftalık görünüm — uygulamanın ana ekranı.
@@ -60,8 +62,13 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   void dispose() {
     _pages.dispose();
     _sharedScrollOffset.dispose();
+    _poolHover.dispose();
     super.dispose();
   }
+
+  /// Bu genişliğin altında havuz sütunu takvimi yutar; orada panel bir açılır
+  /// katmana iniyor, ekranda yalnız ince şerit kalıyor.
+  static const double _poolColumnMinWidth = 900;
 
   static const _weekDays = ['PZT', 'SAL', 'ÇAR', 'PER', 'CUM', 'CMT', 'PAZ'];
   static const _months = [
@@ -164,6 +171,80 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     };
   }
 
+  // --- Havuz ------------------------------------------------------------------
+
+  /// Panelin ekrandaki yeri. Izgara paneli tanımıyor; yalnız "bu nokta benim
+  /// dışımda mı" diye soruyor, cevabı burası veriyor.
+  final GlobalKey _poolKey = GlobalKey();
+
+  /// Sürüklenen blok panelin üstünde mi — panel bunu dinleyip vurgulanıyor.
+  final ValueNotifier<bool> _poolHover = ValueNotifier(false);
+
+  bool _isOverPool(Offset globalPosition) {
+    final box = _poolKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return false;
+    final local = box.globalToLocal(globalPosition);
+    return local.dx >= 0 &&
+        local.dy >= 0 &&
+        local.dx <= box.size.width &&
+        local.dy <= box.size.height;
+  }
+
+  void _moveToPool(Task task) {
+    final store = ref.read(appStoreProvider);
+    final day = task.date;
+    store.moveToPool(task);
+    _offerUndo('Kenara alındı', () => store.pullFromPool(task, toDay: day));
+  }
+
+  void _pullFromPool(Task task, DateTime day, double hour) {
+    final store = ref.read(appStoreProvider);
+    store.pullFromPool(task, toDay: day, startHour: hour);
+    _offerUndo('Takvime kondu', () => store.moveToPool(task));
+  }
+
+  /// Panelden "takvime geri koy": gün seçilmediği için iş eski gününe döner.
+  void _restoreFromPool(Task task) {
+    final store = ref.read(appStoreProvider);
+    store.pullFromPool(task);
+    _offerUndo('Takvime kondu', () => store.moveToPool(task));
+  }
+
+  /// Dar ekranda panel yerine açılan katman.
+  ///
+  /// Sütun burada mümkün değil: 390px'te 248 piksellik bir panel takvimi
+  /// yutar. Sürükle-bırak da bu katmanda yok — telefonda havuza atmanın yolu
+  /// bloğa dokunup "Kenara al", geri koymanın yolu buradaki listeye dokunmak.
+  Future<void> _openPoolSheet() async {
+    final store = ref.read(appStoreProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colors.surface,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7,
+          ),
+          child: Consumer(
+            builder: (context, ref, _) => PoolPanel(
+              tasks: ref.watch(poolProvider),
+              onCollapse: () => Navigator.pop(sheetContext),
+              onOpenTask: (task) {
+                Navigator.pop(sheetContext);
+                _openEditor(task.date, existing: task);
+              },
+              onRestore: (task) {
+                Navigator.pop(sheetContext);
+                store.pullFromPool(task);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Mutasyondan sonra "Geri al" bildirimi gösterir.
   void _offerUndo(String label, VoidCallback undo) {
     final sonner = ShadSonner.maybeOf(context);
@@ -232,142 +313,200 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
             backgroundColor: c.bg,
             body: SafeArea(
               bottom: false,
-              child: Column(
+              // Havuz paneli hafta sütununun *yanında*: sürükleyip bırakırken
+              // takvim de panel de aynı anda görünmeli, yoksa "şu işi
+              // perşembeye koyayım" hareketi iki adıma bölünür.
+              child: Row(
                 children: [
-                  WeekHeaderBar(
-                    rangeLabel: _rangeLabel(_monday),
-                    offsetLabel: _page == _anchorPage
-                        ? 'Bu hafta'
-                        : '${_weekOffsetLabel()} hafta',
-                    isCurrentWeek: _page == _anchorPage,
-                    density: density,
-                    energy: energy,
-                    onPrevious: () => _shift(-1),
-                    onNext: () => _shift(1),
-                    onToday: _goToToday,
-                    onDensityChanged: (next) =>
-                        ref.read(gridDensityProvider.notifier).set(next),
-                    onEnergyChanged: (next) =>
-                        ref.read(energyFilterProvider.notifier).set(next),
-                    onCreate: _createFromHeader,
-                  ),
-                  // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
-                  // her zaman bugüne yazılır (bkz. [DailyHabitStrip]).
-                  DailyHabitStrip(
-                    habits: store.habits,
-                    day: today,
-                    onToggle: (habit) =>
-                        store.toggleHabit(habit, today, source: 'week_strip'),
-                  ),
                   Expanded(
-                    child: PageView.builder(
-                      controller: _pages,
-                      onPageChanged: (page) {
-                        setState(() => _page = page);
-                        ref
-                            .read(telemetryProvider)
-                            .capture(
-                              Ev.weekChanged,
-                              props: {'delta': 0, 'reason': 'swipe'},
-                            );
-                      },
-                      itemBuilder: (context, page) {
-                        final monday = _anchorMonday.add(
-                          Duration(days: 7 * (page - _anchorPage)),
-                        );
-                        final tasksByDay = store.tasksForWeek(monday);
-
-                        return Column(
-                          children: [
-                            // Gün başlıkları + saatsiz şeridi tek yükseltilmiş katman.
-                            _Chrome(
-                              child: Column(
-                                children: [
-                                  _DayHeaderRow(
-                                    monday: monday,
-                                    today: today,
-                                    labels: _weekDays,
-                                    tasksByDay: tasksByDay,
-                                    onTapDay: (day) => _quickAdd(day, null),
-                                  ),
-                                  _UntimedRow(
-                                    monday: monday,
-                                    tasksByDay: tasksByDay,
-                                    energyLimit: energy,
-                                    onTapTask: (task, day) =>
-                                        _openEditor(day, existing: task),
-                                    onToggle: (task, day) => store.setTaskDone(
-                                      task,
-                                      day,
-                                      !task.isDoneOn(day),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Izgara, sayfa zeminine değil kendi beyaz yaprağına
-                            // çizilir: başlıkla birlikte tek bir yükseltilmiş yüzey.
-                            Expanded(
-                              child: ColoredBox(
-                                color: c.surface,
-                                child: Stack(
-                                  children: [
-                                    WeekTimeGrid(
-                                      // Sayfa değiştikçe yeni durum kurulsun ama aynı
-                                      // hafta için gereksiz yeniden kurulum olmasın.
-                                      key: ValueKey(
-                                        'week-${monday.toIso8601String()}',
-                                      ),
-                                      monday: monday,
-                                      tasksByDay: tasksByDay,
-                                      metrics: metrics,
-                                      today: today,
-                                      scrollOffset: _sharedScrollOffset,
-                                      initialScrollHour:
-                                          _sharedScrollOffset.value > 0
-                                          ? null
-                                          : _openingHour,
-                                      onTapTask: (task, day) =>
-                                          _openEditor(day, existing: task),
-                                      onTapEmpty: _quickAdd,
-                                      energyLimit: energy,
-                                      onMove: _move,
-                                      onResize: _resize,
-                                      onDuplicate: _duplicate,
-                                      onDelete: _delete,
-                                    ),
-                                    // Boş hafta kartı ızgaranın *üstünde* ama yalnız
-                                    // kendi alanını kaplıyor: kalan her yer hâlâ
-                                    // tıklanabilir, yani "boş alana dokun → ekle"
-                                    // yolu kapanmıyor.
-                                    if (tasksByDay.every((day) => day.isEmpty))
-                                      Align(
-                                        alignment: const Alignment(0, -0.35),
-                                        child: _EmptyWeekCard(
-                                          onCreate: () => _quickAdd(
-                                            monday.add(const Duration(days: 3)),
-                                            9,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                    child: _weekColumn(
+                      c,
+                      store,
+                      today,
+                      density,
+                      metrics,
+                      energy,
                     ),
                   ),
+                  _poolSide(),
                 ],
               ),
             ),
           ),
         ),
       ),
-      // Kayan düğme yok: başlıktaki "Yeni" ile aynı işi yapıyordu ve ekranda
-      // iki birincil eylem, tasarım sözleşmesinin ihlali. Ayrıca sağ alt köşe
-      // ızgaranın en kalabalık saatlerinin üstüne oturuyordu.
+    );
+  }
+
+  /// Ekranın havuz dışında kalan tarafı: başlık, tik şeridi, hafta sayfaları.
+  Widget _weekColumn(
+    AppPalette c,
+    AppStore store,
+    DateTime today,
+    GridDensity density,
+    GridMetrics metrics,
+    Energy? energy,
+  ) {
+    return Column(
+      children: [
+        WeekHeaderBar(
+          rangeLabel: _rangeLabel(_monday),
+          offsetLabel: _page == _anchorPage
+              ? 'Bu hafta'
+              : '${_weekOffsetLabel()} hafta',
+          isCurrentWeek: _page == _anchorPage,
+          density: density,
+          energy: energy,
+          onPrevious: () => _shift(-1),
+          onNext: () => _shift(1),
+          onToday: _goToToday,
+          onDensityChanged: (next) =>
+              ref.read(gridDensityProvider.notifier).set(next),
+          onEnergyChanged: (next) =>
+              ref.read(energyFilterProvider.notifier).set(next),
+          onCreate: _createFromHeader,
+        ),
+        // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
+        // her zaman bugüne yazılır (bkz. [DailyHabitStrip]).
+        DailyHabitStrip(
+          habits: store.habits,
+          day: today,
+          onToggle: (habit) =>
+              store.toggleHabit(habit, today, source: 'week_strip'),
+        ),
+        Expanded(
+          child: PageView.builder(
+            controller: _pages,
+            onPageChanged: (page) {
+              setState(() => _page = page);
+              ref
+                  .read(telemetryProvider)
+                  .capture(
+                    Ev.weekChanged,
+                    props: {'delta': 0, 'reason': 'swipe'},
+                  );
+            },
+            itemBuilder: (context, page) {
+              final monday = _anchorMonday.add(
+                Duration(days: 7 * (page - _anchorPage)),
+              );
+              final tasksByDay = store.tasksForWeek(monday);
+
+              return Column(
+                children: [
+                  // Gün başlıkları + saatsiz şeridi tek yükseltilmiş katman.
+                  _Chrome(
+                    child: Column(
+                      children: [
+                        _DayHeaderRow(
+                          monday: monday,
+                          today: today,
+                          labels: _weekDays,
+                          tasksByDay: tasksByDay,
+                          onTapDay: (day) => _quickAdd(day, null),
+                        ),
+                        _UntimedRow(
+                          monday: monday,
+                          tasksByDay: tasksByDay,
+                          energyLimit: energy,
+                          onTapTask: (task, day) =>
+                              _openEditor(day, existing: task),
+                          onToggle: (task, day) =>
+                              store.setTaskDone(task, day, !task.isDoneOn(day)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Izgara, sayfa zeminine değil kendi beyaz yaprağına
+                  // çizilir: başlıkla birlikte tek bir yükseltilmiş yüzey.
+                  Expanded(
+                    child: ColoredBox(
+                      color: c.surface,
+                      child: Stack(
+                        children: [
+                          WeekTimeGrid(
+                            // Sayfa değiştikçe yeni durum kurulsun ama aynı
+                            // hafta için gereksiz yeniden kurulum olmasın.
+                            key: ValueKey('week-${monday.toIso8601String()}'),
+                            monday: monday,
+                            tasksByDay: tasksByDay,
+                            metrics: metrics,
+                            today: today,
+                            scrollOffset: _sharedScrollOffset,
+                            initialScrollHour: _sharedScrollOffset.value > 0
+                                ? null
+                                : _openingHour,
+                            onTapTask: (task, day) =>
+                                _openEditor(day, existing: task),
+                            onTapEmpty: _quickAdd,
+                            energyLimit: energy,
+                            onMove: _move,
+                            onResize: _resize,
+                            onDuplicate: _duplicate,
+                            onDelete: _delete,
+                            isOverPool: _isOverPool,
+                            onDropToPool: _moveToPool,
+                            onPullFromPool: _pullFromPool,
+                            poolHover: _poolHover,
+                          ),
+                          // Boş hafta kartı ızgaranın *üstünde* ama yalnız
+                          // kendi alanını kaplıyor: kalan her yer hâlâ
+                          // tıklanabilir, yani "boş alana dokun → ekle"
+                          // yolu kapanmıyor.
+                          if (tasksByDay.every((day) => day.isEmpty))
+                            Align(
+                              alignment: const Alignment(0, -0.35),
+                              child: _EmptyWeekCard(
+                                onCreate: () => _quickAdd(
+                                  monday.add(const Duration(days: 3)),
+                                  9,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+    // Kayan düğme yok: başlıktaki "Yeni" ile aynı işi yapıyordu ve ekranda
+    // iki birincil eylem, tasarım sözleşmesinin ihlali. Ayrıca sağ alt köşe
+    // ızgaranın en kalabalık saatlerinin üstüne oturuyordu.
+  }
+
+  /// Ekranın sağ kenarı: geniş ekranda panel ya da şerit, dar ekranda yalnız
+  /// şerit (dokununca katman açılır).
+  Widget _poolSide() {
+    final pooled = ref.watch(poolProvider);
+    final open = ref.watch(poolPanelOpenProvider);
+    final wide = MediaQuery.sizeOf(context).width >= _poolColumnMinWidth;
+
+    // Boş havuz + kapalı panel = ekranda hiçbir iz yok. Havuzu hiç kullanmayan
+    // birinden 44 piksel almak, kullanan birinin bir tıklamasından pahalı.
+    if (pooled.isEmpty && !open) return const SizedBox.shrink();
+
+    return KeyedSubtree(
+      key: _poolKey,
+      child: (open && wide)
+          ? PoolPanel(
+              tasks: pooled,
+              hover: _poolHover,
+              onCollapse: () =>
+                  ref.read(poolPanelOpenProvider.notifier).set(false),
+              onOpenTask: (task) => _openEditor(task.date, existing: task),
+              onRestore: _restoreFromPool,
+            )
+          : PoolRail(
+              count: pooled.length,
+              onExpand: wide
+                  ? () => ref.read(poolPanelOpenProvider.notifier).set(true)
+                  : _openPoolSheet,
+            ),
     );
   }
 

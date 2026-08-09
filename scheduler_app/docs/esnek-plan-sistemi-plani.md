@@ -153,7 +153,7 @@ Her dilim sonunda: `flutter analyze` temiz, testler yeşil, build ayakta, commit
 | ~~**Ö4a**~~ | ~~Enerji modeli~~ | `Energy` enum, `Task.energy`, JSON + geri uyum, düzenleyicide seçici | **İndi (4 Ağustos).** Bkz. §5.2 |
 | ~~**Ö4b**~~ | ~~Enerji filtresi~~ | Başlıkta "Bugün enerjim" seçici; ızgara yüksek eforluları soluklaştırır (gizlemez) | **İndi (4 Ağustos).** Bkz. §5.3 |
 | ~~**Ö1a**~~ | ~~Havuz modeli~~ | `inPool`, `occursOn` kapısı, `AppStore.moveToPool` / `pullFromPool`, mutasyon kaydı | **İndi (4 Ağustos).** Bkz. §5.4 |
-| **Ö1b** | Havuz paneli | "Kenarda Bekleyenler" — sağda daraltılabilir sütun; ızgaradan sürükleyip bırakma çift yönlü | Sürükle-bırak iki yönde çalışır; panel kapalıyken sayaç rozeti |
+| ~~**Ö1b**~~ | ~~Havuz paneli~~ | "Kenarda Bekleyenler" — sağda daraltılabilir sütun; ızgaradan sürükleyip bırakma çift yönlü | **İndi (4 Ağustos).** Bkz. §5.5 |
 | **Ö2** | Kaos düğmesi | `isFixed`, `skippedOn`, "Günü kurtar" eylemi + onay + **geri al** | Sabitler yerinde kalır, tamamlananlar dokunulmaz, tek tıkla geri alınır |
 
 **Sıralama gerekçesi:** Ö3 en ucuz ve en yüksek duygusal getiri — önce o.
@@ -262,6 +262,40 @@ Plana ek üç küçük karar:
   kutusuna dönmesi; en uzun bekleyen üstteyse unutulmuş iş göze çarpar.
   `task_unpooled` olayı `days_waited` taşıyor, aynı sorunun ölçüsü.
 
+### 5.5 Ö1b kapanış notu (4 Ağustos)
+
+`screens/week/pool_panel.dart` (`PoolPanel` + `PoolRail`) ve
+`core/pool_panel_controller.dart`. 10 test; toplam 203 test yeşil,
+`flutter analyze` temiz, derleme ayakta.
+
+**§8'in 4. maddesi** planın kendi önerisiyle kapatıldı: ≥900px'te sağda 248px
+sütun, altında açılır katman. Panel varsayılan **kapalı** ve havuz boşken
+ekranda hiçbir iz bırakmıyor — havuzu kullanmayandan 44 piksel almak,
+kullananın bir tıklamasından pahalı.
+
+Kararlar:
+
+* **Havuza atmanın yolu üç tane, hiçbiri tek başına yetmiyordu.** Sürükleyip
+  panele bırakmak masaüstünde doğal ama dokunmatikte zor; sağ tık menüsü
+  telefonda **hiç yok** (`longPressEnabled: false`, çünkü uzun basma sürüklemeyi
+  başlatıyor). Bu yüzden asıl yol bloğa dokununca açılan önizlemedeki
+  "Kenara al" düğmesi oldu — her girdi türünde çalışan tek yol o.
+* **Panel kartları uzun basmayla kalkıyor**, düz sürüklemeyle değil: kartlar
+  dikey kaydırılan bir listede ve düz sürükleme her kaydırma denemesinde kartı
+  kaldırırdı. Izgaradaki blok da aynı dili konuşuyor.
+* **Rutinde "Kenara al" hiç çizilmiyor** (K2). Blok yine sürüklenebiliyor ama
+  havuza bırakılırsa yerinde kalıyor.
+* **Kenara alma ve geri koyma geri alınabilir** (D6'nın `ShadSonner` altyapısı).
+* Önizleme kartı 260px'ten 320px'e genişledi: iki düğme yan yana 43 piksel
+  taşıyordu.
+* 30 günü geçen kart soluklaşıyor, her kart "3 gündür bekliyor" yazıyor.
+
+**Bilinen pürüz:** hafta tamamen boşken ızgaranın ortasındaki "Bu hafta boş"
+kartı bir sürükleme hedefi değil — havuzdan çekilen iş tam oraya bırakılırsa
+düşmüyor, kartın dışına bırakmak gerekiyor. Kartı sürükleme sırasında gizlemek
+ekran düzeyinde bir sürükleme durumu taşımayı gerektiriyor; şimdilik not
+edildi, düzeltilmedi.
+
 ---
 
 ## 6. Kaos Butonunun Davranış Sözleşmesi
@@ -302,10 +336,9 @@ Belirsiz bırakılırsa yıkıcı olabilecek tek özellik bu. Kuralları önden 
    güne taşırdı. (§6)
 3. **Enerji kademesi** — dört: Yüksek / Orta / Düşük / Deşarj. (K5)
 
-**Hâlâ açık — Ö1b'den önce gerekli:**
-
-4. **Havuz paneli nerede:** sağda daraltılabilir sütun mu, başlıkta açılır
-   katman mı? (Önerim: masaüstünde sağ sütun, telefonda açılır katman)
+4. **Havuz paneli nerede** — §8'in önerisi uygulandı (4 Ağustos): masaüstünde
+   (≥900px) sağda daraltılabilir sütun, dar ekranda açılır katman. Kullanıcı
+   ayrıca karar bildirmedi; öneri uygulandı, değiştirmek tek yerde.
 
 ---
 
