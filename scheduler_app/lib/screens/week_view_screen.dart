@@ -64,6 +64,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     _pages.dispose();
     _sharedScrollOffset.dispose();
     _poolHover.dispose();
+    _poolDragging.dispose();
     super.dispose();
   }
 
@@ -180,6 +181,15 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
 
   /// Sürüklenen blok panelin üstünde mi — panel bunu dinleyip vurgulanıyor.
   final ValueNotifier<bool> _poolHover = ValueNotifier(false);
+
+  /// Panelden bir kart kaldırılmış durumda mı?
+  ///
+  /// Yalnız "Bu hafta boş" kartının önden çekilmesi için var: kart ızgaranın
+  /// üstünde bir `Stack` katmanı ve `RenderStack` vuruşu ön çocukta
+  /// durdurduğu için, tam onun üstüne bırakılan iş alttaki `DragTarget`'a
+  /// hiç ulaşmıyordu. Boş bir haftaya havuzdan ilk işi koymak ekranın tam
+  /// ortasında çalışmayan tek nokta demekti.
+  final ValueNotifier<bool> _poolDragging = ValueNotifier(false);
 
   bool _isOverPool(Offset globalPosition) {
     final box = _poolKey.currentContext?.findRenderObject() as RenderBox?;
@@ -584,10 +594,27 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                           if (tasksByDay.every((day) => day.isEmpty))
                             Align(
                               alignment: const Alignment(0, -0.35),
-                              child: _EmptyWeekCard(
-                                onCreate: () => _quickAdd(
-                                  monday.add(const Duration(days: 3)),
-                                  9,
+                              // Havuzdan bir kart kalkmışken kart yol veriyor:
+                              // vuruşu geçiriyor ve soluklaşıp "burası da
+                              // bırakılabilir" diyor. Gizlemek yerine
+                              // soluklaştırmak bilinçli — kaybolan bir kart
+                              // ekranın ortasında bir sıçrama olurdu.
+                              child: ValueListenableBuilder<bool>(
+                                valueListenable: _poolDragging,
+                                builder: (context, dragging, child) =>
+                                    IgnorePointer(
+                                      ignoring: dragging,
+                                      child: AnimatedOpacity(
+                                        duration: Motion.fast,
+                                        opacity: dragging ? 0.35 : 1,
+                                        child: child,
+                                      ),
+                                    ),
+                                child: _EmptyWeekCard(
+                                  onCreate: () => _quickAdd(
+                                    monday.add(const Duration(days: 3)),
+                                    9,
+                                  ),
                                 ),
                               ),
                             ),
@@ -628,6 +655,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                   ref.read(poolPanelOpenProvider.notifier).set(false),
               onOpenTask: (task) => _openEditor(task.date, existing: task),
               onRestore: _restoreFromPool,
+              onDragging: (value) => _poolDragging.value = value,
             )
           : PoolRail(
               count: pooled.length,

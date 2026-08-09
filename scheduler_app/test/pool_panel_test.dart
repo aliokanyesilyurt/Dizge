@@ -252,6 +252,45 @@ void main() {
       expect(container.read(poolProvider), isEmpty);
     });
 
+    testWidgets('"Bu hafta boş" kartının tam üstüne bırakmak da çalışır', (
+      tester,
+    ) async {
+      // Kart ızgaranın üstünde bir `Stack` katmanı; `RenderStack` vuruşu ön
+      // çocukta durdurduğu için tam oraya bırakılan iş alttaki `DragTarget`'a
+      // hiç ulaşmıyordu. Boş bir haftaya havuzdan ilk işi koymanın en doğal
+      // yolu, ekranın tam ortasındaki tek ölü nokta demekti.
+      wide(tester);
+      final job = task('Kenardaki', inPool: true);
+
+      final container = await pumpApp(
+        tester,
+        const WeekViewScreen(),
+        overrides: [
+          poolPanelOpenProvider.overrideWith(
+            (ref) => PoolPanelController(InMemoryStore())..set(true),
+          ),
+        ],
+        seed: (s) => s.addTask(job),
+      );
+
+      expect(find.text('Bu hafta boş'), findsOneWidget);
+
+      final from = tester.getCenter(find.text('Kenardaki'));
+      final to = tester.getCenter(find.text('Bu hafta boş'));
+
+      final gesture = await tester.startGesture(from);
+      await tester.pump(const Duration(milliseconds: 600));
+      for (var i = 1; i <= 6; i++) {
+        await gesture.moveTo(Offset.lerp(from, to, i / 6)!);
+        await tester.pump(const Duration(milliseconds: 30));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(job.inPool, isFalse, reason: 'kartın üstüne bırakmak da inmeli');
+      expect(container.read(poolProvider), isEmpty);
+    });
+
     testWidgets('sağ tık menüsünden geri koymak eski güne döndürür', (
       tester,
     ) async {

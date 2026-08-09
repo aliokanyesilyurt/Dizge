@@ -291,11 +291,16 @@ Kararlar:
   taşıyordu.
 * 30 günü geçen kart soluklaşıyor, her kart "3 gündür bekliyor" yazıyor.
 
-**Bilinen pürüz:** hafta tamamen boşken ızgaranın ortasındaki "Bu hafta boş"
-kartı bir sürükleme hedefi değil — havuzdan çekilen iş tam oraya bırakılırsa
-düşmüyor, kartın dışına bırakmak gerekiyor. Kartı sürükleme sırasında gizlemek
-ekran düzeyinde bir sürükleme durumu taşımayı gerektiriyor; şimdilik not
-edildi, düzeltilmedi.
+~~**Bilinen pürüz:**~~ hafta tamamen boşken ızgaranın ortasındaki "Bu hafta
+boş" kartı bir sürükleme hedefi değildi — havuzdan çekilen iş tam oraya
+bırakılırsa düşmüyordu. **Düzeltildi (9 Ağustos):** `RenderStack` vuruşu ön
+çocukta durdurduğu için alttaki `DragTarget` hiç haber almıyordu; yani boş bir
+haftaya havuzdan ilk işi koymanın en doğal noktası, ekranın tam ortasındaki
+tek ölü nokta oluyordu. Panel artık sürükleme başlangıcını/bitişini bildiriyor
+(`PoolPanel.onDragging`), kart o sırada vuruşu geçiriyor ve %35'e soluklaşıyor.
+Gizlemek yerine soluklaştırmak bilinçli: kaybolan bir kart ekranın ortasında
+bir sıçrama olurdu, solan kart ise "burası da bırakılabilir" diyor. Bir test
+bekçiliyor — düzeltme geri alındığında düşüyor.
 
 ### 5.6 Ö2 kapanış notu (9 Ağustos)
 
