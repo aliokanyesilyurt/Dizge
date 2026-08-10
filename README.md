@@ -11,5 +11,6 @@ Aynı saate denk gelen yoğun işleriniz mi var? Akıllı sütun paylaşım algo
 ## 🔒 Güvenlik ve Gizlilik 
 ### 🛡️ Kırılmaz Veri Gizliliği (Offline-First) 
 Verileriniz bulutta değil, doğrudan sizin cihazınızda yaşar. **Askeri sınıf AES-256 şifreleme** ile korunan kasanız sayesinde görev başlıklarınızı, kişisel notlarınızı ve planlarınızı sizden başka hiç kimse göremez. İnternetiniz olmasa bile tüm sistem kesintisiz çalışmaya devam eder. 
-### 👁️ Şeffaf ve Etik Kontrol Arka planda sizden habersiz veri aktarımı yapılmaz. Ayarlardan açıkça izin vermediğiniz sürece cihazınızdan dışarı tek bir veri bile çıkmaz. Gizlilik kontrolü her zaman sizin parmaklarınızın ucundadır.
+### 👁️ Şeffaf ve Etik Kontrol 
+Arka planda sizden habersiz veri aktarımı yapılmaz. Ayarlardan açıkça izin vermediğiniz sürece cihazınızdan dışarı tek bir veri bile çıkmaz. Gizlilik kontrolü her zaman sizin parmaklarınızın ucundadır.
 ### Gününüzün Tek Hakimi Olun Sürekli değişen bir rutini yönetmek hiç bu kadar güvenli ve akıcı olmamıştı. Planlamaya hemen başlayın!
