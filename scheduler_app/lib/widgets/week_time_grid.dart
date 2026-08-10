@@ -642,7 +642,15 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
               top: 4.5,
               left: 0,
               right: 0,
-              child: Container(height: 1.5, color: c.nowLine),
+              child: Container(
+                height: 1.5,
+                // Parıltı ince çizgiyi siyah zeminde neon bir iz hâline
+                // getiriyor; koyu temada "şu an" bir bakışta bulunuyor.
+                decoration: BoxDecoration(
+                  color: c.nowLine,
+                  boxShadow: c.glowOf(c.nowLine),
+                ),
+              ),
             ),
             Positioned(
               top: 0,
@@ -656,6 +664,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                   // Halka, altındaki ızgara yaprağının rengiyle "kesip" noktayı
                   // çizgiden ayırır.
                   border: Border.all(color: c.surface, width: 1.5),
+                  boxShadow: c.glowOf(c.nowLine),
                 ),
               ),
             ),
@@ -1395,7 +1404,9 @@ class _DragPreview extends StatelessWidget {
         color: style.fill,
         borderRadius: R.radiusXs,
         border: Border.all(color: c.surface, width: 1.5),
-        boxShadow: c.shadowLg,
+        // Kendi kategori rengiyle parlıyor: parmağın altındaki şeyin ne olduğu
+        // siyah zeminde gölgeyle anlaşılmıyordu.
+        boxShadow: [...c.shadowLg, ...c.glowOf(task.color)],
       ),
       // Sürüklenen kopya da yerdeki blokla aynı dili konuşur: solda şerit,
       // gövdede aynı soluk zemin. Farklı görünseydi parmağın altındaki şeyin

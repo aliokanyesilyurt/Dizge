@@ -43,6 +43,32 @@ class AppConfig {
   /// Anahtar yoksa PostHog hiç başlatılmaz; [NoopTelemetry] devreye girer.
   static bool get telemetryAvailable => posthogApiKey.isNotEmpty;
 
+  // --- Supabase ------------------------------------------------------------
+
+  /// Proje URL'i, ör. `https://abcdefgh.supabase.co`.
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+
+  /// Yayınlanabilir (public) anahtar. **Sır değildir** — istemciye zaten
+  /// dağıtılır ve tek başına hiçbir veriye erişim vermez. Erişimi belirleyen
+  /// şey satır düzeyi güvenlik (bkz. `supabase/schema.sql`). Yine de
+  /// `--dart-define` ile veriliyor ki ortamlar (dev/staging/prod) aynı kodla
+  /// derlensin.
+  ///
+  /// İki ad da okunuyor: Supabase panosu bu anahtarı önce "anon key", şimdi
+  /// "publishable key" diye adlandırıyor. Eski derleme betikleri bozulmasın.
+  static const String _publishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+  );
+  static const String _anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  static String get supabaseKey =>
+      _publishableKey.isNotEmpty ? _publishableKey : _anonKey;
+
+  /// İkisi birden verilmemişse backend hiç kurulmaz: uygulama bugünkü gibi
+  /// tamamen yerel çalışır, senkron motoru uyanmaz.
+  static bool get backendAvailable =>
+      supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty;
+
   // --- Kalıcılık -----------------------------------------------------------
 
   /// Şifreli kutunun adı. Sürüm eki taşımaz; şema değişimi
@@ -54,7 +80,13 @@ class AppConfig {
 
   /// Kalıcı anlık görüntünün şema sürümü. Model alanı ekleyip çıkardıkça artır
   /// ve [LocalStore] içindeki migrasyona bir adım yaz.
-  static const int kSchemaVersion = 2;
+  ///
+  /// v3: `Habit.updatedAt` — senkronun "son yazan kazanır" hakemi. Yazılan
+  /// şekil değiştiği için sürüm artıyor; buna karşılık `migrateSnapshot`'ta
+  /// v2 → v3 adımı **yok**, çünkü eksik damga okuma anında `createdAt`'ten
+  /// türetiliyor (`Habit.fromJson`). Görüntüyü yeniden yazmak gereksiz iş
+  /// olurdu.
+  static const int kSchemaVersion = 3;
 
   // --- Senkronizasyon ------------------------------------------------------
 

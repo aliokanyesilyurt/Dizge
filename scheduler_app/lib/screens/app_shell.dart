@@ -453,6 +453,9 @@ class _NavTileState extends State<_NavTile> {
                 ? c.navActiveFill
                 : (_hovered ? c.sidebarHover : Colors.transparent),
             borderRadius: R.radiusPill,
+            // Kenar çubuğu zemini tam siyah; seçili hapın koyu camgöbeği
+            // dolgusu tek başına yeterince öne çıkmıyordu. Hale onu kaldırıyor.
+            boxShadow: selected ? c.glow : null,
           ),
           child: collapsed
               ? Center(child: Icon(widget.item.icon, size: 19, color: ink))

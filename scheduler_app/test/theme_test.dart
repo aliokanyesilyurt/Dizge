@@ -111,6 +111,99 @@ void main() {
       });
     }
 
+    test('koyu tema gerçekten siyah, kartlar yine de zeminden ayrışır', () {
+      const p = AppPalette.dark;
+
+      // "Çok siyah" bir istek olarak geldi; sayı olarak da tutulsun.
+      expect(p.bg.computeLuminance(), lessThan(0.005));
+      expect(p.sidebar, const Color(0xFF000000));
+
+      // Ama katman hiyerarşisi çökmemeli: kart zeminden, sheet karttan ileri.
+      expect(
+        p.surface.computeLuminance(),
+        greaterThan(p.bg.computeLuminance()),
+      );
+      expect(
+        p.surfaceAlt.computeLuminance(),
+        greaterThan(p.surface.computeLuminance()),
+      );
+    });
+
+    test('koyuda kart kenarı görünür — gölge orada iş görmüyor', () {
+      // Bu testin varlık sebebi: siyah zemine düşen siyah gölge hiçbir şeydir.
+      // Kartı ayıran şey kenarlıksa, o kenarlığın da görünür olması gerekir.
+      const p = AppPalette.dark;
+      expect(contrastRatio(p.line, p.surface), greaterThan(1.15));
+    });
+
+    test('koyuda kart gölgesi kenar çizgisi de taşır', () {
+      // Kenarlık, `border`'ı on sekiz çağrı yerine tek tek eklemek yerine
+      // derinliğin tanımına konuldu. Bulanıklığı sıfır olan gölge tam olarak
+      // bir kenarlık gibi çizilir ve köşe yarıçapını kendiliğinden takip eder.
+      final rim = AppPalette.dark.shadowSm.first;
+
+      expect(rim.color, AppPalette.dark.line);
+      expect(rim.blurRadius, 0);
+      expect(rim.offset, Offset.zero);
+      expect(rim.spreadRadius, greaterThan(0));
+    });
+
+    test('açık temada kenar çizgisi yok — gölge zaten iş görüyor', () {
+      for (final shadow in [
+        ...AppPalette.light.shadowSm,
+        ...AppPalette.light.shadowMd,
+      ]) {
+        expect(shadow.blurRadius, greaterThan(0));
+      }
+    });
+
+    test('ekrandan kopan katman kenarlık almaz', () {
+      // Sheet ve sürüklenen blok zaten geniş gölgesiyle konuşuyor; kenar
+      // eklemek onu kartlarla aynı dile indirirdi.
+      for (final shadow in AppPalette.dark.shadowLg) {
+        expect(shadow.blurRadius, greaterThan(0));
+      }
+    });
+
+    test('parıltı yalnız koyu temada var', () {
+      // Aynı widget kodu iki temada da doğru davransın diye açıkta saydam;
+      // böylece çağrı yerlerinde `isDark` koşulu yazmak gerekmiyor.
+      expect(AppPalette.light.glowAccent.a, 0);
+      expect(AppPalette.dark.glowAccent.a, greaterThan(0));
+      expect(AppPalette.light.glow.single.color.a, 0);
+      expect(AppPalette.dark.glow.single.color.a, greaterThan(0));
+    });
+
+    test('renkli parıltı tonunu korur, opaklığını paletten alır', () {
+      // "Şu an" çizgisi magenta, sürüklenen blok kendi kategori rengiyle
+      // parlıyor. Hepsi aynı camgöbeğiyle parlasaydı renk kimliği kaybolurdu.
+      const tint = Color(0xFF81C784);
+
+      final dark = AppPalette.dark.glowOf(tint).single.color;
+      expect(dark.r, tint.r);
+      expect(dark.g, tint.g);
+      expect(dark.b, tint.b);
+      expect(dark.a, AppPalette.dark.glowAccent.a);
+
+      // Açıkta aynı çağrı görünmez kalmalı — çağrı yeri koşul yazmıyor.
+      expect(AppPalette.light.glowOf(tint).single.color.a, 0);
+    });
+
+    test('"şu an" çizgisi tehlike rengiyle karışmaz', () {
+      // İkisi de sıcak ve doygun; ayırt edilemezlerse kullanıcı saat çizgisini
+      // bir uyarı sanar.
+      //
+      // Ölçü **renk tonu**, kontrast değil: WCAG oranı parlaklık farkına bakar
+      // ve aynı aydınlıktaki iki farklı renk orada 1.0'a yakın çıkar. Burada
+      // sorulan soru "okunuyor mu" değil, "ayrı renk mi".
+      const p = AppPalette.dark;
+      final nowHue = HSLColor.fromColor(p.nowLine).hue;
+      final dangerHue = HSLColor.fromColor(p.danger).hue;
+      final apart = (nowHue - dangerHue).abs();
+
+      expect(apart > 30 && apart < 330, isTrue, reason: 'ton farkı $apart°');
+    });
+
     test('tamamlanan blok soluklaşır ve ikincil yazıya döner', () {
       const color = Color(0xFF4FC3F7);
       final open = AppPalette.light.event(color);

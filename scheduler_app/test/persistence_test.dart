@@ -61,6 +61,72 @@ void main() {
       expect(AppData.categories.map((c) => c.name), contains('Tez'));
     });
 
+    test('alışkanlığın damgası kaydedilir ve geri okunur', () async {
+      final store = InMemoryStore();
+      await store.init();
+
+      final a = AppStore();
+      await a.attachPersistence(store);
+      a.addHabit(Habit(title: 'Koş', color: const Color(0xFF81C784)));
+      final stamped = a.habits.single.updatedAt;
+      await a.flush();
+
+      final b = AppStore();
+      await b.attachPersistence(store);
+
+      expect(b.habits.single.updatedAt, stamped);
+    });
+
+    test('alışkanlık değiştiğinde damga tazelenir', () async {
+      final store = InMemoryStore();
+      await store.init();
+
+      final a = AppStore();
+      await a.attachPersistence(store);
+      final habit = Habit(
+        title: 'Koş',
+        color: const Color(0xFF81C784),
+        // Geçmişe damgala ki tazelenme ölçülebilsin.
+        updatedAt: DateTime(2026, 1, 5),
+      );
+      a.addHabit(habit);
+
+      a.toggleHabit(habit, DateTime(2026, 8, 10));
+
+      expect(habit.updatedAt.isAfter(DateTime(2026, 1, 5)), isTrue);
+    });
+
+    test('sürüm 2 kaydındaki alışkanlık damgayı createdAt\'ten alır', () async {
+      // LWW hakemi damga olduğu için bu göç önemli: alan eksikken `readDate`
+      // her açılışta `DateTime.now()` üretirdi. O alışkanlık, sunucudaki
+      // kopyasını her seferinde "daha yeniyim" diye ezerdi — üstelik hiç
+      // değişmemişken.
+      final store = InMemoryStore();
+      await store.init();
+      await store.writeSnapshot({
+        'schemaVersion': 2,
+        'nodes': const [],
+        'habits': [
+          {
+            'id': 'h1',
+            'title': 'Su iç',
+            'colorHex': 'FF81C784',
+            'cadence': 'daily',
+            'targetPerWeek': 3,
+            'doneDates': const [],
+            'createdAt': DateTime(2026, 1, 5).toIso8601String(),
+            // 'updatedAt' bilerek yok — sürüm 2 kaydı böyle görünüyordu.
+          },
+        ],
+        'categories': const [],
+      });
+
+      final a = AppStore();
+      await a.attachPersistence(store);
+
+      expect(a.habits.single.updatedAt, DateTime(2026, 1, 5));
+    });
+
     test('bozuk kayıt uygulamayı düşürmez, boş başlar', () async {
       final store = InMemoryStore();
       await store.init();

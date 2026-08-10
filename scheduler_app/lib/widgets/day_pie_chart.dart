@@ -154,10 +154,7 @@ class ClockPiePainter extends CustomPainter {
         );
         final labelColor = fade
             ? palette.inkFaint.withValues(alpha: 0.5)
-            : (ThemeData.estimateBrightnessForColor(sliceFill) ==
-                      Brightness.dark
-                  ? Colors.white
-                  : const Color(0xFF14161C));
+            : inkOn(sliceFill);
 
         final mid = startAngle + sweepAngle / 2;
         final lr = radius * 0.62;

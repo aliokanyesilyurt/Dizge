@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
+import '../theme.dart';
 
 /// Bir grup (kategori/etiket) için toplanmış süre. Grafik satırı olarak çizilir.
 class TimeBucket {
@@ -113,7 +114,7 @@ class ProductivityReport {
               .map(
                 (e) => TimeBucket(
                   e.key,
-                  colors?[e.key] ?? const Color(0xFF529CCA),
+                  colors?[e.key] ?? kUnknownCategoryColor,
                   e.value,
                 ),
               )

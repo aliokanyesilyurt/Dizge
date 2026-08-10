@@ -64,14 +64,18 @@ class SyncEngine {
   /// gönderim için gerekir; [AppStore.toJson] bağlanır.
   Map<String, dynamic> Function()? snapshotProvider;
 
+  /// Abonelikleri kurar. Birden çok kez çağrılabilir (tekrarında yeniden
+  /// abone olmaz).
+  ///
+  /// **`isConfigured`'a burada bakılmıyor** ve bu bilinçli bir düzeltme:
+  /// yapılandırma sabit değil, oturuma bağlı. Açılışta oturum kapalıyken
+  /// erken dönseydik, kullanıcı sonradan giriş yaptığında motor hiç uyanmaz
+  /// ve senkron ancak uygulama yeniden başlatılınca çalışırdı. Denetim, asıl
+  /// yeri olan [_scheduleFlush] ve [syncNow]'da.
   void start() {
-    if (!_gateway.isConfigured) {
-      // Backend yok: motoru hiç uyandırma. Uygulama saf yerel çalışır.
-      _state.value = SyncState.idle;
-      return;
-    }
-    _outboxSub = _outbox.changes.listen((_) => _scheduleFlush());
-    _networkSub = _connectivity.watch().listen((status) {
+    if (_stopped) return;
+    _outboxSub ??= _outbox.changes.listen((_) => _scheduleFlush());
+    _networkSub ??= _connectivity.watch().listen((status) {
       if (status == NetworkStatus.online) _scheduleFlush(immediate: true);
     });
     _scheduleFlush(immediate: true);
@@ -82,6 +86,10 @@ class SyncEngine {
       if (_outbox.isEmpty) _state.value = SyncState.idle;
       return;
     }
+
+    // Oturum yokken kuyruk birikir ama gönderilmez — o veri henüz bir hesaba
+    // ait değil. Giriş yapıldığında `syncNow()` elle çağrılır (bkz. bootstrap).
+    if (!_gateway.isConfigured) return;
     _debounce?.cancel();
     _debounce = Timer(
       immediate ? Duration.zero : AppConfig.syncDebounce,

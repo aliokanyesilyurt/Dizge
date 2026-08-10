@@ -22,6 +22,13 @@ class Habit {
   final Set<DateTime> doneDates;
   final DateTime createdAt;
 
+  /// Son değişiklik damgası — senkronda **son yazan kazanır** hakemi budur.
+  ///
+  /// Alan eksik geldiğinde varsayılan bilinçli olarak [createdAt]; `DateTime
+  /// .now()` değil. "Şimdi" demek, hiç değişmemiş bir alışkanlığın her
+  /// açılışta kendini en yeni ilan etmesi ve sunucudaki kopyayı ezmesi olurdu.
+  DateTime updatedAt;
+
   Habit({
     String? id,
     required this.title,
@@ -30,9 +37,16 @@ class Habit {
     this.targetPerWeek = 3,
     Set<DateTime>? doneDates,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) : id = id ?? newNodeId(),
        doneDates = doneDates ?? <DateTime>{},
-       createdAt = createdAt ?? DateTime.now();
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? createdAt ?? DateTime.now();
+
+  /// Değişiklik damgasını tazeler. Modeli değiştiren her yol bunu çağırmalı;
+  /// aksi hâlde değişiklik sunucuya gider ama "eski" damgayla gider ve
+  /// karşıdaki daha yeni kayıt tarafından sessizce reddedilir.
+  void touch() => updatedAt = DateTime.now();
 
   bool isDoneOn(DateTime day) => doneDates.contains(dayOnly(day));
 
@@ -116,6 +130,7 @@ class Habit {
     'targetPerWeek': targetPerWeek,
     'doneDates': doneDates.map(dateToKey).toList(),
     'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
   };
 
   factory Habit.fromJson(Map<String, dynamic> j) => Habit(
@@ -135,5 +150,8 @@ class Habit {
             .toSet() ??
         <DateTime>{},
     createdAt: readDate(j['createdAt']),
+    // Yokluğu `null` olarak geçiyor ki kurucu [createdAt]'e düşebilsin.
+    // `readDate` burada yanlış olurdu: eksik alanı "şimdi" sayardı.
+    updatedAt: readDateOrNull(j['updatedAt']),
   );
 }

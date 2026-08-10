@@ -848,10 +848,10 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                           ),
                         ),
                         child: sel
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check_rounded,
                                 size: 16,
-                                color: Color(0xFF14161C),
+                                color: inkOn(color),
                               )
                             : null,
                       ),

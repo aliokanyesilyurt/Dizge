@@ -2,20 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_config.dart';
+import '../core/auth_service.dart';
 import '../core/connectivity.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
 import '../data/app_store.dart';
 import '../data/local_store.dart';
 import '../data/persistence_providers.dart';
+import '../data/sync/first_sync.dart';
+import '../data/sync/remote_gateway.dart';
 import '../data/sync/sync_engine.dart';
 import '../theme.dart';
 
 /// Hesap, görünüm, gizlilik ve veri ayarları.
 ///
-/// Oturum/profil kısmı hâlâ backend bekliyor; ancak **görünüm** ile **veri ve
-/// gizlilik** bölümleri gerçek: tema tercihi, telemetri rızası, depolama
-/// durumu ve "cihazdaki verileri sil" burada çalışır.
+/// Oturum açma/kapama, tema tercihi, telemetri rızası, depolama durumu ve
+/// "cihazdaki verileri sil" burada gerçekten çalışır. Yalnız bildirimler hâlâ
+/// bekliyor ve o satır bilerek sönük duruyor ([_Tile]).
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
 
@@ -78,20 +81,14 @@ class AccountScreen extends ConsumerWidget {
 
                 const SizedBox(height: 26),
 
-                // --- Henüz backend bekleyenler ---
+                // --- Hesap ---
                 const _GroupLabel('Hesap'),
+                const _AccountSection(),
+
+                // --- Henüz backend bekleyenler ---
+                const SizedBox(height: 10),
                 const _Notice(),
                 const SizedBox(height: 10),
-                const _Tile(
-                  icon: Icons.login_rounded,
-                  title: 'Oturum aç',
-                  subtitle: 'Backend bağlanınca etkinleşecek',
-                ),
-                const _Tile(
-                  icon: Icons.badge_rounded,
-                  title: 'Profil bilgileri',
-                  subtitle: 'Ad, e-posta, avatar',
-                ),
                 const _Tile(
                   icon: Icons.notifications_rounded,
                   title: 'Bildirimler',
@@ -127,12 +124,13 @@ class AccountScreen extends ConsumerWidget {
   };
 }
 
-class _ProfileHeader extends StatelessWidget {
+class _ProfileHeader extends ConsumerWidget {
   const _ProfileHeader();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final user = ref.watch(authUserProvider).valueOrNull;
 
     return Row(
       children: [
@@ -156,10 +154,16 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Misafir', style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                user?.email ?? 'Misafir',
+                style: Theme.of(context).textTheme.headlineSmall,
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: 3),
               Text(
-                'Oturum açılmadı — veriler bu cihazda',
+                user == null
+                    ? 'Oturum açılmadı — veriler bu cihazda'
+                    : 'Oturum açık — değişiklikler hesabına eşitleniyor',
                 style: TextStyle(
                   color: c.inkFaint,
                   fontSize: 12.5,
@@ -170,6 +174,300 @@ class _ProfileHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// --- Hesap -------------------------------------------------------------------
+
+/// Oturum durumuna göre tek bir eylem gösterir: giriş ya da çıkış.
+///
+/// İkisini birden göstermek (biri sönük) yer kaplar ve kararı geciktirir; bu
+/// ekranda kullanıcının sorusu her zaman tek: "içeride miyim?"
+class _AccountSection extends ConsumerWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    final user = ref.watch(authUserProvider).valueOrNull;
+
+    if (user == null) {
+      return _ActionTile(
+        icon: Icons.login_rounded,
+        title: 'Oturum aç',
+        subtitle: 'Planların bütün cihazlarında aynı olsun',
+        onTap: () async {
+          await _showSignIn(context, ref);
+          // Sheet yalnız kimlik doğrular. İki tarafı buluşturmak burada,
+          // çünkü sorulacak soru varsa onun yeri sheet'in üstü değil.
+          if (context.mounted &&
+              ref.read(authServiceProvider).currentUser != null) {
+            await _runFirstSync(context, ref);
+          }
+        },
+      );
+    }
+
+    return _ActionTile(
+      icon: Icons.logout_rounded,
+      iconColor: c.inkDim,
+      title: 'Çıkış yap',
+      // Kullanıcının bu düğmeye basarken en çok korktuğu şey bu; cevabı
+      // düğmenin yanında duruyor.
+      subtitle: 'Cihazdaki planların silinmez',
+      onTap: () => ref.read(authServiceProvider).signOut(),
+    );
+  }
+}
+
+/// Oturum açıldıktan sonra yerel takvim ile sunucuyu buluşturur.
+///
+/// Yalnız **açıkça giriş yapıldığında** çalışır, her açılışta değil: her
+/// açılışta tam çekim yapmak, artımlı çekim olmadığı için yerel değişiklikleri
+/// ezme riski taşırdı (plan B4).
+Future<void> _runFirstSync(BuildContext context, WidgetRef ref) async {
+  final coordinator = FirstSyncCoordinator(
+    gateway: ref.read(remoteGatewayProvider),
+    store: ref.read(appStoreProvider),
+    outbox: ref.read(outboxProvider),
+  );
+
+  FirstSyncDecision decision;
+  try {
+    decision = await coordinator.inspect();
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hesabındaki planlar okunamadı. Daha sonra denenecek.'),
+        ),
+      );
+    }
+    return;
+  }
+
+  var plan = decision.plan;
+
+  if (plan == FirstSyncPlan.ask) {
+    if (!context.mounted) return;
+    final chosen = await _askWhichWins(context, ref);
+    if (chosen == null) return; // Kullanıcı vazgeçti; hiçbir şey değişmez.
+    plan = chosen;
+  }
+
+  await coordinator.apply(plan, remote: decision.remote);
+
+  // Motoru dürt: oturum açılana kadar kuyruk bekliyordu.
+  await ref.read(syncEngineProvider)?.syncNow();
+}
+
+/// İki tarafta da veri varken sorulan tek soru.
+///
+/// Varsayılan yok ve kapatmak "vazgeç" demek: yanlış tıklanan bir düğme
+/// aylardır biriken bir takvimi silebilir.
+Future<FirstSyncPlan?> _askWhichWins(BuildContext context, WidgetRef ref) {
+  final store = ref.read(appStoreProvider);
+  final localCount =
+      store.tasks.length + store.notes.length + store.habits.length;
+
+  return showDialog<FirstSyncPlan>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Hangisi kalsın?'),
+      content: Text(
+        'Bu cihazda $localCount kayıt var, hesabında da planların duruyor. '
+        'İkisini birleştiremiyoruz — hangisinin kalacağını seçmen gerek.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('Vazgeç'),
+        ),
+        TextButton(
+          onPressed: () =>
+              Navigator.of(dialogContext).pop(FirstSyncPlan.download),
+          child: const Text('Hesaptakiler'),
+        ),
+        FilledButton(
+          onPressed: () =>
+              Navigator.of(dialogContext).pop(FirstSyncPlan.upload),
+          child: const Text('Bu cihazdakiler'),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> _showSignIn(BuildContext context, WidgetRef ref) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => Padding(
+      // Klavye açıldığında alanlar onun altında kalmasın.
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: const _SignInSheet(),
+    ),
+  );
+}
+
+/// E-posta + parola. Sihirli bağlantı ve OAuth bilinçli olarak yok: ikisi de
+/// masaüstünde derin bağlantı kaydı ister ve bu ayrı bir platform işi.
+class _SignInSheet extends ConsumerStatefulWidget {
+  const _SignInSheet();
+
+  @override
+  ConsumerState<_SignInSheet> createState() => _SignInSheetState();
+}
+
+class _SignInSheetState extends ConsumerState<_SignInSheet> {
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+
+  bool _registering = false;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final email = _email.text.trim();
+    final password = _password.text;
+
+    // Sunucuya gitmeden yakalanabilecek iki hata. Ağ turu beklemek ve
+    // İngilizce bir sunucu mesajı almak gereksiz.
+    if (!email.contains('@') || email.length < 3) {
+      setState(() => _error = 'Geçerli bir e-posta gir.');
+      return;
+    }
+    if (password.length < 6) {
+      setState(() => _error = 'Parola en az 6 karakter olmalı.');
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      final auth = ref.read(authServiceProvider);
+      if (_registering) {
+        await auth.signUp(email: email, password: password);
+      } else {
+        await auth.signIn(email: email, password: password);
+      }
+      if (mounted) Navigator.of(context).pop();
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _registering ? 'Hesap oluştur' : 'Oturum aç',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Planların şifreli olarak cihazında kalmaya devam eder; '
+              'hesap yalnızca onları cihazların arasında taşır.',
+              style: TextStyle(
+                color: c.inkFaint,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 18),
+            TextField(
+              controller: _email,
+              enabled: !_busy,
+              autofocus: true,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(hintText: 'E-posta'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _password,
+              enabled: !_busy,
+              obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _busy ? null : _submit(),
+              decoration: const InputDecoration(hintText: 'Parola'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.error_outline_rounded, size: 16, color: c.danger),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: c.danger,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 18),
+            FilledButton(
+              onPressed: _busy ? null : _submit,
+              child: _busy
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: c.onAccent,
+                      ),
+                    )
+                  : Text(_registering ? 'Hesap oluştur' : 'Giriş yap'),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: _busy
+                  ? null
+                  : () => setState(() {
+                      _registering = !_registering;
+                      _error = null;
+                    }),
+              child: Text(
+                _registering ? 'Zaten hesabım var' : 'Hesabım yok, oluşturayım',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -576,6 +874,73 @@ class _GroupLabel extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
       child: Text(text, style: Theme.of(context).textTheme.labelSmall),
+    );
+  }
+}
+
+/// Gerçekten bir şey yapan satır.
+///
+/// [_Tile]'dan ayrı duruyor çünkü ikisi karşıt şeyler söylüyor: [_Tile] sönük
+/// ve kilitli ("henüz yok"), bu ise dokunulabilir. Aynı widget'a bayrak
+/// eklemek, ekranın en önemli ayrımını bir parametreye gömerdi.
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.iconColor,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: R.radiusMd,
+        onTap: onTap,
+        child: _Card(
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: iconColor ?? c.accent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: c.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: c.inkFaint,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 18, color: c.inkFaint),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

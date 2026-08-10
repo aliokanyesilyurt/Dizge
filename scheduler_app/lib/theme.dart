@@ -16,13 +16,16 @@ import 'package:flutter/material.dart';
 ///
 /// Sakin, derinlikli ve minimal. Üç ilke:
 ///
-/// 1. **Zemin geri çekilir, içerik öne çıkar.** Sayfa zemini hiçbir zaman saf
-///    beyaz/siyah değil; kartlar zeminden bir tık *ileri* (açıkta beyaz,
-///    koyuda daha aydınlık) durur. Kenarlık yerine yükseklik farkı konuşur.
-/// 2. **Tek bir vurgu rengi.** İndigo. Geri kalan her şey nötr gri
+/// 1. **Zemin geri çekilir, içerik öne çıkar.** Kartlar zeminden bir tık
+///    *ileri* durur. Açık temada bunu yükseklik (gölge) söyler; koyu temada
+///    zemin neredeyse saf siyah olduğu için gölge işe yaramaz ve görevi ince
+///    bir kenar çizgisi devralır (bkz. [AppPalette.shadowSm]).
+/// 2. **İki neon vurgu.** Camgöbeği birincil (bugün, seçim, bağlantı),
+///    magenta ikincil (kaçan iş, "şu an"). Geri kalan her şey nötr gri
 ///    skalasında; renk yalnızca kullanıcının kendi kategorilerine ait.
-/// 3. **Gölge bir efekt değil, ışık.** Tek katmanlı sert gölge yerine iki
-///    katman: dar/koyu (temas) + geniş/çok soluk (ortam).
+/// 3. **Derinlik ışıktır.** Açıkta iki katmanlı gölge: dar/koyu (temas) +
+///    geniş/soluk (ortam). Koyuda ise öne çıkan öğe kendi rengiyle çıkar —
+///    [glow]. Parıltı üç yerle sınırlı; her yere serpilirse neon olmaz.
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
   const AppPalette({
@@ -63,6 +66,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     // Derinlik
     required this.shadowContact,
     required this.shadowAmbient,
+    required this.glowAccent,
   });
 
   final Brightness brightness;
@@ -144,43 +148,61 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Ortam gölgesi: geniş, uzak, çok soluk.
   final Color shadowAmbient;
 
+  /// Neon parıltının rengi — vurgunun zemine sızması.
+  ///
+  /// Koyu temada derinliğin bir parçası: siyah zeminde gölge kaybolduğu için
+  /// "öne çıkan" öğe, kendi rengiyle öne çıkar. Açık temada **tamamen saydam**;
+  /// böylece aynı widget kodu iki temada da doğru davranır ve çağrı yerlerinde
+  /// `isDark` koşulu yazmak gerekmez.
+  final Color glowAccent;
+
   bool get isDark => brightness == Brightness.dark;
 
   // --- Hazır paletler --------------------------------------------------------
 
-  /// Gece: mürekkep mavisine çalan derin nötrler + soğuk indigo.
+  /// Gece: mürekkep siyahı zemin + neon camgöbeği/magenta.
+  ///
+  /// Zemin neredeyse saf siyah. Bunun bir bedeli var ve tasarımın tamamını
+  /// etkiliyor: **siyah zeminde siyah gölge hiçbir şeydir.** Kartları zeminden
+  /// ayıran şey artık gölge değil, ince kenarlık ([line]) ve seçili öğelerde
+  /// renk halesi ([glowAccent]). Gölgeler yalnız ekrandan gerçekten kopan
+  /// katmanlarda (sheet, sürüklenen blok) anlamını koruyor.
   static const dark = AppPalette(
     brightness: Brightness.dark,
-    bg: Color(0xFF0E0F13),
-    surface: Color(0xFF16181F),
-    surfaceAlt: Color(0xFF1B1E26),
-    hover: Color(0xFF232733),
-    sidebar: Color(0xFF0A0B0E),
-    sidebarHover: Color(0xFF1A1D25),
-    navActiveFill: Color(0xFF23283B),
-    navActiveInk: Color(0xFFC7D2FE),
-    line: Color(0xFF2A2E3A),
-    lineSoft: Color(0xFF1F232C),
-    ink: Color(0xFFECEEF3),
-    inkDim: Color(0xFFA8AEBF),
-    inkFaint: Color(0xFF767D91),
-    accent: Color(0xFF818CF8),
-    accentSoft: Color(0xFF23283B),
-    onAccent: Color(0xFF0E0F13),
-    secondary: Color(0xFFFDA4AF),
-    warning: Color(0xFFFCD34D),
-    danger: Color(0xFFFCA5A5),
-    gridDay: Color(0xFF16181F),
-    gridWeekend: Color(0xFF121419),
-    clockFace: Color(0xFF191C24),
-    gridHourLine: Color(0xFF23262F),
-    gridHalfLine: Color(0xFF191C23),
-    gridColumnLine: Color(0xFF1E212A),
-    gridTodayWash: Color(0x14818CF8),
-    nowLine: Color(0xFFFB7185),
-    dropTarget: Color(0x33818CF8),
-    shadowContact: Color(0x8C000000),
-    shadowAmbient: Color(0x59000000),
+    bg: Color(0xFF050507),
+    surface: Color(0xFF0C0D11),
+    surfaceAlt: Color(0xFF131419),
+    hover: Color(0xFF1A1C23),
+    sidebar: Color(0xFF000000),
+    sidebarHover: Color(0xFF121318),
+    navActiveFill: Color(0xFF07303A),
+    navActiveInk: Color(0xFF67E8F9),
+    line: Color(0xFF1E2028),
+    lineSoft: Color(0xFF14161B),
+    ink: Color(0xFFE8ECF2),
+    inkDim: Color(0xFF99A1B3),
+    inkFaint: Color(0xFF69707F),
+    accent: Color(0xFF22D3EE),
+    accentSoft: Color(0xFF08303A),
+    onAccent: Color(0xFF041016),
+    secondary: Color(0xFFF0ABFC),
+    warning: Color(0xFFFDE047),
+    danger: Color(0xFFFF4D6D),
+    gridDay: Color(0xFF0C0D11),
+    gridWeekend: Color(0xFF08090C),
+    clockFace: Color(0xFF0E0F14),
+    gridHourLine: Color(0xFF1C1F27),
+    gridHalfLine: Color(0xFF121419),
+    gridColumnLine: Color(0xFF171A21),
+    gridTodayWash: Color(0x1422D3EE),
+    // Doygun magenta. `danger`ın kırmızısından **renk tonuyla** ayrılıyor
+    // (~38°), parlaklıkla değil: ikisi de aynı aydınlıkta ve "şu an" bir uyarı
+    // değil, bir konum.
+    nowLine: Color(0xFFFF2BD6),
+    dropTarget: Color(0x3322D3EE),
+    shadowContact: Color(0xB3000000),
+    shadowAmbient: Color(0x80000000),
+    glowAccent: Color(0x5922D3EE),
   );
 
   /// Gündüz: kâğıt beyazı kartlar, hafif soğuk gri zemin, aynı indigo.
@@ -216,6 +238,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
     dropTarget: Color(0x334F46E5),
     shadowContact: Color(0x14161C1F),
     shadowAmbient: Color(0x0D161C24),
+    // Açıkta parıltı yok: beyaz kâğıt üstünde neon hale kir gibi durur ve
+    // zaten gerek yok — gölge burada hâlâ çalışıyor.
+    glowAccent: Color(0x00000000),
   );
 
   static AppPalette of(BuildContext context) {
@@ -227,25 +252,71 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   // --- Derinlik --------------------------------------------------------------
 
+  /// Koyu temada yüzeyin kenarını çizen saç teli.
+  ///
+  /// Zemin siyaha inince gölge görünmez oldu — siyah üstüne siyah gölge hiçbir
+  /// şeydir — ve kartlar zeminde yüzmeye başladı. Kenarı geri getirmenin iki
+  /// yolu vardı: `border`'ı kart çizen on sekiz çağrı yerine tek tek eklemek,
+  /// ya da onu derinliğin kendi tanımına koymak.
+  ///
+  /// İkincisi seçildi. Bulanıklığı sıfır, ofseti sıfır, yayılması küçük bir
+  /// gölge tam olarak bir kenarlık gibi çizilir — üstelik kutunun köşe
+  /// yarıçapını kendiliğinden takip ederek. Böylece kural tek yerde yaşıyor:
+  /// "koyu temada yükseklik, kenarla anlatılır."
+  ///
+  /// Açık temada boş: orada gölge hâlâ işini yapıyor.
+  List<BoxShadow> get _rim =>
+      isDark ? [BoxShadow(color: line, spreadRadius: 0.6)] : const [];
+
   /// Zeminden hafifçe kalkan yüzey: kart, satır, hap.
   List<BoxShadow> get shadowSm => [
+    ..._rim,
     BoxShadow(color: shadowContact, blurRadius: 2, offset: const Offset(0, 1)),
     BoxShadow(color: shadowAmbient, blurRadius: 8, offset: const Offset(0, 2)),
   ];
 
   /// Belirgin şekilde önde duran yüzey: seçili kart, açılır panel, FAB.
   List<BoxShadow> get shadowMd => [
+    ..._rim,
     BoxShadow(color: shadowContact, blurRadius: 4, offset: const Offset(0, 2)),
     BoxShadow(color: shadowAmbient, blurRadius: 20, offset: const Offset(0, 8)),
   ];
 
   /// Ekrandan kopan katman: sürüklenen blok, sheet, dialog.
+  ///
+  /// Kenarlık **almıyor**: bu katman zaten ekrandan koptuğunu geniş gölgesiyle
+  /// söylüyor ve koyu üstünde koyu ayrımı burada hâlâ okunuyor. Kenar eklemek
+  /// onu kartlarla aynı dile indirirdi.
   List<BoxShadow> get shadowLg => [
     BoxShadow(color: shadowContact, blurRadius: 8, offset: const Offset(0, 4)),
     BoxShadow(
       color: shadowAmbient,
       blurRadius: 40,
       offset: const Offset(0, 18),
+    ),
+  ];
+
+  /// Seçili / etkin öğenin altına düşen renk halesi (vurgu rengiyle).
+  ///
+  /// Üç yerde kullanılıyor, fazlasında değil: seçili gezinme öğesi, "şu an"
+  /// çizgisi, sürüklenen blok. Parıltı her yere serpilirse neon olmaz,
+  /// bulanıklık olur.
+  List<BoxShadow> get glow => glowOf(accent);
+
+  /// [tint] renginin halesi — "şu an" çizgisi magenta, sürüklenen blok kendi
+  /// kategori rengiyle parlasın diye.
+  ///
+  /// Açık temada [glowAccent] tamamen saydam olduğundan buradan çıkan gölge de
+  /// görünmez. Koşul yazmak yerine opaklığı paletten okumak bilinçli: çağrı
+  /// yerleri `isDark` sormak zorunda kalmıyor.
+  ///
+  /// `spreadRadius` negatif: hale nesnenin kenarından **dışarı** taşsın ama
+  /// altında kalan zemini boğmasın.
+  List<BoxShadow> glowOf(Color tint) => [
+    BoxShadow(
+      color: tint.withValues(alpha: glowAccent.a),
+      blurRadius: 24,
+      spreadRadius: -4,
     ),
   ];
 
@@ -376,6 +447,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? dropTarget,
     Color? shadowContact,
     Color? shadowAmbient,
+    Color? glowAccent,
   }) {
     return AppPalette(
       brightness: brightness ?? this.brightness,
@@ -409,6 +481,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       dropTarget: dropTarget ?? this.dropTarget,
       shadowContact: shadowContact ?? this.shadowContact,
       shadowAmbient: shadowAmbient ?? this.shadowAmbient,
+      glowAccent: glowAccent ?? this.glowAccent,
     );
   }
 
@@ -449,6 +522,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       dropTarget: c(dropTarget, other.dropTarget),
       shadowContact: c(shadowContact, other.shadowContact),
       shadowAmbient: c(shadowAmbient, other.shadowAmbient),
+      glowAccent: c(glowAccent, other.glowAccent),
     );
   }
 }
@@ -486,6 +560,26 @@ class EventStyle {
   /// Kenarlık; yan yana duran aynı renkli iki bloğu ayırır.
   final Color edge;
 }
+
+/// Doygun bir renk zemininin üstüne konacak mürekkep.
+///
+/// Kategori renkleri kullanıcıdan geliyor: açık sarının üstünde beyaz yazı
+/// okunmaz, koyu morun üstünde siyah okunmaz. Karar rengin kendi parlaklığına
+/// bakarak veriliyor ve **temadan bağımsız** — zemin o rengin kendisi, sayfanın
+/// zemini değil. Bu yüzden `AppPalette`'in bir üyesi değil, serbest bir işlev.
+///
+/// Daha önce bu koşul dört ayrı dosyada elle yazılıydı; dördü de aynı `#14161C`
+/// sabitini taşıyordu ve palet değişince hiçbiri haber almıyordu.
+Color inkOn(Color background) =>
+    ThemeData.estimateBrightnessForColor(background) == Brightness.dark
+    ? const Color(0xFFFFFFFF)
+    : AppPalette.light.ink;
+
+/// Rengi bilinmeyen bir kategori grafikte hangi renkle çizilir.
+///
+/// Rapor hizmeti bir `BuildContext` görmüyor (ve görmemeli), o yüzden bu değer
+/// paletten okunamıyor; adı olan bir sabit, gövdeye gömülmüş bir hex'ten iyi.
+const Color kUnknownCategoryColor = Color(0xFF529CCA);
 
 /// WCAG 2.1 kontrast oranı (1:1 – 21:1).
 ///
@@ -733,10 +827,14 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
         borderRadius: BorderRadius.vertical(top: Radius.circular(R.lg)),
       ),
     ),
+    // Bildirim ve ipucu her iki temada da **koyu** yüzeydir: sayfanın üstünde
+    // duran geçici bir katman, sayfanın rengini değil kendi rengini taşır.
+    // Değerler koyu paletten okunuyor; daha önce elle yazılmışlardı ve palet
+    // değişince eski tonlarda kalıyorlardı.
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: p.isDark ? p.surfaceAlt : const Color(0xFF1B1E26),
-      contentTextStyle: const TextStyle(
-        color: Color(0xFFECEEF3),
+      backgroundColor: AppPalette.dark.surfaceAlt,
+      contentTextStyle: TextStyle(
+        color: AppPalette.dark.ink,
         fontFamily: kFontFamily,
         fontFamilyFallback: kFontFallback,
         fontSize: 13.5,
@@ -830,11 +928,11 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: p.isDark ? p.hover : const Color(0xFF14161C),
+        color: p.isDark ? p.hover : AppPalette.dark.surfaceAlt,
         borderRadius: R.radiusXs,
       ),
-      textStyle: const TextStyle(
-        color: Color(0xFFECEEF3),
+      textStyle: TextStyle(
+        color: AppPalette.dark.ink,
         fontFamily: kFontFamily,
         fontFamilyFallback: kFontFallback,
         fontSize: 12,
