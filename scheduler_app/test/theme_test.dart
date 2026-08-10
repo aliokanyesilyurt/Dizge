@@ -111,6 +111,54 @@ void main() {
       });
     }
 
+    test('koyu tema gerçekten siyah, kartlar yine de zeminden ayrışır', () {
+      const p = AppPalette.dark;
+
+      // "Çok siyah" bir istek olarak geldi; sayı olarak da tutulsun.
+      expect(p.bg.computeLuminance(), lessThan(0.005));
+      expect(p.sidebar, const Color(0xFF000000));
+
+      // Ama katman hiyerarşisi çökmemeli: kart zeminden, sheet karttan ileri.
+      expect(
+        p.surface.computeLuminance(),
+        greaterThan(p.bg.computeLuminance()),
+      );
+      expect(
+        p.surfaceAlt.computeLuminance(),
+        greaterThan(p.surface.computeLuminance()),
+      );
+    });
+
+    test('koyuda kart kenarı görünür — gölge orada iş görmüyor', () {
+      // Bu testin varlık sebebi: siyah zemine düşen siyah gölge hiçbir şeydir.
+      // Kartı ayıran şey kenarlıksa, o kenarlığın da görünür olması gerekir.
+      const p = AppPalette.dark;
+      expect(contrastRatio(p.line, p.surface), greaterThan(1.15));
+    });
+
+    test('parıltı yalnız koyu temada var', () {
+      // Aynı widget kodu iki temada da doğru davransın diye açıkta saydam;
+      // böylece çağrı yerlerinde `isDark` koşulu yazmak gerekmiyor.
+      expect(AppPalette.light.glowAccent.a, 0);
+      expect(AppPalette.dark.glowAccent.a, greaterThan(0));
+      expect(AppPalette.light.glow.single.color.a, 0);
+    });
+
+    test('"şu an" çizgisi tehlike rengiyle karışmaz', () {
+      // İkisi de sıcak ve doygun; ayırt edilemezlerse kullanıcı saat çizgisini
+      // bir uyarı sanar.
+      //
+      // Ölçü **renk tonu**, kontrast değil: WCAG oranı parlaklık farkına bakar
+      // ve aynı aydınlıktaki iki farklı renk orada 1.0'a yakın çıkar. Burada
+      // sorulan soru "okunuyor mu" değil, "ayrı renk mi".
+      const p = AppPalette.dark;
+      final nowHue = HSLColor.fromColor(p.nowLine).hue;
+      final dangerHue = HSLColor.fromColor(p.danger).hue;
+      final apart = (nowHue - dangerHue).abs();
+
+      expect(apart > 30 && apart < 330, isTrue, reason: 'ton farkı $apart°');
+    });
+
     test('tamamlanan blok soluklaşır ve ikincil yazıya döner', () {
       const color = Color(0xFF4FC3F7);
       final open = AppPalette.light.event(color);
