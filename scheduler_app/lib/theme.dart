@@ -252,19 +252,41 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   // --- Derinlik --------------------------------------------------------------
 
+  /// Koyu temada yüzeyin kenarını çizen saç teli.
+  ///
+  /// Zemin siyaha inince gölge görünmez oldu — siyah üstüne siyah gölge hiçbir
+  /// şeydir — ve kartlar zeminde yüzmeye başladı. Kenarı geri getirmenin iki
+  /// yolu vardı: `border`'ı kart çizen on sekiz çağrı yerine tek tek eklemek,
+  /// ya da onu derinliğin kendi tanımına koymak.
+  ///
+  /// İkincisi seçildi. Bulanıklığı sıfır, ofseti sıfır, yayılması küçük bir
+  /// gölge tam olarak bir kenarlık gibi çizilir — üstelik kutunun köşe
+  /// yarıçapını kendiliğinden takip ederek. Böylece kural tek yerde yaşıyor:
+  /// "koyu temada yükseklik, kenarla anlatılır."
+  ///
+  /// Açık temada boş: orada gölge hâlâ işini yapıyor.
+  List<BoxShadow> get _rim =>
+      isDark ? [BoxShadow(color: line, spreadRadius: 0.6)] : const [];
+
   /// Zeminden hafifçe kalkan yüzey: kart, satır, hap.
   List<BoxShadow> get shadowSm => [
+    ..._rim,
     BoxShadow(color: shadowContact, blurRadius: 2, offset: const Offset(0, 1)),
     BoxShadow(color: shadowAmbient, blurRadius: 8, offset: const Offset(0, 2)),
   ];
 
   /// Belirgin şekilde önde duran yüzey: seçili kart, açılır panel, FAB.
   List<BoxShadow> get shadowMd => [
+    ..._rim,
     BoxShadow(color: shadowContact, blurRadius: 4, offset: const Offset(0, 2)),
     BoxShadow(color: shadowAmbient, blurRadius: 20, offset: const Offset(0, 8)),
   ];
 
   /// Ekrandan kopan katman: sürüklenen blok, sheet, dialog.
+  ///
+  /// Kenarlık **almıyor**: bu katman zaten ekrandan koptuğunu geniş gölgesiyle
+  /// söylüyor ve koyu üstünde koyu ayrımı burada hâlâ okunuyor. Kenar eklemek
+  /// onu kartlarla aynı dile indirirdi.
   List<BoxShadow> get shadowLg => [
     BoxShadow(color: shadowContact, blurRadius: 8, offset: const Offset(0, 4)),
     BoxShadow(
@@ -285,14 +307,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
   List<BoxShadow> get glow => [
     BoxShadow(color: glowAccent, blurRadius: 24, spreadRadius: -4),
   ];
-
-  /// Koyu temada kartı zeminden ayıran şey. Açıkta gölge zaten çalışıyor;
-  /// orada kenarlık yumuşak kalır.
-  ///
-  /// Zemin siyaha indiğinde `shadowSm` görünmez oldu: siyah üstüne siyah
-  /// gölge hiçbir şeydir. Katman hiyerarşisi çökmesin diye derinliğin
-  /// taşıyıcısı burada kenarlığa devrediyor.
-  Border get cardEdge => Border.all(color: isDark ? line : lineSoft);
 
   // --- Türetilmiş stiller ----------------------------------------------------
 

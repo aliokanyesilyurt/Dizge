@@ -136,6 +136,35 @@ void main() {
       expect(contrastRatio(p.line, p.surface), greaterThan(1.15));
     });
 
+    test('koyuda kart gölgesi kenar çizgisi de taşır', () {
+      // Kenarlık, `border`'ı on sekiz çağrı yerine tek tek eklemek yerine
+      // derinliğin tanımına konuldu. Bulanıklığı sıfır olan gölge tam olarak
+      // bir kenarlık gibi çizilir ve köşe yarıçapını kendiliğinden takip eder.
+      final rim = AppPalette.dark.shadowSm.first;
+
+      expect(rim.color, AppPalette.dark.line);
+      expect(rim.blurRadius, 0);
+      expect(rim.offset, Offset.zero);
+      expect(rim.spreadRadius, greaterThan(0));
+    });
+
+    test('açık temada kenar çizgisi yok — gölge zaten iş görüyor', () {
+      for (final shadow in [
+        ...AppPalette.light.shadowSm,
+        ...AppPalette.light.shadowMd,
+      ]) {
+        expect(shadow.blurRadius, greaterThan(0));
+      }
+    });
+
+    test('ekrandan kopan katman kenarlık almaz', () {
+      // Sheet ve sürüklenen blok zaten geniş gölgesiyle konuşuyor; kenar
+      // eklemek onu kartlarla aynı dile indirirdi.
+      for (final shadow in AppPalette.dark.shadowLg) {
+        expect(shadow.blurRadius, greaterThan(0));
+      }
+    });
+
     test('parıltı yalnız koyu temada var', () {
       // Aynı widget kodu iki temada da doğru davransın diye açıkta saydam;
       // böylece çağrı yerlerinde `isDark` koşulu yazmak gerekmiyor.
