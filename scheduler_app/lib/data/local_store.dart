@@ -44,6 +44,30 @@ abstract class LocalStore {
   Future<void> close();
 }
 
+/// Şema evrimi. Eski sürümden okunan görüntüyü güncel şekle taşır.
+///
+/// v1 → v2: kategoriler artık anlık görüntüde taşınıyor (önceden yalnızca
+/// bellekteydi ve uygulama kapanınca özel kategoriler kayboluyordu).
+///
+/// v2 → v3: `Habit.updatedAt` geldi ama burada adımı **yok** — eksik damga
+/// okuma anında `createdAt`'ten türetiliyor (`Habit.fromJson`). Görüntüyü
+/// yeniden yazmak boş iş olurdu.
+///
+/// Sınıfın içinde değil, dışında duruyor: her [LocalStore] uygulaması bunu
+/// çağırmak zorunda. Daha önce yalnız [HiveLocalStore]'un özel yöntemiydi ve
+/// [InMemoryStore] hiç göç ettirmiyordu — yani güvenli depo açılamayıp belleğe
+/// düşen kullanıcı, eski şemayı göçürülmemiş hâlde okuyordu.
+Map<String, dynamic> migrateSnapshot(Map<String, dynamic> json) {
+  final version = (json['schemaVersion'] as num?)?.toInt() ?? 1;
+  if (version >= AppConfig.kSchemaVersion) return json;
+
+  var migrated = json;
+  if (version < 2) {
+    migrated = {...migrated, 'categories': migrated['categories'] ?? const []};
+  }
+  return {...migrated, 'schemaVersion': AppConfig.kSchemaVersion};
+}
+
 /// Anahtarları:
 const _kSnapshot = 'snapshot';
 
@@ -87,7 +111,7 @@ class HiveLocalStore implements LocalStore {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) return null;
-      return _migrate(decoded.cast<String, dynamic>());
+      return migrateSnapshot(decoded.cast<String, dynamic>());
     } catch (e) {
       // Bozuk kayıt uygulamayı açılışta kilitlemesin: boş başla, bir sonraki
       // yazma sağlam kaydı geri koyar. (Sessiz veri kaybı riski var; bu yüzden
@@ -96,24 +120,6 @@ class HiveLocalStore implements LocalStore {
       unawaited(_requireBox.put('$_kSnapshot.corrupt', raw));
       return null;
     }
-  }
-
-  /// Şema evrimi. Eski sürümden okunan görüntüyü güncel şekle taşır.
-  ///
-  /// v1 → v2: kategoriler artık anlık görüntüde taşınıyor (önceden yalnızca
-  /// bellekteydi ve uygulama kapanınca özel kategoriler kayboluyordu).
-  Map<String, dynamic> _migrate(Map<String, dynamic> json) {
-    final version = (json['schemaVersion'] as num?)?.toInt() ?? 1;
-    if (version >= AppConfig.kSchemaVersion) return json;
-
-    var migrated = json;
-    if (version < 2) {
-      migrated = {
-        ...migrated,
-        'categories': migrated['categories'] ?? const [],
-      };
-    }
-    return {...migrated, 'schemaVersion': AppConfig.kSchemaVersion};
   }
 
   @override
@@ -175,7 +181,8 @@ class InMemoryStore implements LocalStore {
   Future<void> init() async {}
 
   @override
-  Map<String, dynamic>? readSnapshot() => _snapshot;
+  Map<String, dynamic>? readSnapshot() =>
+      _snapshot == null ? null : migrateSnapshot(_snapshot!);
 
   @override
   Future<void> writeSnapshot(Map<String, dynamic> snapshot) async {

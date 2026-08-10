@@ -164,12 +164,15 @@ Kod okumasında iki gerçek boşluk çıktı:
    değişikliği rastgele kazanır. `Task` ve `Note`'ta bu alan var; `Habit`'e
    ekleniyor, `kSchemaVersion` 2 → 3 ve migrasyonda eski kayıtlara `createdAt`
    yazılıyor.
-2. **`TaskCategory`'nin kimliği yok** — adı kimliği. `AppStore` kategori için
-   mutasyon da üretmiyor (`EntityKind.category` tanımlı ama hiç kullanılmıyor);
-   kategoriler yalnız tam görüntüde taşınıyor. Bugün **bu böyle kalıyor**:
-   kategori listesi kısa, nadiren değişiyor ve tam görüntü onu zaten taşıyor.
-   Kategoriye kimlik vermek, adı değişince bütün işlerin `categoryName`
-   alanını göçürmek demek — ayrı bir dilim, bugünün işi değil.
+2. **`TaskCategory`'nin kimliği yok** — adı kimliği. Bugün **bu böyle kalıyor**:
+   kategoriye kimlik vermek, adı değişince bütün işlerin `categoryName` alanını
+   göçürmek demek — ayrı bir dilim, bugünün işi değil.
+
+   *Düzeltme (S2 sırasında):* bu maddenin ilk hâli "`AppStore` kategori için
+   mutasyon üretmiyor" diyordu. **Yanlış.** `AppStore.addCategory`
+   `EntityKind.category` mutasyonu kaydediyor; yalnız *silme* ve *yeniden
+   adlandırma* yolu yok. Şemadaki kategori desteği bu yüzden ileriye dönük bir
+   nezaket değil, gereklilik.
 
 ---
 

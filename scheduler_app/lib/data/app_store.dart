@@ -536,6 +536,10 @@ class AppStore extends ChangeNotifier {
   /// ölçmeden bilinemez.
   void toggleHabit(Habit habit, DateTime day, {String source = 'habits'}) {
     habit.toggle(day);
+    // Damga mutasyondan **önce** tazelenmeli: `toJson` onu da taşıyor ve
+    // sunucudaki LWW karşılaştırması bu değere bakıyor. Sonra tazelesek
+    // kuyruğa eski damgalı bir kayıt girerdi.
+    habit.touch();
     _record(EntityKind.habit, MutationOp.upsert, habit.id, habit.toJson());
     _telemetry.capture(
       Ev.habitToggled,

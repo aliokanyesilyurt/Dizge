@@ -54,7 +54,13 @@ class AppConfig {
 
   /// Kalıcı anlık görüntünün şema sürümü. Model alanı ekleyip çıkardıkça artır
   /// ve [LocalStore] içindeki migrasyona bir adım yaz.
-  static const int kSchemaVersion = 2;
+  ///
+  /// v3: `Habit.updatedAt` — senkronun "son yazan kazanır" hakemi. Yazılan
+  /// şekil değiştiği için sürüm artıyor; buna karşılık `migrateSnapshot`'ta
+  /// v2 → v3 adımı **yok**, çünkü eksik damga okuma anında `createdAt`'ten
+  /// türetiliyor (`Habit.fromJson`). Görüntüyü yeniden yazmak gereksiz iş
+  /// olurdu.
+  static const int kSchemaVersion = 3;
 
   // --- Senkronizasyon ------------------------------------------------------
 

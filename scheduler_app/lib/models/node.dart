@@ -117,5 +117,14 @@ DateTime readDate(dynamic v) {
   return DateTime.now();
 }
 
+/// Tam zaman damgası; eksik/bozuksa **null**.
+///
+/// [readDate]'in "şimdi"ye düşmesi çoğu alan için doğru ama senkron damgası
+/// için yıkıcı: eksik bir `updatedAt`, kaydı her okumada en yeni ilan eder ve
+/// sunucudaki kopyayı ezer. Çağıran taraf boşluğu kendi doğru varsayılanıyla
+/// (genelde `createdAt`) doldursun diye ayrı bir okuyucu.
+DateTime? readDateOrNull(dynamic v) =>
+    v is String ? DateTime.tryParse(v) : null;
+
 Set<String> readTags(dynamic v) =>
     v is List ? v.map((e) => e.toString()).toSet() : <String>{};
