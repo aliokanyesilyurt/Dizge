@@ -61,6 +61,12 @@ dependencies:
   # Offline-first: bağlantı geri geldiğinde bekleyen mutasyonlar gönderilir.
   connectivity_plus: ^7.3.1
 
+  # --- Uzak sunucu ---
+  # Supabase: kimlik doğrulama + Postgres. Paket yalnızca iki dosyada tanınır
+  # (`supabase_api.dart`, `bootstrap.dart`); uygulamanın geri kalanı onu
+  # `RemoteGateway` soyutlamasının arkasından görür.
+  supabase_flutter: ^2.9.1
+
   # --- Yerelleştirme ---
   # Tarih/saat seçicileri ve Material metinleri Türkçe gelsin diye.
   flutter_localizations:
