@@ -296,16 +296,28 @@ class AppPalette extends ThemeExtension<AppPalette> {
     ),
   ];
 
-  /// Seçili / etkin öğenin altına düşen renk halesi.
+  /// Seçili / etkin öğenin altına düşen renk halesi (vurgu rengiyle).
   ///
   /// Üç yerde kullanılıyor, fazlasında değil: seçili gezinme öğesi, "şu an"
   /// çizgisi, sürüklenen blok. Parıltı her yere serpilirse neon olmaz,
   /// bulanıklık olur.
+  List<BoxShadow> get glow => glowOf(accent);
+
+  /// [tint] renginin halesi — "şu an" çizgisi magenta, sürüklenen blok kendi
+  /// kategori rengiyle parlasın diye.
+  ///
+  /// Açık temada [glowAccent] tamamen saydam olduğundan buradan çıkan gölge de
+  /// görünmez. Koşul yazmak yerine opaklığı paletten okumak bilinçli: çağrı
+  /// yerleri `isDark` sormak zorunda kalmıyor.
   ///
   /// `spreadRadius` negatif: hale nesnenin kenarından **dışarı** taşsın ama
   /// altında kalan zemini boğmasın.
-  List<BoxShadow> get glow => [
-    BoxShadow(color: glowAccent, blurRadius: 24, spreadRadius: -4),
+  List<BoxShadow> glowOf(Color tint) => [
+    BoxShadow(
+      color: tint.withValues(alpha: glowAccent.a),
+      blurRadius: 24,
+      spreadRadius: -4,
+    ),
   ];
 
   // --- Türetilmiş stiller ----------------------------------------------------
