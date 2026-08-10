@@ -9,6 +9,8 @@ import '../core/theme_mode_controller.dart';
 import '../data/app_store.dart';
 import '../data/local_store.dart';
 import '../data/persistence_providers.dart';
+import '../data/sync/first_sync.dart';
+import '../data/sync/remote_gateway.dart';
 import '../data/sync/sync_engine.dart';
 import '../theme.dart';
 
@@ -195,7 +197,15 @@ class _AccountSection extends ConsumerWidget {
         icon: Icons.login_rounded,
         title: 'Oturum aç',
         subtitle: 'Planların bütün cihazlarında aynı olsun',
-        onTap: () => _showSignIn(context, ref),
+        onTap: () async {
+          await _showSignIn(context, ref);
+          // Sheet yalnız kimlik doğrular. İki tarafı buluşturmak burada,
+          // çünkü sorulacak soru varsa onun yeri sheet'in üstü değil.
+          if (context.mounted &&
+              ref.read(authServiceProvider).currentUser != null) {
+            await _runFirstSync(context, ref);
+          }
+        },
       );
     }
 
@@ -209,6 +219,84 @@ class _AccountSection extends ConsumerWidget {
       onTap: () => ref.read(authServiceProvider).signOut(),
     );
   }
+}
+
+/// Oturum açıldıktan sonra yerel takvim ile sunucuyu buluşturur.
+///
+/// Yalnız **açıkça giriş yapıldığında** çalışır, her açılışta değil: her
+/// açılışta tam çekim yapmak, artımlı çekim olmadığı için yerel değişiklikleri
+/// ezme riski taşırdı (plan B4).
+Future<void> _runFirstSync(BuildContext context, WidgetRef ref) async {
+  final coordinator = FirstSyncCoordinator(
+    gateway: ref.read(remoteGatewayProvider),
+    store: ref.read(appStoreProvider),
+    outbox: ref.read(outboxProvider),
+  );
+
+  FirstSyncDecision decision;
+  try {
+    decision = await coordinator.inspect();
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hesabındaki planlar okunamadı. Daha sonra denenecek.'),
+        ),
+      );
+    }
+    return;
+  }
+
+  var plan = decision.plan;
+
+  if (plan == FirstSyncPlan.ask) {
+    if (!context.mounted) return;
+    final chosen = await _askWhichWins(context, ref);
+    if (chosen == null) return; // Kullanıcı vazgeçti; hiçbir şey değişmez.
+    plan = chosen;
+  }
+
+  await coordinator.apply(plan, remote: decision.remote);
+
+  // Motoru dürt: oturum açılana kadar kuyruk bekliyordu.
+  await ref.read(syncEngineProvider)?.syncNow();
+}
+
+/// İki tarafta da veri varken sorulan tek soru.
+///
+/// Varsayılan yok ve kapatmak "vazgeç" demek: yanlış tıklanan bir düğme
+/// aylardır biriken bir takvimi silebilir.
+Future<FirstSyncPlan?> _askWhichWins(BuildContext context, WidgetRef ref) {
+  final store = ref.read(appStoreProvider);
+  final localCount =
+      store.tasks.length + store.notes.length + store.habits.length;
+
+  return showDialog<FirstSyncPlan>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Hangisi kalsın?'),
+      content: Text(
+        'Bu cihazda $localCount kayıt var, hesabında da planların duruyor. '
+        'İkisini birleştiremiyoruz — hangisinin kalacağını seçmen gerek.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('Vazgeç'),
+        ),
+        TextButton(
+          onPressed: () =>
+              Navigator.of(dialogContext).pop(FirstSyncPlan.download),
+          child: const Text('Hesaptakiler'),
+        ),
+        FilledButton(
+          onPressed: () =>
+              Navigator.of(dialogContext).pop(FirstSyncPlan.upload),
+          child: const Text('Bu cihazdakiler'),
+        ),
+      ],
+    ),
+  );
 }
 
 Future<void> _showSignIn(BuildContext context, WidgetRef ref) {

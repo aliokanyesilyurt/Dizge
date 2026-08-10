@@ -4,15 +4,21 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+
 import 'core/app_config.dart';
+import 'core/auth_service.dart';
 import 'core/connectivity.dart';
 import 'core/secure_key_store.dart';
 import 'core/telemetry.dart';
 import 'data/app_store.dart';
 import 'data/local_store.dart';
 import 'data/persistence_providers.dart';
+import 'data/supabase_auth_service.dart';
 import 'data/sync/outbox.dart';
 import 'data/sync/remote_gateway.dart';
+import 'data/sync/supabase_api.dart';
+import 'data/sync/supabase_gateway.dart';
 import 'data/sync/sync_engine.dart';
 
 /// Uygulamanın çalışmaya hazır hâle geldiği tek nokta.
@@ -27,9 +33,13 @@ import 'data/sync/sync_engine.dart';
 ///     bir anlığına görünüp sonra doluyor" titremesi olmaz.
 ///  5. Senkron motoru başlatılır (uzak sunucu tanımlıysa).
 ///
-/// [gateway] üretimde `bootstrap()` çağrısından geçirilir; şimdilik
-/// [NoopRemoteGateway] ile tamamen yerel çalışır.
-Future<ProviderContainer> bootstrap({RemoteGateway? gateway}) async {
+/// Supabase anahtarları `--dart-define` ile verilmişse gerçek kapılar kurulur;
+/// verilmemişse [NoopRemoteGateway] + [NoopAuthService] ile uygulama tamamen
+/// yerel çalışır. [gateway] ve [auth] yalnızca testler ve özel derlemeler için.
+Future<ProviderContainer> bootstrap({
+  RemoteGateway? gateway,
+  AuthService? auth,
+}) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final telemetry = await _initTelemetry();
@@ -38,11 +48,13 @@ Future<ProviderContainer> bootstrap({RemoteGateway? gateway}) async {
   final (store, storageDegraded) = await _openStore();
 
   final outbox = Outbox(store);
-  final remote = gateway ?? const NoopRemoteGateway();
+  final (remote, authService) = await _initBackend(gateway, auth);
 
-  // Senkron motoru yalnızca gerçek bir sunucu tanımlıysa kurulur; aksi hâlde
-  // provider null kalır ve hiçbir zamanlayıcı dönmez.
-  final engine = remote.isConfigured
+  // Motorun varlığı **sunucunun yapılandırılmış olmasına** bağlı, oturumun
+  // açık olmasına değil: kullanıcı uygulama açıldıktan sonra da giriş yapabilir
+  // ve o an motorun kurulu olması gerekir. Oturum denetimi motorun içinde,
+  // her gönderim turunda yapılıyor.
+  final engine = remote.isConfigured || AppConfig.backendAvailable
       ? SyncEngine(
           outbox: outbox,
           gateway: remote,
@@ -57,6 +69,7 @@ Future<ProviderContainer> bootstrap({RemoteGateway? gateway}) async {
       localStoreProvider.overrideWithValue(store),
       outboxProvider.overrideWithValue(outbox),
       remoteGatewayProvider.overrideWithValue(remote),
+      authServiceProvider.overrideWithValue(authService),
       syncEngineProvider.overrideWithValue(engine),
     ],
   );
@@ -81,6 +94,50 @@ Future<ProviderContainer> bootstrap({RemoteGateway? gateway}) async {
   );
 
   return container;
+}
+
+/// Supabase'i kurar ve kapıları döner.
+///
+/// Anahtarlar verilmemişse (`--dart-define` yok) **hiçbir şey kurulmaz**:
+/// uygulama bugünkü gibi tamamen yerel çalışır. Bu, geliştirme makinesinde ve
+/// testlerde varsayılan yol.
+///
+/// [gatewayOverride] / [authOverride] testler ve özel derlemeler için.
+Future<(RemoteGateway, AuthService)> _initBackend(
+  RemoteGateway? gatewayOverride,
+  AuthService? authOverride,
+) async {
+  if (gatewayOverride != null || authOverride != null) {
+    return (
+      gatewayOverride ?? const NoopRemoteGateway(),
+      authOverride ?? const NoopAuthService(),
+    );
+  }
+
+  if (!AppConfig.backendAvailable) {
+    return (const NoopRemoteGateway(), const NoopAuthService());
+  }
+
+  try {
+    await sb.Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      publishableKey: AppConfig.supabaseKey,
+      // Oturum jetonunu saklamak, yenilemek ve uygulama yeniden açıldığında
+      // geri yüklemek paketin işi.
+      authOptions: const sb.FlutterAuthClientOptions(autoRefreshToken: true),
+    );
+  } catch (e, s) {
+    // Sunucu kurulamadıysa uygulama **yine de açılmalı**. Planlar cihazda ve
+    // erişilebilir olmaya devam eder; yalnız eşitleme yoktur.
+    debugPrint('Supabase kurulamadı, yerel kipte devam ediliyor: $e\n$s');
+    return (const NoopRemoteGateway(), const NoopAuthService());
+  }
+
+  final client = sb.Supabase.instance.client;
+  return (
+    SupabaseGateway(LiveSupabaseApi(client)),
+    SupabaseAuthService(client.auth),
+  );
 }
 
 Future<Telemetry> _initTelemetry() async {
