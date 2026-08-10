@@ -421,15 +421,7 @@ class _Check extends StatelessWidget {
               border: Border.all(color: done ? color : c.inkFaint, width: 1.5),
             ),
             child: done
-                ? Icon(
-                    Icons.check_rounded,
-                    size: 14,
-                    color:
-                        ThemeData.estimateBrightnessForColor(color) ==
-                            Brightness.dark
-                        ? Colors.white
-                        : const Color(0xFF14161C),
-                  )
+                ? Icon(Icons.check_rounded, size: 14, color: inkOn(color))
                 : null,
           ),
         ),

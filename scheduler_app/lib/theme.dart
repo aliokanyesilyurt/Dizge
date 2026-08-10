@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 /// 1. **Zemin geri çekilir, içerik öne çıkar.** Kartlar zeminden bir tık
 ///    *ileri* durur. Açık temada bunu yükseklik (gölge) söyler; koyu temada
 ///    zemin neredeyse saf siyah olduğu için gölge işe yaramaz ve görevi ince
-///    kenarlık devralır (bkz. [cardEdge]).
+///    bir kenar çizgisi devralır (bkz. [AppPalette.shadowSm]).
 /// 2. **İki neon vurgu.** Camgöbeği birincil (bugün, seçim, bağlantı),
 ///    magenta ikincil (kaçan iş, "şu an"). Geri kalan her şey nötr gri
 ///    skalasında; renk yalnızca kullanıcının kendi kategorilerine ait.
@@ -561,6 +561,26 @@ class EventStyle {
   final Color edge;
 }
 
+/// Doygun bir renk zemininin üstüne konacak mürekkep.
+///
+/// Kategori renkleri kullanıcıdan geliyor: açık sarının üstünde beyaz yazı
+/// okunmaz, koyu morun üstünde siyah okunmaz. Karar rengin kendi parlaklığına
+/// bakarak veriliyor ve **temadan bağımsız** — zemin o rengin kendisi, sayfanın
+/// zemini değil. Bu yüzden `AppPalette`'in bir üyesi değil, serbest bir işlev.
+///
+/// Daha önce bu koşul dört ayrı dosyada elle yazılıydı; dördü de aynı `#14161C`
+/// sabitini taşıyordu ve palet değişince hiçbiri haber almıyordu.
+Color inkOn(Color background) =>
+    ThemeData.estimateBrightnessForColor(background) == Brightness.dark
+    ? const Color(0xFFFFFFFF)
+    : AppPalette.light.ink;
+
+/// Rengi bilinmeyen bir kategori grafikte hangi renkle çizilir.
+///
+/// Rapor hizmeti bir `BuildContext` görmüyor (ve görmemeli), o yüzden bu değer
+/// paletten okunamıyor; adı olan bir sabit, gövdeye gömülmüş bir hex'ten iyi.
+const Color kUnknownCategoryColor = Color(0xFF529CCA);
+
 /// WCAG 2.1 kontrast oranı (1:1 – 21:1).
 ///
 /// Palette'in kendi içinde duruyor çünkü [AppPalette.readableOn] buna dayanıyor:
@@ -807,10 +827,14 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
         borderRadius: BorderRadius.vertical(top: Radius.circular(R.lg)),
       ),
     ),
+    // Bildirim ve ipucu her iki temada da **koyu** yüzeydir: sayfanın üstünde
+    // duran geçici bir katman, sayfanın rengini değil kendi rengini taşır.
+    // Değerler koyu paletten okunuyor; daha önce elle yazılmışlardı ve palet
+    // değişince eski tonlarda kalıyorlardı.
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: p.isDark ? p.surfaceAlt : const Color(0xFF1B1E26),
-      contentTextStyle: const TextStyle(
-        color: Color(0xFFECEEF3),
+      backgroundColor: AppPalette.dark.surfaceAlt,
+      contentTextStyle: TextStyle(
+        color: AppPalette.dark.ink,
         fontFamily: kFontFamily,
         fontFamilyFallback: kFontFallback,
         fontSize: 13.5,
@@ -904,11 +928,11 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: p.isDark ? p.hover : const Color(0xFF14161C),
+        color: p.isDark ? p.hover : AppPalette.dark.surfaceAlt,
         borderRadius: R.radiusXs,
       ),
-      textStyle: const TextStyle(
-        color: Color(0xFFECEEF3),
+      textStyle: TextStyle(
+        color: AppPalette.dark.ink,
         fontFamily: kFontFamily,
         fontFamilyFallback: kFontFallback,
         fontSize: 12,

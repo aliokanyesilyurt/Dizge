@@ -122,7 +122,7 @@ MaterialApp
 └─ AppShell
    └─ WeekViewScreen
       ├─ _header()          ← _Chrome, _IconAction, _GhostButton (elde yazılmış)
-      ├─ _DayHeaderRow      ← _DayHeaderCell ×7
+      ├─ _DayHeaderRow      ← _DayHeaderCell ×7 
       ├─ _UntimedRow        ← _UntimedChip
       └─ WeekTimeGrid
          ├─ _HourGutter

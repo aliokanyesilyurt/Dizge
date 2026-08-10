@@ -201,10 +201,7 @@ class _TodayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final onColor =
-        ThemeData.estimateBrightnessForColor(color) == Brightness.dark
-        ? Colors.white
-        : const Color(0xFF14161C);
+    final onColor = inkOn(color);
 
     return GestureDetector(
       onTap: onTap,
