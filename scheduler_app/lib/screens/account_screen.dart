@@ -521,6 +521,22 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                // Anahtar çalışıyor ama gidecek bir sunucu yoksa bunu söylemek
+                // zorundayız. Çalışıyormuş gibi yapan bir anahtar, kapalı bir
+                // anahtardan daha kötüdür.
+                if (available && !AppConfig.telemetryAvailable) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Bu derlemede analitik sunucusu yapılandırılmadı; '
+                    'tercihin yine de saklanıyor.',
+                    style: TextStyle(
+                      color: c.warning,
+                      fontSize: 11,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

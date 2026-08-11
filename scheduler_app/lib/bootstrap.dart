@@ -42,10 +42,14 @@ Future<ProviderContainer> bootstrap({
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final telemetry = await _initTelemetry();
-  _installErrorHandlers(telemetry);
-
+  // Depo telemetriden **önce** açılıyor (T4): rıza tercihi orada saklanıyor ve
+  // geçit doğru başlangıç değeriyle kurulmalı. Hata yakalayıcıların bir adım
+  // gecikmesi bilinçli bir bedel — `_openStore` kendi hatalarını zaten yakalayıp
+  // bellek deposuna düşüyor, yani bu pencerede sessizce kaybolan bir çökme yok.
   final (store, storageDegraded) = await _openStore();
+
+  final telemetry = await _initTelemetry(store);
+  _installErrorHandlers(telemetry);
 
   final outbox = Outbox(store);
   final (remote, authService) = await _initBackend(gateway, auth);
@@ -140,18 +144,35 @@ Future<(RemoteGateway, AuthService)> _initBackend(
   );
 }
 
-Future<Telemetry> _initTelemetry() async {
+/// Telemetriyi kurar ve **her zaman** rıza geçidinin arkasına koyar.
+///
+/// "Her zaman" (T4) düzeltilmiş bir hata: eskiden anahtar verilmemişse geçit
+/// hiç kurulmuyor, çıplak bir [NoopTelemetry] dönüyordu. Hesap ekranı da
+/// geçidi göremeyince "Anonim kullanım istatistikleri" anahtarını pasif
+/// bırakıyordu — düğme bozuk değildi, arkasında çevrilecek bir şey yoktu.
+///
+/// Şimdi geçit her koşulda var: tercih gerçek bir tercih, saklanıyor ve
+/// açılışta geri okunuyor. İçeride gerçek bir sunucu olup olmaması ayrı bir
+/// soru ve ekran bunu kullanıcıya dürüstçe söylüyor.
+Future<Telemetry> _initTelemetry(LocalStore store) async {
+  final Telemetry inner;
   if (!AppConfig.telemetryAvailable) {
     // Anahtar yok: geliştirmede konsola bas, üretimde tamamen sus.
-    return kDebugMode ? const DebugTelemetry() : const NoopTelemetry();
+    inner = kDebugMode ? const DebugTelemetry() : const NoopTelemetry();
+  } else {
+    inner = await PostHogTelemetry.init() ?? const NoopTelemetry();
   }
-  final posthog = await PostHogTelemetry.init();
-  final inner = posthog ?? const NoopTelemetry();
 
-  // Rıza kapısı: kullanıcı Hesap ekranından açana kadar tek olay gitmez.
-  // (Rıza tercihi backend/ayar deposuna bağlandığında başlangıç değeri
-  // oradan okunacak.)
-  return ConsentGate(inner, enabled: false);
+  // Varsayılan **kapalı**: kayıt yoksa rıza yok. Sessiz izleme, kullanıcının
+  // henüz cevaplamadığı bir soruyu "evet" saymak olurdu.
+  final remembered = store.readString(kTelemetryConsentKey) == 'on';
+
+  return ConsentGate(
+    inner,
+    enabled: remembered,
+    onPersist: (value) =>
+        store.writeString(kTelemetryConsentKey, value ? 'on' : 'off'),
+  );
 }
 
 /// Şifreli depoyu açar. Başarısızsa bellek deposuna düşer ve `true` (bozulmuş)

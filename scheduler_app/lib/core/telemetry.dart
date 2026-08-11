@@ -256,16 +256,30 @@ class PostHogTelemetry implements Telemetry {
   }
 }
 
+/// Rıza tercihinin yerel depodaki anahtarı.
+const String kTelemetryConsentKey = 'telemetry_consent';
+
 /// Rızaya bağlı telemetri geçidi.
 ///
 /// KVKK/GDPR açısından kritik: kullanıcı açıkça kabul edene kadar tek bir olay
 /// bile gitmez. [enabled] false iken tüm çağrılar yutulur; sonradan açılırsa
 /// **geçmiş olaylar geri gönderilmez** (biriktirilmez de) — sessiz izleme yok.
 class ConsentGate implements Telemetry {
-  ConsentGate(this._inner, {bool enabled = false}) : _enabled = enabled;
+  ConsentGate(this._inner, {bool enabled = false, this.onPersist})
+    : _enabled = enabled;
 
   final Telemetry _inner;
   bool _enabled;
+
+  /// Tercih değiştiğinde çağrılır — yazma işini yapan taraf `bootstrap`.
+  ///
+  /// Geçidin bir depoyu tanımaması bilinçli: `core/` katmanı `data/`'yı
+  /// bilmiyor ve bu sınıfın testi için sahte bir depo kurmak gerekmiyor.
+  ///
+  /// **Neden kalıcı olmak zorunda:** her açılışta sıfırlanan bir onay, onay
+  /// değildir. Kullanıcı kabul ettiyse bir daha sorulmamalı; reddettiyse
+  /// reddi bir sonraki açılışta unutulmamalı.
+  final Future<void> Function(bool enabled)? onPersist;
 
   bool get enabled => _enabled;
 
@@ -273,6 +287,7 @@ class ConsentGate implements Telemetry {
     if (_enabled == value) return;
     _enabled = value;
     if (!value) await _inner.reset();
+    await onPersist?.call(value);
   }
 
   @override
