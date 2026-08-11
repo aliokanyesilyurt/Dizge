@@ -2,18 +2,39 @@
   "version": "0.2.0",
   "configurations": [
     {
+      // Sunucu anahtarlari kaynak koda gomulmez (bkz. lib/core/app_config.dart).
+      // env.json gitignore'da; yeni gelistirici onu env.example.json'dan kopyalar.
+      // Dosya yoksa uygulama yine acilir, sadece tamamen yerel calisir.
+      "name": "scheduler_app (Windows)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "windows",
+      "toolArgs": ["--dart-define-from-file=env.json"]
+    },
+    {
       "name": "scheduler_app (Chrome)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "deviceId": "chrome"
+      "deviceId": "chrome",
+      "toolArgs": ["--dart-define-from-file=env.json"]
     },
     {
       "name": "scheduler_app (Edge)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "deviceId": "edge"
+      "deviceId": "edge",
+      "toolArgs": ["--dart-define-from-file=env.json"]
+    },
+    {
+      // Anahtarsiz kosum: kapinin acik kaldigi gelistirme kipi (G2).
+      "name": "scheduler_app (yerel kip, anahtarsiz)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "windows"
     }
   ]
 }

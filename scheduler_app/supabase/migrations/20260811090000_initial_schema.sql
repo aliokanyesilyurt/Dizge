@@ -1,10 +1,12 @@
 -- =============================================================================
 -- Scheduler — Supabase şeması
 --
--- Plan: docs/backend-supabase-plani.md (S1)
--- Bu dosya Supabase SQL düzenleyicisinde bir kez çalıştırılır. Yeniden
--- çalıştırılabilir (idempotent): her nesne `if not exists` ya da
--- `create or replace` ile tanımlı.
+-- Plan: docs/backend-supabase-plani.md (S1) · docs/giris-kapisi-plani.md (M1)
+-- İlk migration. `supabase db push` ile uygulanır; elle SQL düzenleyicisine
+-- yapıştırılmaz — hangi sürümün hangi ortamda olduğunun cevabı bu klasördür.
+-- Yine de idempotent yazıldı (her nesne `if not exists` ya da
+-- `create or replace`): bu dosya, migration düzeni kurulmadan önce panoda
+-- çalıştırılmış olabilecek bir şemanın üstüne de güvenle gider.
 --
 -- Tasarım kararı (B1) — hibrit şema. Sunucunun süzmesi/sıralaması gereken
 -- alanlar tipli sütun; kaydın geri kalanı `payload jsonb`. Şemanın tek gerçeği

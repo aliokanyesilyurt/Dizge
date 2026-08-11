@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Derleme zamani ortam degiskenleri (--dart-define-from-file).
+# Sir olmasa da (publishable key istemciye zaten dagitiliyor) ortama ozel:
+# her gelistirici kendi env.json'unu env.example.json'dan kopyalar.
+env.json
