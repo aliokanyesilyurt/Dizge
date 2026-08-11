@@ -180,4 +180,92 @@ void main() {
       expect(find.byType(AppShell), findsNothing);
     });
   });
+
+  group('parola kurtarma', () {
+    void useWideScreen(WidgetTester tester) =>
+        useScreenSize(tester, const Size(1200, 900));
+
+    /// Karşılama ekranını kurtarma adımına kadar getirir.
+    Future<void> requestCode(WidgetTester tester, FakeAuthService auth) async {
+      await pumpApp(
+        tester,
+        const AuthGate(),
+        overrides: [authServiceProvider.overrideWithValue(auth)],
+      );
+
+      await tester.tap(find.text('Parolamı unuttum'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'E-posta'),
+        'ali@example.com',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Kod gönder'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('kod istemek kullanıcıyı kod adımına getirir', (tester) async {
+      useWideScreen(tester);
+      final auth = FakeAuthService();
+      addTearDown(auth.dispose);
+
+      await requestCode(tester, auth);
+
+      expect(auth.recoveryCodesSentTo, ['ali@example.com']);
+      expect(find.widgetWithText(TextField, '6 haneli kod'), findsOneWidget);
+      // Kapı hâlâ kapalı: kod istemek girmek değil.
+      expect(find.byType(AppShell), findsNothing);
+    });
+
+    testWidgets('doğru kod kapıyı açar', (tester) async {
+      // Sert kapıda kurtarma yolu olmasaydı unutulan parola, veriye kalıcı
+      // olarak erişilememesi demekti.
+      useWideScreen(tester);
+      final auth = FakeAuthService();
+      addTearDown(auth.dispose);
+
+      await requestCode(tester, auth);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, '6 haneli kod'),
+        '123456',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Doğrula ve gir'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(find.byType(WelcomeScreen), findsNothing);
+    });
+
+    testWidgets('yanlış kod söylenir ve kapı kapalı kalır', (tester) async {
+      useWideScreen(tester);
+      final auth = FakeAuthService();
+      addTearDown(auth.dispose);
+
+      await requestCode(tester, auth);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, '6 haneli kod'),
+        '000000',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Doğrula ve gir'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Kod geçersiz'), findsOneWidget);
+      expect(find.byType(AppShell), findsNothing);
+    });
+
+    testWidgets('girişe dönmek kurtarmayı iptal eder', (tester) async {
+      useWideScreen(tester);
+      final auth = FakeAuthService();
+      addTearDown(auth.dispose);
+
+      await requestCode(tester, auth);
+      await tester.tap(find.text('Girişe dön'));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(FilledButton, 'Giriş yap'), findsOneWidget);
+      expect(find.widgetWithText(TextField, '6 haneli kod'), findsNothing);
+    });
+  });
 }

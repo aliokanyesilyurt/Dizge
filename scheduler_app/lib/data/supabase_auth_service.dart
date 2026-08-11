@@ -40,6 +40,30 @@ class SupabaseAuthService implements AuthService {
   @override
   Future<void> signOut() => _guard(_auth.signOut);
 
+  /// `shouldCreateUser: false` bilinçli: varsayılan `true` olsaydı yanlış
+  /// yazılmış bir e-posta sessizce yeni bir hesap açar, kullanıcı da kodu girip
+  /// bomboş bir takvimle karşılaşırdı — "verilerim gitti" diye okunan bir hata.
+  @override
+  Future<void> sendRecoveryCode(String email) => _guard(
+    () => _auth.signInWithOtp(email: email.trim(), shouldCreateUser: false),
+  );
+
+  @override
+  Future<void> verifyRecoveryCode({
+    required String email,
+    required String code,
+  }) => _guard(
+    () => _auth.verifyOTP(
+      email: email.trim(),
+      token: code.trim(),
+      type: OtpType.email,
+    ),
+  );
+
+  @override
+  Future<void> updatePassword(String password) =>
+      _guard(() => _auth.updateUser(UserAttributes(password: password)));
+
   static AuthUser? _toUser(User? user) {
     if (user == null) return null;
     return AuthUser(id: user.id, email: user.email ?? '');
@@ -79,6 +103,17 @@ class SupabaseAuthService implements AuthService {
     }
     if (m.contains('password') && m.contains('6')) {
       return const AuthFailure('Parola en az 6 karakter olmalı.');
+    }
+    // `shouldCreateUser: false` ile kayıtsız bir adrese kod istendiğinde gelen
+    // hata. Sağlayıcının metni ("signups not allowed for otp") kullanıcının
+    // yaptığı şeyle hiç ilgisiz.
+    if (m.contains('signups not allowed') || m.contains('user not found')) {
+      return const AuthFailure('Bu e-postayla kayıtlı bir hesap bulunamadı.');
+    }
+    if (m.contains('token has expired') || m.contains('invalid token')) {
+      return const AuthFailure(
+        'Kod geçersiz ya da süresi dolmuş. Yeni bir kod iste.',
+      );
     }
     if (m.contains('rate limit') || m.contains('too many')) {
       return const AuthFailure(

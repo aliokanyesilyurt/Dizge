@@ -63,9 +63,41 @@ abstract class AuthService {
   Future<void> signIn({required String email, required String password});
   Future<void> signUp({required String email, required String password});
 
-  /// Oturumu kapatır. **Yerel veriye dokunmaz** — cihazdaki takvim
-  /// kullanıcınındır; silmek ayrı ve açıkça istenmiş bir karardır.
+  /// Oturumu kapatır. Yerel veriye ne olacağı bu katmanın işi değil; çağıran
+  /// karar verir (bkz. `account_screen._signOut`).
   Future<void> signOut();
+
+  // --- Parola kurtarma -------------------------------------------------------
+  //
+  // Sert kapı, unutulan parolayı **kalıcı kilitlenmeye** çevirir: uygulamaya
+  // girilemez, veriye ulaşılamaz, yapacak bir şey kalmaz. Bu yüzden kurtarma
+  // isteğe bağlı bir nezaket değil, kapının parçası.
+  //
+  // Sağlayıcının standart sıfırlama akışı e-postadaki **bağlantıyla** çalışır
+  // ve Windows'ta derin bağlantı kaydı ister — OAuth'u eleyen sebebin aynısı.
+  // Onun yerine e-postaya bir kod gidiyor ve kod uygulamaya yazılıyor: hiçbir
+  // platform yapılandırması gerekmiyor.
+
+  /// E-postaya tek kullanımlık bir giriş kodu gönderir.
+  ///
+  /// Kayıtlı olmayan bir adres için **hesap açmaz**: yanlış yazılmış bir
+  /// e-posta, sessizce boş bir hesap yaratıp kullanıcıyı "neden takvimim yok"
+  /// sorusuyla baş başa bırakırdı.
+  Future<void> sendRecoveryCode(String email);
+
+  /// Kodu doğrular ve oturumu açar.
+  ///
+  /// Kurtarma burada bitmiyor: kullanıcı içeri girer ve parolasını
+  /// [updatePassword] ile değiştirir. Kodu "yeni parola belirle" ekranına
+  /// bağlamak, oturum açmadan parola değiştirmek demekti — kod tek başına
+  /// zaten bir oturum anahtarı.
+  Future<void> verifyRecoveryCode({
+    required String email,
+    required String code,
+  });
+
+  /// Açık oturumun parolasını değiştirir.
+  Future<void> updatePassword(String password);
 }
 
 /// Backend yapılandırılmamışken bağlanan uygulama.
@@ -98,6 +130,24 @@ class NoopAuthService implements AuthService {
   /// Oturum yokken çıkmak, zaten istenen durumda olmak demek — hata değil.
   @override
   Future<void> signOut() async {}
+
+  @override
+  Future<void> sendRecoveryCode(String email) async {
+    throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
+  }
+
+  @override
+  Future<void> verifyRecoveryCode({
+    required String email,
+    required String code,
+  }) async {
+    throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
+  }
+
+  @override
+  Future<void> updatePassword(String password) async {
+    throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
+  }
 }
 
 /// Üretimde `bootstrap()` gerçek uygulamayı geçirir.

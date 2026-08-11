@@ -195,16 +195,82 @@ class _AccountSection extends ConsumerWidget {
     // hiç yok; bu bölümün gösterecek bir şeyi de yok.
     if (user == null) return const SizedBox.shrink();
 
-    return _ActionTile(
-      icon: Icons.logout_rounded,
-      iconColor: c.inkDim,
-      title: 'Çıkış yap',
-      // Kullanıcının bu düğmeye basarken en çok merak ettiği şey bu; cevabı
-      // düğmenin yanında duruyor. Eskiden "planların silinmez" yazıyordu —
-      // kapı geldiğinden beri doğru değil.
-      subtitle: 'Bu cihazdaki planlar da silinir',
-      onTap: () => _signOut(context, ref),
+    return Column(
+      children: [
+        // Kurtarma yolunun son adımı: kodla giren kullanıcı parolasını
+        // burada değiştirir. Kodu doğrudan "yeni parola belirle" ekranına
+        // bağlamak, oturum açmadan parola değiştirmek olurdu.
+        _ActionTile(
+          icon: Icons.password_rounded,
+          iconColor: c.inkDim,
+          title: 'Parolanı değiştir',
+          subtitle: 'Bu hesabın parolası',
+          onTap: () => _changePassword(context, ref),
+        ),
+        _ActionTile(
+          icon: Icons.logout_rounded,
+          iconColor: c.inkDim,
+          title: 'Çıkış yap',
+          // Kullanıcının bu düğmeye basarken en çok merak ettiği şey bu; cevabı
+          // düğmenin yanında duruyor. Eskiden "planların silinmez" yazıyordu —
+          // kapı geldiğinden beri doğru değil.
+          subtitle: 'Bu cihazdaki planlar da silinir',
+          onTap: () => _signOut(context, ref),
+        ),
+      ],
     );
+  }
+}
+
+/// Yeni parola sorar ve yazar.
+///
+/// Eski parola sorulmuyor: oturum zaten açık ve sağlayıcı onu istemiyor.
+/// İstemek, kurtarma yolundan gelen kullanıcıyı — yani parolasını **bilmeyen**
+/// kişiyi — kapıda bırakırdı.
+Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
+  final controller = TextEditingController();
+  final auth = ref.read(authServiceProvider);
+  final messenger = ScaffoldMessenger.of(context);
+
+  final password = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Parolanı değiştir'),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        obscureText: true,
+        decoration: const InputDecoration(hintText: 'Yeni parola'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Vazgeç'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, controller.text),
+          child: const Text('Kaydet'),
+        ),
+      ],
+    ),
+  );
+  controller.dispose();
+
+  if (password == null) return;
+  if (password.length < 6) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Parola en az 6 karakter olmalı.')),
+    );
+    return;
+  }
+
+  try {
+    await auth.updatePassword(password);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Parolan değiştirildi.')),
+    );
+  } on AuthFailure catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
   }
 }
 

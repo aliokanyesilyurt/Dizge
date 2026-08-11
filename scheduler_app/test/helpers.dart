@@ -105,6 +105,14 @@ class FakeAuthService implements AuthService {
 
   int signOutCount = 0;
 
+  /// Kurtarma kodunun gönderildiği adresler, sırasıyla.
+  final List<String> recoveryCodesSentTo = [];
+
+  /// Testin doğru kabul edeceği kod. Başka her şey [AuthFailure] olur.
+  String validRecoveryCode = '123456';
+
+  String? lastPasswordUpdate;
+
   @override
   AuthUser? get currentUser => _user;
 
@@ -140,6 +148,40 @@ class FakeAuthService implements AuthService {
   Future<void> signOut() async {
     signOutCount++;
     _emit(null);
+  }
+
+  @override
+  Future<void> sendRecoveryCode(String email) async {
+    final failure = nextFailure;
+    if (failure != null) {
+      nextFailure = null;
+      throw failure;
+    }
+    recoveryCodesSentTo.add(email);
+  }
+
+  @override
+  Future<void> verifyRecoveryCode({
+    required String email,
+    required String code,
+  }) async {
+    if (code != validRecoveryCode) {
+      throw const AuthFailure(
+        'Kod geçersiz ya da süresi dolmuş. '
+        'Yeni bir kod iste.',
+      );
+    }
+    _emit(AuthUser(id: 'kullanici-1', email: email));
+  }
+
+  @override
+  Future<void> updatePassword(String password) async {
+    final failure = nextFailure;
+    if (failure != null) {
+      nextFailure = null;
+      throw failure;
+    }
+    lastPasswordUpdate = password;
   }
 
   void dispose() => _controller.close();

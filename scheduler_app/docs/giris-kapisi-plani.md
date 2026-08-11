@@ -1,8 +1,54 @@
 # Giriş Kapısı Planı — Migration · Zorunlu Oturum · Online Kapsamı
 
-**Durum:** onay bekliyor
+**Durum:** onaylandı (11 Ağustos) · M2–M7 bitti · **M1 tıkalı**
 **Tarih:** 11 Ağustos 2026
 **Önceki plan:** `docs/backend-supabase-plani.md` (S1–S5 kodu yazıldı, commit edildi)
+
+---
+
+## 0. Durum — 11 Ağustos akşamı
+
+| Dilim | Durum |
+|---|---|
+| M1 — Supabase projesi + migration | **Tıkalı.** Proje açıldı ve `link` edildi; şema **uygulanmadı** |
+| M2 — Anahtarlar (`env.json`) | Bitti |
+| M3 — Kapı (`AuthGate`, `WelcomeScreen`) | Bitti |
+| M4 — İlk senkron kapıda | Bitti |
+| M5 — Çıkış akışı | Bitti |
+| M6 — Parola kurtarma (OTP) | Bitti |
+| M7 — Testler | Bitti (290 test, `analyze` temiz) |
+
+**M1 neden tıkalı:** bu makineden Postgres'e hiçbir yol yok.
+
+* `aws-0` / `aws-1` pooler, 5432 **ve** 6543: TCP el sıkışması tamam, Postgres
+  `SSLRequest` paketine **hiç cevap yok**. Elle probe ile doğrulandı.
+* Doğrudan sunucu (`db.<ref>.supabase.co`) yalnız IPv6; makinede global IPv6
+  adresi yok.
+* Ağ yasağı yok (`network-bans get` boş), proje ayakta (PostgREST 404 yerine
+  düzgün "tablo yok" hatası dönüyor). Yani engel ISP tarafında.
+* CLI'ın bütün `db` komutları doğrudan bağlantı istiyor; HTTPS üzerinden
+  migration uygulayan bir alt komut yok (`db push --help` ile doğrulandı).
+
+**Üç çıkış:**
+
+1. **Telefon hotspot'u ya da VPN** — 5432 açılır, `supabase db push` normal
+   çalışır ve defter kaydını CLI kendi tutar. *Önerilen:* gruplar için gelecek
+   ikinci migration'da da aynı yol lazım olacak.
+2. **Pano** — `supabase/migrations/…_initial_schema.sql` + defter kaydı
+   (`supabase_migrations.schema_migrations`) SQL düzenleyicisine yapıştırılır.
+   Defter kaydı elle eklenmezse sonraki `db push` migration'ı ikinci kez
+   göndermeye çalışır.
+3. **Kişisel erişim jetonu** — Management API'nin `database/query` uç noktası
+   HTTPS üzerinden çalışır.
+
+**M1 bitmeden doğrulanamayan:** RLS'in iki kullanıcıyla elle sınanması, uçtan
+uca tur (giriş → iş ekle → başka cihazda aç), `apply_mutations`'ın gerçek
+davranışı. Kod tarafı bunları bekliyor; kapı ve kurtarma yolu yerel kipte
+(anahtarsız, G2) ve testlerde çalışıyor.
+
+**Ayrıca beklemede:** Supabase panosunda e-posta doğrulamasının kapatılması
+(K1). Açık kalırsa kaydolan kişi "postana bak" ekranında kalır ve sert kapıda
+içeri hiç giremez.
 
 ---
 
