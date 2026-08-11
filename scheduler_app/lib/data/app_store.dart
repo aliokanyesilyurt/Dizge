@@ -601,6 +601,93 @@ class AppStore extends ChangeNotifier {
     ],
   };
 
+  /// Sunucudan gelen **artımlı** görüntüyü yerel duruma birleştirir (Y1).
+  ///
+  /// [loadJson]'dan farkı yıkmaması: burada gelen her kayıt için ayrı bir karar
+  /// veriliyor. Hakem yine **son yazan kazanır** ve ölçü yine `updatedAt` —
+  /// sunucudaki `apply_mutations`'ın kullandığının **birebir aynısı**. Aynı
+  /// kuralı iki yerde yazmak tekrar değil zorunluluk: sunucu yazarken, istemci
+  /// okurken karar veriyor. Farklı kurallar kullansalardı iki cihaz farklı
+  /// sonuca varırdı.
+  ///
+  /// `deletedIds` mezar taşlarını taşır. Onlar olmadan silme aktarılamaz:
+  /// artımlı çekimde "gelmedi" ile "silindi" ayırt edilemez (B3).
+  ///
+  /// Bu metot **mutasyon üretmez**. Ürettiği anda sunucudan gelen her kayıt
+  /// kuyruğa girip geri gönderilirdi — sonsuz bir eko.
+  void mergeJson(Map<String, dynamic> j) {
+    var changed = false;
+
+    for (final raw in (j['nodes'] as List? ?? const [])) {
+      final m = (raw as Map).cast<String, dynamic>();
+      if (m['kind'] == 'note') {
+        final incoming = Note.fromJson(m);
+        final i = _notes.indexWhere((n) => n.id == incoming.id);
+        if (i == -1) {
+          _notes.add(incoming);
+          changed = true;
+        } else if (incoming.updatedAt.isAfter(_notes[i].updatedAt)) {
+          _notes[i] = incoming;
+          changed = true;
+        }
+      } else {
+        final incoming = Task.fromJson(m);
+        final i = TaskRepository.all.indexWhere((t) => t.id == incoming.id);
+        if (i == -1) {
+          TaskRepository.all.add(incoming);
+          changed = true;
+        } else if (incoming.updatedAt.isAfter(
+          TaskRepository.all[i].updatedAt,
+        )) {
+          TaskRepository.all[i] = incoming;
+          changed = true;
+        }
+      }
+    }
+
+    for (final raw in (j['habits'] as List? ?? const [])) {
+      final incoming = Habit.fromJson((raw as Map).cast<String, dynamic>());
+      final i = _habits.indexWhere((h) => h.id == incoming.id);
+      if (i == -1) {
+        _habits.add(incoming);
+        changed = true;
+      } else if (incoming.updatedAt.isAfter(_habits[i].updatedAt)) {
+        _habits[i] = incoming;
+        changed = true;
+      }
+    }
+
+    for (final raw in (j['deletedIds'] as List? ?? const [])) {
+      final id = raw as String;
+      final before = TaskRepository.all.length + _notes.length + _habits.length;
+      TaskRepository.all.removeWhere((t) => t.id == id);
+      _notes.removeWhere((n) => n.id == id);
+      _habits.removeWhere((h) => h.id == id);
+      if (TaskRepository.all.length + _notes.length + _habits.length !=
+          before) {
+        changed = true;
+      }
+    }
+
+    // Kategoriler bütün olarak geliyor (Y1d) — kimlikleri adları olduğu için
+    // tek tek birleştirilemez.
+    final categories = j['categories'] as List?;
+    if (categories != null && categories.isNotEmpty) {
+      AppData.categories = [
+        for (final raw in categories)
+          TaskCategory(
+            ((raw as Map)['name'] as String?) ?? 'Diğer',
+            colorFromHex(raw['colorHex'] as String?),
+          ),
+      ];
+      changed = true;
+    }
+
+    // Hiçbir şey değişmediyse ekranı yeniden çizmenin ve diske yazmanın anlamı
+    // yok: artımlı çekim sık koşuyor ve turların çoğu boş dönüyor.
+    if (changed) _touched();
+  }
+
   void loadJson(Map<String, dynamic> j) {
     TaskRepository.all.clear();
     _notes.clear();

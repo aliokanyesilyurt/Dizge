@@ -63,6 +63,7 @@ Future<ProviderContainer> bootstrap({
           outbox: outbox,
           gateway: remote,
           connectivity: ConnectivityService(),
+          store: store,
           telemetry: telemetry,
         )
       : null;
@@ -86,6 +87,10 @@ Future<ProviderContainer> bootstrap({
   if (engine != null) {
     engine
       ..snapshotProvider = appStore.toJson
+      // Artımlı çekimin yerel duruma açılan kapısı (Y1). Bağlanmasaydı motor
+      // yalnız gönderirdi ve ikinci cihazın değişikliği uygulama yeniden
+      // başlatılana kadar gelmezdi.
+      ..mergeHandler = appStore.mergeJson
       ..start();
   }
 

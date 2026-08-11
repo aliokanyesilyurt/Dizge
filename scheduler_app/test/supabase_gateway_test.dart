@@ -37,6 +37,17 @@ class _FakeApi implements SupabaseApi {
   Future<List<Map<String, dynamic>>> fetchAll(String table) async =>
       tables[table] ?? const [];
 
+  /// Sunucunun `server_at > since` süzmesini taklit eder. Silinmiş satırlar
+  /// **süzülmez**: mezar taşının gelmesi artımlı çekimin şartı.
+  @override
+  Future<List<Map<String, dynamic>>> fetchSince(
+    String table,
+    DateTime since,
+  ) async => [
+    for (final r in tables[table] ?? const <Map<String, dynamic>>[])
+      if (DateTime.parse(r['server_at'] as String).isAfter(since)) r,
+  ];
+
   List<Map<String, dynamic>> mutationsSentTo(String fn) => [
     for (final c in calls)
       if (c.fn == fn)

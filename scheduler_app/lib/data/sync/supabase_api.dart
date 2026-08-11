@@ -39,6 +39,16 @@ abstract class SupabaseApi {
   /// uyguluyor. Burada tekrar yazmak, güvenliğin istemcide olduğu izlenimi
   /// verirdi — değil.
   Future<List<Map<String, dynamic>>> fetchAll(String table);
+
+  /// [since]'den **sonra sunucuda** değişmiş satırlar (Y1).
+  ///
+  /// Ölçü `server_at`; `updated_at` değil. İkincisi cihaz saati ve saati geri
+  /// alınmış bir telefonun yazdığı satır, imleç ondan hesaplansaydı bir daha
+  /// hiç görünmezdi. `server_at` şemaya tam bu iş için kondu.
+  ///
+  /// Silinmiş satırlar **süzülmez**: artımlı çekimde "gelmedi" ile "silindi"
+  /// ayırt edilemez, mezar taşının gelmesi şart (B3).
+  Future<List<Map<String, dynamic>>> fetchSince(String table, DateTime since);
 }
 
 /// Gerçek Supabase istemcisini saran uygulama.
@@ -60,6 +70,25 @@ class LiveSupabaseApi implements SupabaseApi {
   @override
   Future<List<Map<String, dynamic>>> fetchAll(String table) async {
     final rows = await _guard(() => _client.from(table).select());
+    return [for (final r in rows as List) (r as Map).cast<String, dynamic>()];
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchSince(
+    String table,
+    DateTime since,
+  ) async {
+    final rows = await _guard(
+      () => _client
+          .from(table)
+          .select()
+          // Kesin büyük: eşitlik olsaydı her turda son satır tekrar gelirdi.
+          // Aynı milisaniyede yazılmış iki satırdan ikincisini kaçırma riski
+          // buna karşılık kabul ediliyor — `server_at` mikrosaniye çözünürlükte
+          // ve tek kullanıcının iki yazması arasına bir ağ turu giriyor.
+          .gt('server_at', since.toUtc().toIso8601String())
+          .order('server_at'),
+    );
     return [for (final r in rows as List) (r as Map).cast<String, dynamic>()];
   }
 

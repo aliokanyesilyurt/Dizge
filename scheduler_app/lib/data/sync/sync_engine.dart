@@ -6,8 +6,12 @@ import 'package:flutter/foundation.dart';
 import '../../core/app_config.dart';
 import '../../core/connectivity.dart';
 import '../../core/telemetry.dart';
+import '../local_store.dart';
 import 'outbox.dart';
 import 'remote_gateway.dart';
+
+/// Artımlı çekimin nereden devam edeceği — **sunucu** damgası (Y1c).
+const String kSyncCursorKey = 'sync_cursor';
 
 /// Senkronun kullanıcıya gösterilebilir durumu.
 enum SyncState {
@@ -38,15 +42,22 @@ class SyncEngine {
     required Outbox outbox,
     required RemoteGateway gateway,
     required ConnectivityService connectivity,
+    required LocalStore store,
     Telemetry telemetry = const NoopTelemetry(),
   }) : _outbox = outbox,
        _gateway = gateway,
        _connectivity = connectivity,
+       _store = store,
        _telemetry = telemetry;
 
   final Outbox _outbox;
   final RemoteGateway _gateway;
   final ConnectivityService _connectivity;
+
+  /// Yalnız senkron imleci için. Verinin kendisi [Outbox] ve `AppStore`
+  /// üzerinden yazılıyor; motorun depoyla başka bir işi yok.
+  final LocalStore _store;
+
   final Telemetry _telemetry;
 
   final _state = ValueNotifier<SyncState>(SyncState.idle);
@@ -63,6 +74,14 @@ class SyncEngine {
   /// Yerel durumun tamamını üretecek geri çağırım. Outbox taştığında tam
   /// gönderim için gerekir; [AppStore.toJson] bağlanır.
   Map<String, dynamic> Function()? snapshotProvider;
+
+  /// Sunucudan gelen artımlı görüntüyü yerel duruma katan geri çağırım;
+  /// `AppStore.mergeJson` bağlanır (Y1).
+  ///
+  /// Bağlanmazsa motor yalnız gönderir — eski davranış. Böylece çekimi
+  /// açmak tek satırlık bir bağlama işi, motorun içine gömülü bir varsayım
+  /// değil.
+  void Function(Map<String, dynamic> snapshot)? mergeHandler;
 
   /// Abonelikleri kurar. Birden çok kez çağrılabilir (tekrarında yeniden
   /// abone olmaz).
@@ -97,54 +116,70 @@ class SyncEngine {
     );
   }
 
-  /// Kuyruğu şimdi boşaltmayı dener. Eşzamanlı çağrılar tek turda birleşir.
+  /// Bir senkron turu: önce gönder, sonra çek.
+  ///
+  /// Sıra sabit (Y1e). Kuyrukta bekleyen mutasyon varken çekmek, kullanıcının
+  /// henüz gönderilmemiş değişikliğini sunucunun eski hâliyle ezebilirdi.
+  ///
+  /// Kuyruk boşken de koşar: artımlı çekimin bütün amacı, **hiçbir yerel
+  /// değişiklik olmadan** karşı taraftan geleni almak.
   Future<void> syncNow() async {
     if (_running || _stopped || !_gateway.isConfigured) return;
-    if (_outbox.isEmpty) {
+
+    final hasPending = !_outbox.isEmpty;
+    // Çekecek bir şey de yoksa tur tamamen boş.
+    if (!hasPending && mergeHandler == null) {
       _state.value = SyncState.idle;
       return;
     }
 
     if (await _connectivity.current() == NetworkStatus.offline) {
-      _state.value = SyncState.waitingForNetwork;
+      _state.value = hasPending ? SyncState.waitingForNetwork : SyncState.idle;
       return;
     }
 
     _running = true;
     _state.value = SyncState.syncing;
     try {
-      // Kuyruk taştıysa artımlı gönderim tutarsız olur: önce tam görüntü.
-      if (_outbox.needsFullPush && snapshotProvider != null) {
-        final result = await _gateway.pushSnapshot(snapshotProvider!());
+      if (hasPending) {
+        // Kuyruk taştıysa artımlı gönderim tutarsız olur: önce tam görüntü.
+        if (_outbox.needsFullPush && snapshotProvider != null) {
+          final result = await _gateway.pushSnapshot(snapshotProvider!());
+          if (result.fatal) {
+            _onFatal(result);
+            return;
+          }
+          _outbox.needsFullPush = false;
+        }
+
+        final batch = _outbox.pending;
+        final result = await _gateway.push(batch);
+
         if (result.fatal) {
           _onFatal(result);
           return;
         }
-        _outbox.needsFullPush = false;
-      }
 
-      final batch = _outbox.pending;
-      final result = await _gateway.push(batch);
+        _outbox.ack(result.accepted);
+        _outbox.markFailed(result.rejected);
+        await _outbox.persist();
 
-      if (result.fatal) {
-        _onFatal(result);
-        return;
-      }
+        if (result.rejected.isNotEmpty) {
+          _scheduleRetry();
+          return;
+        }
 
-      _outbox.ack(result.accepted);
-      _outbox.markFailed(result.rejected);
-      await _outbox.persist();
-
-      if (result.rejected.isEmpty) {
         _failureStreak = 0;
-        _state.value = _outbox.isEmpty ? SyncState.idle : SyncState.syncing;
         _telemetry.capture(
           Ev.syncFlushed,
           props: {'count': result.accepted.length},
         );
-      } else {
-        _scheduleRetry();
       }
+
+      await _pullChanges();
+
+      _failureStreak = 0;
+      _state.value = _outbox.isEmpty ? SyncState.idle : SyncState.syncing;
     } catch (e, s) {
       debugPrint('Senkron hatası: $e\n$s');
       _scheduleRetry();
@@ -153,6 +188,37 @@ class SyncEngine {
       if (!_outbox.isEmpty && _state.value == SyncState.syncing) {
         _scheduleFlush();
       }
+    }
+  }
+
+  /// Sunucudaki değişiklikleri çeker ve yerel duruma katar (Y1).
+  ///
+  /// İmleç yoksa **epoch**'tan başlanıyor: bu, "her şeyi çek" demek ve kurulum
+  /// başına bir kez oluyor. `since: null` ile tam çekim yapmak cazip ama
+  /// yanlış olurdu — tam çekim `loadJson`'a gider ve yerel durumu **ezer**;
+  /// o karar oturum açılışına ait (A4), motorun sessizce vereceği bir karar
+  /// değil. Artımlı yol ise birleştiriyor, yani en kötü ihtimalle bir kez
+  /// fazladan veri indirmiş oluyoruz.
+  Future<void> _pullChanges() async {
+    final merge = mergeHandler;
+    if (merge == null) return;
+
+    final saved = _store.readString(kSyncCursorKey);
+    final since =
+        (saved == null ? null : DateTime.tryParse(saved)) ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+
+    final snapshot = await _gateway.pull(since: since);
+    if (snapshot == null) return;
+
+    merge(snapshot);
+
+    // İmleç **yalnız başarılı birleştirmeden sonra** ilerliyor: yarıda kalan
+    // bir çekim, bir daha hiç gelmeyecek kayıtlar bırakmamalı. Sunucu hiç
+    // satır döndürmediyse `cursor` null gelir ve imleç olduğu yerde kalır.
+    final cursor = snapshot['cursor'];
+    if (cursor is String) {
+      await _store.writeString(kSyncCursorKey, cursor);
     }
   }
 

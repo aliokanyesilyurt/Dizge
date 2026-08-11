@@ -45,13 +45,19 @@ class SupabaseGateway implements RemoteGateway {
     }
   }
 
+  /// Sunucudaki değişiklikleri çeker.
+  ///
+  /// [since] null ise **tam** çekim: dönen görüntü `AppStore.loadJson`'a
+  /// verilir ve yerel durumun yerine geçer (oturum açılışı).
+  ///
+  /// [since] verilirse **artımlı** çekim (Y1): yalnız o damgadan sonra sunucuda
+  /// değişmiş satırlar gelir ve görüntü iki şey daha taşır —
+  ///   * `deletedIds`: mezar taşı almış kayıtların kimlikleri. Bunlar olmadan
+  ///     silme taşınamaz: "gelmedi" ile "silindi" ayırt edilemez (B3).
+  ///   * `cursor`: bir sonraki çekimin başlayacağı **sunucu** damgası.
+  /// Bu görüntü `loadJson`'a değil, `AppStore.mergeJson`'a verilir.
   @override
   Future<Map<String, dynamic>?> pull({DateTime? since}) async {
-    // [since] bilerek yok sayılıyor (plan B4). Artımlı çekim, gelen kayıtları
-    // yerel duruma **birleştirmeyi** gerektirir; `AppStore.loadJson` ise yıkıp
-    // yeniden kuruyor. Sözü tutamayacağımız bir parametreyi kısmen uygulamak
-    // yerine tam çekim yapıyoruz — çağıran (oturum açılışı) zaten bunu istiyor.
-
     // Oturum yokken **boş görüntü dönmek yasak**. Çağıran onu "sunucu boş"
     // diye okur ve yerel takvimin üstüne yazabilir. Yokluğun boşluktan
     // ayrılması gerekiyor; bu yüzden hata.
@@ -59,17 +65,33 @@ class SupabaseGateway implements RemoteGateway {
       throw const RemoteException('oturum yok — çekim yapılamaz', fatal: true);
     }
 
-    final nodes = await _api.fetchAll('nodes');
-    final habits = await _api.fetchAll('habits');
+    final nodes = since == null
+        ? await _api.fetchAll('nodes')
+        : await _api.fetchSince('nodes', since);
+    final habits = since == null
+        ? await _api.fetchAll('habits')
+        : await _api.fetchSince('habits', since);
+
+    // Kategoriler her iki kipte de bütün olarak geliyor (Y1d): sıralı bir
+    // liste ve kimlikleri adları, yani "silinen kategori" diye bir satır yok.
+    // Üç satırlık bir tablo için bu maliyet gürültü seviyesinde.
     final categories = await _api.fetchAll('categories');
 
-    return {
+    final snapshot = <String, dynamic>{
       'schemaVersion': AppConfig.kSchemaVersion,
       'savedAt': DateTime.now().toIso8601String(),
       'nodes': _livePayloads(nodes),
       'habits': _livePayloads(habits),
       'categories': _categories(categories),
     };
+
+    if (since == null) return snapshot;
+
+    return snapshot
+      ..['deletedIds'] = [..._deletedIds(nodes), ..._deletedIds(habits)]
+      // İmleç **gelen satırlardan** hesaplanıyor, "şimdi"den değil: aradaki
+      // saat farkı ya da bir sonraki turda yazılan satır atlanırdı.
+      ..['cursor'] = _latestServerAt([...nodes, ...habits])?.toIso8601String();
   }
 
   @override
@@ -148,6 +170,29 @@ class SupabaseGateway implements RemoteGateway {
       v is List ? [for (final e in v) e.toString()] : const [];
 
   /// Silinmemiş satırların `payload`'ları — `loadJson` bunları bekliyor.
+  /// Mezar taşı almış satırların kimlikleri (Y1b).
+  static List<String> _deletedIds(List<Map<String, dynamic>> rows) => [
+    for (final r in rows)
+      if (r['deleted_at'] != null && r['id'] is String) r['id'] as String,
+  ];
+
+  /// Gelen satırlar içindeki en yeni **sunucu** damgası.
+  ///
+  /// Bir sonraki çekimin başlangıcı bu. Hiç satır gelmediyse null döner ve
+  /// çağıran imleci olduğu yerde bırakır — ilerletmek, o pencerede yazılan
+  /// bir satırı sonsuza dek atlamak olurdu.
+  static DateTime? _latestServerAt(List<Map<String, dynamic>> rows) {
+    DateTime? latest;
+    for (final r in rows) {
+      final raw = r['server_at'];
+      if (raw is! String) continue;
+      final at = DateTime.tryParse(raw);
+      if (at == null) continue;
+      if (latest == null || at.isAfter(latest)) latest = at;
+    }
+    return latest;
+  }
+
   static List<Map<String, dynamic>> _livePayloads(
     List<Map<String, dynamic>> rows,
   ) => [
