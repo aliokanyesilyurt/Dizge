@@ -1,6 +1,6 @@
 # Giriş Kapısı Planı — Migration · Zorunlu Oturum · Online Kapsamı
 
-**Durum:** onaylandı (11 Ağustos) · M2–M7 bitti · **M1 tıkalı**
+**Durum:** onaylandı (11 Ağustos) · **M1–M7 bitti, şema sunucuda doğrulandı**
 **Tarih:** 11 Ağustos 2026
 **Önceki plan:** `docs/backend-supabase-plani.md` (S1–S5 kodu yazıldı, commit edildi)
 
@@ -10,7 +10,7 @@
 
 | Dilim | Durum |
 |---|---|
-| M1 — Supabase projesi + migration | **Tıkalı.** Proje açıldı ve `link` edildi; şema **uygulanmadı** |
+| M1 — Supabase projesi + migration | **Bitti.** Şema panodan uygulandı, sunucuya karşı doğrulandı |
 | M2 — Anahtarlar (`env.json`) | Bitti |
 | M3 — Kapı (`AuthGate`, `WelcomeScreen`) | Bitti |
 | M4 — İlk senkron kapıda | Bitti |
@@ -18,7 +18,30 @@
 | M6 — Parola kurtarma (OTP) | Bitti |
 | M7 — Testler | Bitti (290 test, `analyze` temiz) |
 
-**M1 neden tıkalı:** bu makineden Postgres'e hiçbir yol yok.
+### Sunucuya karşı doğrulananlar (11 Ağustos, gerçek proje)
+
+Şemanın "bitti sayılır" ölçütü buydu ve atlanmadı. İki test kullanıcısı açıldı,
+her kontrol canlı projede koşturuldu:
+
+| Kontrol | Sonuç |
+|---|---|
+| `nodes` / `habits` / `categories` var | ✅ |
+| `apply_mutations` bir işi yazıyor | ✅ `{"accepted":[…],"rejected":[]}` |
+| A kendi satırını okuyor | ✅ 1 satır |
+| **B, A'nın satırını okuyamıyor (RLS)** | ✅ 0 satır |
+| Anonim okuma | ✅ boş |
+| B, A'nın `user_id`'siyle satır yazamıyor (`with check`) | ✅ HTTP 403 |
+| LWW: eski damgalı mutasyon yeniyi ezmiyor | ✅ içerik korundu |
+| Saat kayması: ileri tarihli damga reddediliyor | ✅ `rejected` |
+| Silme mezar taşı bırakıyor, `payload` boşalıyor | ✅ `deleted_at` damgalı |
+| `purge_tombstones` anonime kapalı | ✅ `permission denied` |
+| `security invoker`: oturumsuz RPC kendini reddediyor | ✅ `42501 oturum yok` |
+
+Kalan iz: iki test hesabı (`…+rlsa798010@`, `…+rlsb798010@`) ve A'nın hesabında
+bir mezar taşı satırı. Panodan silinebilir; RLS onları zaten yalıtıyor.
+
+**Uygulama yolu (`supabase db push`) neden kullanılamadı:** bu makineden
+Postgres'e hiçbir yol yok.
 
 * `aws-0` / `aws-1` pooler, 5432 **ve** 6543: TCP el sıkışması tamam, Postgres
   `SSLRequest` paketine **hiç cevap yok**. Elle probe ile doğrulandı.
@@ -29,7 +52,7 @@
 * CLI'ın bütün `db` komutları doğrudan bağlantı istiyor; HTTPS üzerinden
   migration uygulayan bir alt komut yok (`db push --help` ile doğrulandı).
 
-**Üç çıkış:**
+**Üç çıkış vardı (2 numara kullanıldı):**
 
 1. **Telefon hotspot'u ya da VPN** — 5432 açılır, `supabase db push` normal
    çalışır ve defter kaydını CLI kendi tutar. *Önerilen:* gruplar için gelecek
@@ -41,18 +64,21 @@
 3. **Kişisel erişim jetonu** — Management API'nin `database/query` uç noktası
    HTTPS üzerinden çalışır.
 
-**M1 bitmeden doğrulanamayan:** RLS'in iki kullanıcıyla elle sınanması, uçtan
-uca tur (giriş → iş ekle → başka cihazda aç), `apply_mutations`'ın gerçek
-davranışı. Kod tarafı bunları bekliyor; kapı ve kurtarma yolu yerel kipte
-(anahtarsız, G2) ve testlerde çalışıyor.
+**Kalan tek doğrulama:** gerçek uygulamayla uçtan uca tur — giriş → iş ekle →
+çıkış → tekrar giriş, işin sunucudan geri gelmesi.
 
-**Ayrıca beklemede:** Supabase panosunda e-posta doğrulamasının kapatılması
-(K1). Açık kalırsa kaydolan kişi "postana bak" ekranında kalır ve sert kapıda
-içeri hiç giremez.
+**K1 yapıldı.** E-posta doğrulaması panodan kapatıldı (`mailer_autoconfirm:
+true`). Açık kaldığı sürece kayıt olan kişi doğrulama ekranında takılıyordu ve
+sert kapıda içeri hiç giremiyordu; üstelik her kayıt denemesi ücretsiz katmanın
+saatlik posta limitine çarpıyordu (`over_email_send_rate_limit`). Gruplar
+gelince davet e-postası zaten gerekecek; doğrulama o gün, gerçek bir işi olduğu
+için açılır.
 
 ---
 
 ## 1. Nerede Kaldık
+
+*(Bu bölüm planın yazıldığı andaki durumu anlatıyor; bugünkü durum için §0.)*
 
 `backend-supabase-plani.md`'nin beş dilimi de **kod olarak** bitti. Eksik olan
 şey kod değil:
