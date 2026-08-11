@@ -34,6 +34,9 @@ class _FakeApi implements SupabaseApi {
   }
 
   @override
+  Stream<void> get remoteChanges => const Stream.empty();
+
+  @override
   Future<List<Map<String, dynamic>>> fetchAll(String table) async =>
       tables[table] ?? const [];
 

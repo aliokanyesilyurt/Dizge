@@ -48,6 +48,18 @@ abstract class RemoteGateway {
   /// Sunucu yapılandırılmış mı? False ise senkron motoru hiç çalışmaz.
   bool get isConfigured;
 
+  /// "Sunucuda bir şey değişti" sinyali (Y2).
+  ///
+  /// Akış **veri taşımaz** ve bu bilinçli. Supabase Realtime satırın yeni
+  /// hâlini de gönderebiliyor; kullanmıyoruz çünkü gelen payload'ı doğrudan
+  /// uygulamak, birleştirme mantığının ikinci bir kopyasını yazmak demek.
+  /// Üstelik güvenilmez: bağlantının koptuğu sürede olan olaylar hiç gelmez
+  /// ve o boşluğu zaten artımlı çekim kapatıyor.
+  ///
+  /// Yani gerçek zamanlılık, doğruluğun üstüne eklenen bir **hız katmanı**;
+  /// doğruluğun kendisi buna bağlı değil.
+  Stream<void> get remoteChanges;
+
   /// Bekleyen mutasyonları gönderir. Kısmi başarı desteklenir.
   Future<PushResult> push(List<Mutation> mutations);
 
@@ -65,6 +77,9 @@ class NoopRemoteGateway implements RemoteGateway {
 
   @override
   bool get isConfigured => false;
+
+  @override
+  Stream<void> get remoteChanges => const Stream.empty();
 
   @override
   Future<PushResult> push(List<Mutation> mutations) async =>

@@ -22,6 +22,9 @@ class SupabaseGateway implements RemoteGateway {
   @override
   bool get isConfigured => _api.currentUserId != null;
 
+  @override
+  Stream<void> get remoteChanges => _api.remoteChanges;
+
   // --- Gönderim --------------------------------------------------------------
 
   @override

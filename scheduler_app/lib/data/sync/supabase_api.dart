@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Uzak sunucudan gelen hata — **paket tiplerinden arındırılmış**.
@@ -49,6 +52,9 @@ abstract class SupabaseApi {
   /// Silinmiş satırlar **süzülmez**: artımlı çekimde "gelmedi" ile "silindi"
   /// ayırt edilemez, mezar taşının gelmesi şart (B3).
   Future<List<Map<String, dynamic>>> fetchSince(String table, DateTime since);
+
+  /// "Sunucuda bir şey değişti" sinyali (Y2). Veri taşımaz.
+  Stream<void> get remoteChanges;
 }
 
 /// Gerçek Supabase istemcisini saran uygulama.
@@ -90,6 +96,61 @@ class LiveSupabaseApi implements SupabaseApi {
           .order('server_at'),
     );
     return [for (final r in rows as List) (r as Map).cast<String, dynamic>()];
+  }
+
+  StreamController<void>? _changes;
+  RealtimeChannel? _channel;
+
+  /// Üç tabloyu da dinleyen tek bir Realtime kanalı.
+  ///
+  /// Kanal **tembel** kuruluyor ve bir kez: motor akışı bir kez dinliyor,
+  /// ikinci bir abone gelirse aynı kanalı paylaşır (`broadcast`). Her aboneye
+  /// yeni bir WebSocket açmak, aynı bilgiyi üç kez taşımak olurdu.
+  ///
+  /// Sinyalde satır verisi taşınmıyor (bkz. `RemoteGateway.remoteChanges`);
+  /// geri çağrının tek işi "bir şey oldu" demek. RLS Realtime'da da geçerli:
+  /// kullanıcı yalnız kendi satırlarının olayını alır.
+  @override
+  Stream<void> get remoteChanges {
+    final existing = _changes;
+    if (existing != null) return existing.stream;
+
+    // Denetleyici [dispose]'da kapatılıyor; linter alanın üzerinden giden o
+    // yolu göremediği için kural burada susturuluyor.
+    // ignore: close_sinks
+    final controller = StreamController<void>.broadcast();
+    _changes = controller;
+
+    var channel = _client.channel('scheduler-sync');
+    for (final table in const ['nodes', 'habits', 'categories']) {
+      channel = channel.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: table,
+        callback: (_) {
+          if (!controller.isClosed) controller.add(null);
+        },
+      );
+    }
+
+    _channel = channel..subscribe();
+    return controller.stream;
+  }
+
+  /// Kanalı kapatır. Uygulama kapanırken çağrılması **şart değil** (süreç
+  /// zaten ölüyor), ama oturum değişiminde sızıntıyı önler.
+  Future<void> dispose() async {
+    final channel = _channel;
+    _channel = null;
+    if (channel != null) {
+      try {
+        await _client.removeChannel(channel);
+      } catch (e) {
+        debugPrint('Realtime kanalı kapatılamadı: $e');
+      }
+    }
+    await _changes?.close();
+    _changes = null;
   }
 
   /// Paket istisnalarını [RemoteException]'a çevirir ve **kalıcı mı geçici mi**

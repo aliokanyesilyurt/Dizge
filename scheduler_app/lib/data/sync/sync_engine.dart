@@ -65,6 +65,7 @@ class SyncEngine {
 
   StreamSubscription<int>? _outboxSub;
   StreamSubscription<NetworkStatus>? _networkSub;
+  StreamSubscription<void>? _remoteSub;
   Timer? _debounce;
   Timer? _retry;
   int _failureStreak = 0;
@@ -97,12 +98,26 @@ class SyncEngine {
     _networkSub ??= _connectivity.watch().listen((status) {
       if (status == NetworkStatus.online) _scheduleFlush(immediate: true);
     });
+
+    // Sunucu tarafındaki değişikliğin haberi (Y2). Sinyal **debounce ediliyor**:
+    // karşı taraftaki bir sürükleme oturumu onlarca satır değiştirebilir ve her
+    // olayda çekim yapmak gidiş-dönüş israfı olurdu.
+    _remoteSub ??= _gateway.remoteChanges.listen(
+      (_) => _scheduleFlush(),
+      onError: (Object e) => debugPrint('Realtime akışı hatası: $e'),
+    );
+
     _scheduleFlush(immediate: true);
   }
 
   void _scheduleFlush({bool immediate = false}) {
-    if (_stopped || _outbox.isEmpty) {
-      if (_outbox.isEmpty) _state.value = SyncState.idle;
+    if (_stopped) return;
+
+    // Gönderecek de çekecek de bir şey yoksa tur boş. Kuyruğun boş olması
+    // tek başına yeterli değil (Y1): artımlı çekimin amacı zaten hiçbir yerel
+    // değişiklik olmadan karşı taraftan geleni almak.
+    if (_outbox.isEmpty && mergeHandler == null) {
+      _state.value = SyncState.idle;
       return;
     }
 
@@ -245,6 +260,7 @@ class SyncEngine {
     _retry?.cancel();
     await _outboxSub?.cancel();
     await _networkSub?.cancel();
+    await _remoteSub?.cancel();
     _state.dispose();
   }
 }

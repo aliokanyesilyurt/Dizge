@@ -20,6 +20,9 @@ class _FakeGateway implements RemoteGateway {
   bool get isConfigured => true;
 
   @override
+  Stream<void> get remoteChanges => const Stream.empty();
+
+  @override
   Future<PushResult> push(List<Mutation> mutations) async => PushResult.empty;
 
   @override

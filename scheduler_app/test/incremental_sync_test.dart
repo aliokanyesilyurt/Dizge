@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scheduler_app/core/app_config.dart';
 import 'package:scheduler_app/core/connectivity.dart';
 import 'package:scheduler_app/data/app_store.dart';
 import 'package:scheduler_app/data/local_store.dart';
@@ -57,8 +60,16 @@ class _FakeGateway implements RemoteGateway {
   final List<List<Mutation>> pushed = [];
   bool throwOnPull = false;
 
+  /// Sunucunun "bir şey değişti" dediği yer (Y2).
+  // Kullanan testler addTearDown ile kapatıyor.
+  // ignore: close_sinks
+  final signals = StreamController<void>.broadcast();
+
   @override
   bool get isConfigured => true;
+
+  @override
+  Stream<void> get remoteChanges => signals.stream;
 
   @override
   Future<PushResult> push(List<Mutation> mutations) async {
@@ -276,6 +287,48 @@ void main() {
         gateway.pulledSince.single!.toUtc().toIso8601String(),
         '2026-08-05T12:30:00.000Z',
       );
+    });
+
+    test('realtime sinyali çekimi tetikler', () async {
+      // Y2 olmadan Y1 boşta kalıyordu: uygulama dururken hiçbir şey çekimi
+      // tetiklemiyor, yani karşı tarafın değişikliği yine gelmiyordu.
+      final (e, gateway, _, store) = await engine(snapshot: _incoming());
+      addTearDown(gateway.signals.close);
+
+      e.start();
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      final afterStart = gateway.pulledSince.length;
+
+      gateway.snapshot = _incoming(
+        nodes: [_task('Karşı taraf ekledi').toJson()],
+      );
+      gateway.signals.add(null);
+      await Future<void>.delayed(
+        AppConfig.syncDebounce + const Duration(milliseconds: 400),
+      );
+
+      expect(gateway.pulledSince.length, afterStart + 1);
+      expect(store.tasks.single.title, 'Karşı taraf ekledi');
+    });
+
+    test('art arda gelen sinyaller tek çekimde birleşir', () async {
+      // Karşı taraftaki bir sürükleme oturumu onlarca satır değiştirebilir;
+      // her olayda çekim yapmak gidiş-dönüş israfı olurdu.
+      final (e, gateway, _, _) = await engine(snapshot: _incoming());
+      addTearDown(gateway.signals.close);
+
+      e.start();
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      final afterStart = gateway.pulledSince.length;
+
+      for (var i = 0; i < 10; i++) {
+        gateway.signals.add(null);
+      }
+      await Future<void>.delayed(
+        AppConfig.syncDebounce + const Duration(milliseconds: 400),
+      );
+
+      expect(gateway.pulledSince.length, afterStart + 1);
     });
 
     test('birleştirici bağlı değilse motor yalnız gönderir', () async {
