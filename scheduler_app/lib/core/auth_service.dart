@@ -39,6 +39,18 @@ class AuthFailure implements Exception {
 /// `RemoteGateway` gibi bu da bir kapı: uygulamanın hiçbir ekranı `supabase`
 /// paketini tanımıyor.
 abstract class AuthService {
+  /// Bu servis gerçekten kimlik doğrulayabiliyor mu?
+  ///
+  /// `false` ise giriş kapısı **açık kalır** (G2): anahtarsız bir derlemede
+  /// hiç kimse giriş yapamaz, kapıyı kapalı tutmak uygulamayı açılamaz hâle
+  /// getirirdi.
+  ///
+  /// Kapının `AppConfig.backendAvailable`'ı doğrudan okumaması bilinçli: o bir
+  /// derleme zamanı sabiti, testte hiçbir zaman doğru olmaz ve kapı
+  /// sınanamazdı. Soru zaten burada daha doğru duruyor — "sunucu tanımlı mı"
+  /// değil, "bu kapı kimlik doğrulayabiliyor mu".
+  bool get canAuthenticate;
+
   /// Şu anki kullanıcı; oturum yoksa null.
   AuthUser? get currentUser;
 
@@ -63,6 +75,9 @@ abstract class AuthService {
 /// öğrenemezdi.
 class NoopAuthService implements AuthService {
   const NoopAuthService();
+
+  @override
+  bool get canAuthenticate => false;
 
   @override
   AuthUser? get currentUser => null;

@@ -6,7 +6,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'bootstrap.dart';
 import 'core/theme_mode_controller.dart';
-import 'screens/app_shell.dart';
+import 'screens/auth_gate.dart';
 import 'theme.dart';
 import 'theme/shad_bridge.dart';
 
@@ -88,7 +88,7 @@ class SchedulerApp extends ConsumerWidget {
           ),
         );
       },
-      home: const AppShell(),
+      home: const AuthGate(),
     );
   }
 }

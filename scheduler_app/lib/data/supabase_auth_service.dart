@@ -15,6 +15,11 @@ class SupabaseAuthService implements AuthService {
 
   final GoTrueClient _auth;
 
+  /// Bu sınıf yalnızca anahtarlar verilmişken kurulur (`bootstrap._initBackend`);
+  /// var olması, kimlik doğrulanabildiği anlamına gelir.
+  @override
+  bool get canAuthenticate => true;
+
   @override
   AuthUser? get currentUser => _toUser(_auth.currentUser);
 

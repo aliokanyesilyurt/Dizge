@@ -6,6 +6,7 @@ import '../core/navigation_controller.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
 import '../theme.dart';
+import '../widgets/brand_mark.dart';
 import 'account_screen.dart';
 import 'day_view_screen.dart';
 import 'habits_screen.dart';
@@ -326,20 +327,8 @@ class _Brand extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
 
-    final logo = Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [c.accent, Color.lerp(c.accent, c.secondary, 0.55)!],
-        ),
-        borderRadius: BorderRadius.circular(9),
-        boxShadow: c.shadowSm,
-      ),
-      child: Icon(Icons.auto_awesome_rounded, size: 16, color: c.onAccent),
-    );
+    // Karşılama ekranıyla ortak (bkz. widgets/brand_mark.dart).
+    const logo = BrandMark();
 
     final toggle = onToggle == null
         ? null

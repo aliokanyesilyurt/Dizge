@@ -16,25 +16,40 @@ void main() {
   late final List<String> tables;
 
   setUpAll(() {
-    final file = File('supabase/schema.sql');
+    final dir = Directory('supabase/migrations');
     expect(
-      file.existsSync(),
+      dir.existsSync(),
       isTrue,
-      reason: 'supabase/schema.sql bulunamadı — şema repoda durmalı',
+      reason: 'supabase/migrations bulunamadı — şema repoda durmalı',
     );
+
+    // Tek bir dosya değil, **bütün** migration'lar. Bekçinin değeri geleceğe
+    // bakmasında: gruplar ikinci bir migration'la yeni tablolar getirecek ve
+    // o tabloların RLS'i de burada denetlenmeli. Tek dosyaya bağlı kalsaydı
+    // test yeşil kalır, açık büyürdü.
+    final files =
+        dir
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.sql'))
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
+
+    expect(files, isNotEmpty, reason: 'en az bir migration dosyası bulunmalı');
+
     // Karşılaştırmalar küçük harf ve tek boşluk üzerinden: SQL büyük/küçük
     // harfe duyarsız ve sütun hizalaması bir okunurluk tercihi. Güvenlik
     // testinin ikisine de bağlanmaması gerekir — `alter table public.nodes`
     // ile `alter table  public.nodes` aynı şeydir.
-    sql = file
-        .readAsStringSync()
+    sql = files
+        .map((f) => f.readAsStringSync())
+        .join('\n')
         .toLowerCase()
         .replaceAll(RegExp(r'\s+'), ' ');
 
-    tables = RegExp(r'create\s+table\s+(?:if\s+not\s+exists\s+)?public\.(\w+)')
-        .allMatches(sql)
-        .map((m) => m.group(1)!)
-        .toList();
+    tables = RegExp(
+      r'create\s+table\s+(?:if\s+not\s+exists\s+)?public\.(\w+)',
+    ).allMatches(sql).map((m) => m.group(1)!).toList();
   });
 
   group('şema güvenliği', () {
@@ -85,12 +100,10 @@ void main() {
     test('yazan politikalar with check taşır', () {
       // `using` yalnız okumayı süzer. `with check` olmadan kullanıcı, başka
       // birinin user_id'siyle satır **yazabilir**.
-      final policies = RegExp(
-        r'create\s+policy(.*?);',
-        dotAll: true,
-      ).allMatches(sql).map((m) => m.group(1)!).where(
-            (p) => p.contains('for all') || p.contains('for insert'),
-          );
+      final policies = RegExp(r'create\s+policy(.*?);', dotAll: true)
+          .allMatches(sql)
+          .map((m) => m.group(1)!)
+          .where((p) => p.contains('for all') || p.contains('for insert'));
 
       expect(policies, isNotEmpty);
       for (final p in policies) {

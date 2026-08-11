@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -11,58 +9,6 @@ import 'package:scheduler_app/screens/account_screen.dart';
 import 'helpers.dart';
 
 Note _note() => Note(title: 'Yerel not', body: 'çıkıştan sonra da durmalı');
-
-/// Bellekte çalışan oturum servisi. Ağ yok, gerçek Supabase yok.
-class FakeAuthService implements AuthService {
-  FakeAuthService({AuthUser? user}) : _user = user;
-
-  AuthUser? _user;
-  final _controller = StreamController<AuthUser?>.broadcast();
-
-  /// Bir sonraki çağrının fırlatacağı hata (hata yollarını sınamak için).
-  AuthFailure? nextFailure;
-
-  int signOutCount = 0;
-
-  @override
-  AuthUser? get currentUser => _user;
-
-  @override
-  Stream<AuthUser?> get changes => _controller.stream;
-
-  void _emit(AuthUser? user) {
-    _user = user;
-    _controller.add(user);
-  }
-
-  @override
-  Future<void> signIn({required String email, required String password}) async {
-    final failure = nextFailure;
-    if (failure != null) {
-      nextFailure = null;
-      throw failure;
-    }
-    _emit(AuthUser(id: 'kullanici-1', email: email));
-  }
-
-  @override
-  Future<void> signUp({required String email, required String password}) async {
-    final failure = nextFailure;
-    if (failure != null) {
-      nextFailure = null;
-      throw failure;
-    }
-    _emit(AuthUser(id: 'kullanici-1', email: email));
-  }
-
-  @override
-  Future<void> signOut() async {
-    signOutCount++;
-    _emit(null);
-  }
-
-  void dispose() => _controller.close();
-}
 
 void main() {
   group('NoopAuthService', () {

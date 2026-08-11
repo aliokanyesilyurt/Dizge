@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scheduler_app/core/auth_service.dart';
 import 'package:scheduler_app/data/app_store.dart';
 import 'package:scheduler_app/theme.dart';
 import 'package:scheduler_app/theme/shad_bridge.dart';
@@ -83,4 +86,61 @@ void useScreenSize(WidgetTester tester, Size size) {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
+}
+
+/// Bellekte çalışan oturum servisi. Ağ yok, gerçek Supabase yok.
+class FakeAuthService implements AuthService {
+  FakeAuthService({AuthUser? user, this.canAuthenticate = true}) : _user = user;
+
+  /// Anahtarsız derlemeyi taklit etmek için `false` verilir: kapı o zaman
+  /// açık kalmalı (G2).
+  @override
+  final bool canAuthenticate;
+
+  AuthUser? _user;
+  final _controller = StreamController<AuthUser?>.broadcast();
+
+  /// Bir sonraki çağrının fırlatacağı hata (hata yollarını sınamak için).
+  AuthFailure? nextFailure;
+
+  int signOutCount = 0;
+
+  @override
+  AuthUser? get currentUser => _user;
+
+  @override
+  Stream<AuthUser?> get changes => _controller.stream;
+
+  void _emit(AuthUser? user) {
+    _user = user;
+    _controller.add(user);
+  }
+
+  @override
+  Future<void> signIn({required String email, required String password}) async {
+    final failure = nextFailure;
+    if (failure != null) {
+      nextFailure = null;
+      throw failure;
+    }
+    _emit(AuthUser(id: 'kullanici-1', email: email));
+  }
+
+  @override
+  Future<void> signUp({required String email, required String password}) async {
+    final failure = nextFailure;
+    if (failure != null) {
+      nextFailure = null;
+      throw failure;
+    }
+    _emit(AuthUser(id: 'kullanici-1', email: email));
+  }
+
+  @override
+  Future<void> signOut() async {
+    signOutCount++;
+    _emit(null);
+  }
+
+  void dispose() => _controller.close();
 }
