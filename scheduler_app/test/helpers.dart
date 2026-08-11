@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scheduler_app/core/auth_service.dart';
+import 'package:scheduler_app/core/telemetry.dart';
 import 'package:scheduler_app/data/app_store.dart';
 import 'package:scheduler_app/theme.dart';
 import 'package:scheduler_app/theme/shad_bridge.dart';
@@ -185,4 +186,28 @@ class FakeAuthService implements AuthService {
   }
 
   void dispose() => _controller.close();
+}
+
+/// İçeriye gerçekten ne ulaştığını sayan sahte telemetri.
+class RecordingTelemetry implements Telemetry {
+  final List<String> events = [];
+  final List<String> screens = [];
+  int resetCount = 0;
+
+  @override
+  void capture(String event, {Map<String, Object>? props}) => events.add(event);
+
+  @override
+  void screen(String name, {Map<String, Object>? props}) => screens.add(name);
+
+  @override
+  Future<void> identify(String distinctId, {Map<String, Object>? props}) async {
+    events.add('identify');
+  }
+
+  @override
+  Future<void> reset() async => resetCount++;
+
+  @override
+  Future<void> flush() async {}
 }

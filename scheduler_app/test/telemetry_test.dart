@@ -6,30 +6,6 @@ import 'package:scheduler_app/screens/account_screen.dart';
 
 import 'helpers.dart';
 
-/// İçeriye gerçekten ne ulaştığını sayan sahte telemetri.
-class RecordingTelemetry implements Telemetry {
-  final List<String> events = [];
-  final List<String> screens = [];
-  int resetCount = 0;
-
-  @override
-  void capture(String event, {Map<String, Object>? props}) => events.add(event);
-
-  @override
-  void screen(String name, {Map<String, Object>? props}) => screens.add(name);
-
-  @override
-  Future<void> identify(String distinctId, {Map<String, Object>? props}) async {
-    events.add('identify');
-  }
-
-  @override
-  Future<void> reset() async => resetCount++;
-
-  @override
-  Future<void> flush() async {}
-}
-
 void main() {
   group('rıza geçidi', () {
     test('kapalıyken hiçbir olay içeriye ulaşmaz', () {

@@ -35,6 +35,7 @@ class WeekHeaderBar extends StatelessWidget {
     required this.rescuableCount,
     required this.onRescue,
     this.isEmptyWeek = false,
+    this.isFirstRun = false,
   });
 
   /// "3 – 9 Ağustos 2026" — ekranın tek vurgulu satırı.
@@ -53,6 +54,15 @@ class WeekHeaderBar extends StatelessWidget {
   /// Bilgi burada, zaten var olan bağlam satırının devamında: hizalı, sessiz,
   /// ızgaranın üstünde hiçbir şey kaplamıyor.
   final bool isEmptyWeek;
+
+  /// Kullanıcının hiç işi yok — yani bu, uygulamayla ilk karşılaşma (T3b).
+  ///
+  /// Kapıdan geçen kişi bomboş bir haftaya düşüyor ve ne yapacağını söyleyen
+  /// hiçbir şey yok. Onboarding sihirbazı **bilinçli olarak yazılmadı**: üç
+  /// ekranlık bir tanıtım turu, kullanıcının görmek istediği şeyin (kendi
+  /// takvimi) önüne konan bir engeldir. Onun yerine aynı sakin satır, tek
+  /// cümlelik bir davetle konuşuyor; ilk iş eklenince bir daha çıkmıyor.
+  final bool isFirstRun;
 
   final bool isCurrentWeek;
   final GridDensity density;
@@ -172,7 +182,9 @@ class WeekHeaderBar extends StatelessWidget {
                       children: [
                         if (isEmptyWeek)
                           TextSpan(
-                            text: ' · hiç iş yok',
+                            text: isFirstRun
+                                ? ' · bir saate dokunup ilk işini ekle'
+                                : ' · hiç iş yok',
                             style: TextStyle(
                               color: c.inkFaint,
                               fontWeight: FontWeight.w500,

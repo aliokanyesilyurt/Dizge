@@ -53,6 +53,28 @@ class Ev {
   static const habitCreated = 'habit_created';
   static const habitToggled = 'habit_toggled';
 
+  // --- Giriş hunisi (T3c) ----------------------------------------------------
+  //
+  // Dördü birlikte tek bir soruyu cevaplıyor: kapıya gelen kaç kişi gerçekten
+  // uygulamayı kullanmaya başlıyor? Aradaki her düşüş bir tasarım sorusu —
+  // "kaydolmayı deneyen çok ama başaran az" ile "kaydolan çok ama iş ekleyen
+  // yok" bambaşka iki problem ve ikisi de ancak ölçülünce görünür.
+  //
+  // Hiçbiri kişisel veri taşımaz: e-posta, iş başlığı, not içeriği yok.
+  // Hepsi rızaya bağlı — [ConsentGate] kapalıyken tek olay gitmez.
+
+  /// Karşılama ekranı çizildi.
+  static const welcomeSeen = 'welcome_seen';
+
+  /// Kayıt formu gönderildi (sonucu henüz belli değil).
+  static const signupSubmitted = 'signup_submitted';
+
+  /// Kayıt başarılı, oturum açıldı.
+  static const signupSucceeded = 'signup_succeeded';
+
+  /// Var olan hesapla giriş yapıldı — huninin kayıt kolundan ayrı.
+  static const signInSucceeded = 'sign_in_succeeded';
+
   // Sağlık
   static const syncFlushed = 'sync_flushed';
   static const persistFailed = 'persist_failed';

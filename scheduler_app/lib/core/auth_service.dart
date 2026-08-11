@@ -150,6 +150,16 @@ class NoopAuthService implements AuthService {
   }
 }
 
+/// Bu cihazda **daha önce** oturum açılmış mı?
+///
+/// Karşılama ekranının hangi kipte başlayacağını bu belirliyor (T3a): uygulamayı
+/// ilk kez açan kişi doğrudan kayıt formunu görür, daha önce girmiş biri giriş
+/// formunu.
+///
+/// Oturum jetonu bu soruyu cevaplayamaz — çıkışta silinir ve her çıkış
+/// kullanıcıyı yeniden "yeni kullanıcı" yapardı.
+const String kHasSignedInKey = 'has_signed_in_before';
+
 /// Üretimde `bootstrap()` gerçek uygulamayı geçirir.
 final authServiceProvider = Provider<AuthService>(
   (ref) => const NoopAuthService(),

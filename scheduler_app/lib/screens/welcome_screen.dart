@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/auth_service.dart';
+import '../core/telemetry.dart';
+import '../data/persistence_providers.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
 
@@ -44,10 +46,27 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final _code = TextEditingController();
   final _passwordFocus = FocusNode();
 
-  _Mode _mode = _Mode.signIn;
+  late _Mode _mode;
   bool _busy = false;
   String? _error;
   String? _info;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // T3a — ilk kare "kayıt", "giriş" değil. Uygulamayı ilk kez açan kişiye
+    // "Giriş yap" yazan bir düğme göstermek, huninin ilk adımında ondan bir
+    // keşif istemek demekti: hesabı yok ve önce alttaki bağlantıyı bulması
+    // gerekiyordu.
+    final seenBefore =
+        ref.read(localStoreProvider).readString(kHasSignedInKey) == 'yes';
+    _mode = seenBefore ? _Mode.signIn : _Mode.signUp;
+
+    ref
+        .read(telemetryProvider)
+        .capture(Ev.welcomeSeen, props: {'returning': seenBefore});
+  }
 
   @override
   void dispose() {
@@ -92,11 +111,17 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
     try {
       final auth = ref.read(authServiceProvider);
+      final telemetry = ref.read(telemetryProvider);
       switch (_mode) {
         case _Mode.signIn:
           await auth.signIn(email: email, password: _password.text);
+          telemetry.capture(Ev.signInSucceeded);
         case _Mode.signUp:
+          // Gönderim ve başarı ayrı ölçülüyor: aradaki fark "denedi ama
+          // olmadı" demek ve huninin en çok şey öğreten adımı orası.
+          telemetry.capture(Ev.signupSubmitted);
           await auth.signUp(email: email, password: _password.text);
+          telemetry.capture(Ev.signupSucceeded);
         case _Mode.recoverRequest:
           await auth.sendRecoveryCode(email);
           if (mounted) {

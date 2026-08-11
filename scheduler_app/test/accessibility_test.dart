@@ -137,25 +137,62 @@ void main() {
   });
 
   group('boş hafta', () {
-    testWidgets('bilgi başlıkta duruyor, ızgaranın ortasında değil', (
-      tester,
-    ) async {
+    testWidgets('hiç işi olmayan kullanıcı davet görür', (tester) async {
+      // T3b — kapıdan geçen kişi bomboş bir haftaya düşüyor. Onboarding
+      // sihirbazı yerine tek cümlelik bir davet: kullanıcının görmek istediği
+      // şeyin (kendi takvimi) önüne hiçbir ekran konmuyor.
       useScreenSize(tester, const Size(1400, 1000));
 
       await pumpApp(tester, const WeekViewScreen());
 
-      // Boş ızgara tek başına "veri mi kayboldu, hafta mı boş" sorusunu
-      // cevaplamıyor; cevap veriliyor ama bir uyarı gibi değil. Plan
-      // yapılmamış bir hafta hata değil (T2), o yüzden ekranın ortasında
-      // yüzen bir kart yerine bağlam satırının devamı.
+      expect(
+        find.textContaining('ilk işini ekle', findRichText: true),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('işi olan kullanıcının boş haftası sessizce bildirilir', (
+      tester,
+    ) async {
+      // Plan yapılmamış bir hafta hata değil (T2): ekranın ortasında yüzen bir
+      // kart yerine bağlam satırının devamı. Ve artık davet değil, yalnız
+      // durum — bu kullanıcı uygulamayı zaten kullanıyor.
+      useScreenSize(tester, const Size(1400, 1000));
+
+      await pumpApp(
+        tester,
+        const WeekViewScreen(),
+        seed: (store) => store.addTask(
+          Task(
+            title: 'Gelecek haftaki iş',
+            color: Colors.blue,
+            date: thisMonday().add(const Duration(days: 14)),
+            startHour: 10,
+          ),
+        ),
+      );
+
       expect(
         find.textContaining('hiç iş yok', findRichText: true),
         findsOneWidget,
       );
+      expect(
+        find.textContaining('ilk işini ekle', findRichText: true),
+        findsNothing,
+      );
+    });
+
+    testWidgets('bu haftaya iş girilince satır tamamen susar', (tester) async {
+      useScreenSize(tester, const Size(1400, 1000));
 
       await pumpWithTask(tester);
+
       expect(
         find.textContaining('hiç iş yok', findRichText: true),
+        findsNothing,
+      );
+      expect(
+        find.textContaining('ilk işini ekle', findRichText: true),
         findsNothing,
       );
     });

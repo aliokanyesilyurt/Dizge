@@ -493,6 +493,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
           rescuableCount: _rescuePlan(store, today).total,
           onRescue: () => _rescueDay(store, today),
           isEmptyWeek: store.tasksForWeek(_monday).every((day) => day.isEmpty),
+          isFirstRun: store.tasks.isEmpty,
         ),
         // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
         // her zaman bugüne yazılır (bkz. [DailyHabitStrip]).

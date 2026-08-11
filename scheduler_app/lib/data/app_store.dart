@@ -190,6 +190,10 @@ class AppStore extends ChangeNotifier {
         // Efor isteğe bağlı; kaç kişinin gerçekten işaretlediği ölçülmeden
         // filtrenin (Ö4b) kime hitap ettiği bilinemez.
         'energy': task.energy?.name ?? 'none',
+        // Giriş hunisinin son adımı (T3c): kaydolan kişi gerçekten kullanmaya
+        // başladı mı? Ayrı bir olay yerine burada bir özellik, çünkü soru
+        // "kaç iş oluşturuldu"nun bir alt kümesi — huni bunu süzerek kurulur.
+        'first': tasks.length == 1,
       },
     );
     _touched();

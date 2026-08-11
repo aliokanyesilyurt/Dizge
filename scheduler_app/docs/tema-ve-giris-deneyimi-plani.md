@@ -1,8 +1,32 @@
 # Açık Tema · Boş Hafta · Giriş Deneyimi · Telemetri Düğmesi
 
-**Durum:** onay bekliyor
+**Durum:** onaylandı ve **uygulandı** (11 Ağustos) — T1, T2, T4, T3
 **Tarih:** 11 Ağustos 2026
 **Önceki plan:** `docs/giris-kapisi-plani.md` (M1–M7 bitti, şema sunucuda)
+
+---
+
+## 0. Ne yapıldı
+
+| # | Durum | Not |
+|---|---|---|
+| T1 | ✅ | Açık palet camgöbeği/magentaya taşındı; ton farkı üç rolde de <5°, kontrast WCAG AA |
+| T2 | ✅ | Yüzen kart gitti; bilgi başlıktaki bağlam satırında. `_poolDragging` yaması da silindi |
+| T4 | ✅ | Telemetri her zaman rıza geçidinin arkasında; tercih diske yazılıyor. PostHog anahtarı `env.json`'da (bölge: EU, doğrulandı) |
+| T3 | ✅ | İlk açılış kayıt kipinde; huni dört adımda ölçülüyor; ilk kullanım daveti aynı satırda |
+
+**Planla iki fark, ikisi de bilinçli:**
+
+1. **K3 — "Yeni iş" düğmesi eklenmedi.** Başlık çubuğunda zaten bir "+ Yeni"
+   var ve koddaki tasarım sözleşmesi ikinci bir birincil eylemi açıkça
+   reddediyor (*"Kayan düğme yok: başlıktaki 'Yeni' ile aynı işi yapıyordu"*).
+   Aynı gerekçe boş hafta satırı için de geçerli.
+2. **T2'de iki `Text`'li `Row` yerine tek `Text.rich`.** Row 390px'te 100px
+   taşırdı — bu başlık zaten sınırda. Tek metinde elips kendiliğinden çalışıyor.
+
+**Ölçüm:** 310 test, `flutter analyze` temiz.
+
+**K1 cevabı:** PostHog (seçenek 1). Anahtar `env.json`'a girdi.
 
 ---
 

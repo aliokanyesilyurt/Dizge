@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scheduler_app/core/auth_service.dart';
+import 'package:scheduler_app/core/telemetry.dart';
+import 'package:scheduler_app/data/local_store.dart';
+import 'package:scheduler_app/data/persistence_providers.dart';
 import 'package:scheduler_app/screens/app_shell.dart';
 import 'package:scheduler_app/screens/auth_gate.dart';
 import 'package:scheduler_app/screens/welcome_screen.dart';
@@ -11,6 +14,21 @@ import 'package:scheduler_app/screens/welcome_screen.dart';
 import 'helpers.dart';
 
 void main() {
+  /// Daha önce oturum açılmış bir cihaz.
+  ///
+  /// Karşılama ekranı ilk açılışta artık **kayıt** kipinde başlıyor (T3a).
+  /// Giriş ve parola kurtarma yolları tanımı gereği hesabı olan biriyle
+  /// ilgili — yani bu, o kişinin cihazı.
+  Future<List<Override>> returningDevice(FakeAuthService auth) async {
+    final disk = InMemoryStore();
+    await disk.init();
+    await disk.writeString(kHasSignedInKey, 'yes');
+    return [
+      authServiceProvider.overrideWithValue(auth),
+      localStoreProvider.overrideWithValue(disk),
+    ];
+  }
+
   group('giriş kapısı', () {
     /// Kenar çubuğunun açık olduğu genişlik; dar ekranda kabuk drawer'a
     /// düşüyor ve test "takvim göründü mü" sorusunu daha zor soruyor.
@@ -111,7 +129,7 @@ void main() {
       await pumpApp(
         tester,
         const AuthGate(),
-        overrides: [authServiceProvider.overrideWithValue(auth)],
+        overrides: await returningDevice(auth),
       );
 
       expect(find.byType(WelcomeScreen), findsOneWidget);
@@ -162,7 +180,7 @@ void main() {
       await pumpApp(
         tester,
         const AuthGate(),
-        overrides: [authServiceProvider.overrideWithValue(auth)],
+        overrides: await returningDevice(auth),
       );
 
       await tester.enterText(
@@ -190,7 +208,7 @@ void main() {
       await pumpApp(
         tester,
         const AuthGate(),
-        overrides: [authServiceProvider.overrideWithValue(auth)],
+        overrides: await returningDevice(auth),
       );
 
       await tester.tap(find.text('Parolamı unuttum'));
@@ -266,6 +284,151 @@ void main() {
 
       expect(find.widgetWithText(FilledButton, 'Giriş yap'), findsOneWidget);
       expect(find.widgetWithText(TextField, '6 haneli kod'), findsNothing);
+    });
+  });
+
+  group('giriş hunisi', () {
+    void useWideScreen(WidgetTester tester) =>
+        useScreenSize(tester, const Size(1200, 900));
+
+    testWidgets('ilk açılışta kayıt kipinde başlar', (tester) async {
+      // Hesabı olmayan birine "Giriş yap" göstermek, huninin ilk adımında
+      // ondan bir keşif istemekti: önce alttaki bağlantıyı bulması gerekiyordu.
+      useWideScreen(tester);
+      final auth = FakeAuthService();
+      addTearDown(auth.dispose);
+
+      await pumpApp(
+        tester,
+        const AuthGate(),
+        overrides: [authServiceProvider.overrideWithValue(auth)],
+      );
+
+      expect(
+        find.widgetWithText(FilledButton, 'Hesap oluştur'),
+        findsOneWidget,
+      );
+      expect(find.text('Zaten hesabım var'), findsOneWidget);
+    });
+
+    testWidgets('daha önce girilmiş cihazda giriş kipinde başlar', (
+      tester,
+    ) async {
+      useWideScreen(tester);
+      final auth = FakeAuthService();
+      addTearDown(auth.dispose);
+
+      final disk = InMemoryStore();
+      await disk.init();
+      await disk.writeString(kHasSignedInKey, 'yes');
+
+      await pumpApp(
+        tester,
+        const AuthGate(),
+        overrides: [
+          authServiceProvider.overrideWithValue(auth),
+          localStoreProvider.overrideWithValue(disk),
+        ],
+      );
+
+      expect(find.widgetWithText(FilledButton, 'Giriş yap'), findsOneWidget);
+      expect(find.text('Hesabım yok, oluşturayım'), findsOneWidget);
+    });
+
+    testWidgets('kayıt yolunda huni olayları sırayla üretilir', (tester) async {
+      // Gönderim ile başarı ayrı ölçülüyor: aradaki fark "denedi ama olmadı"
+      // demek ve huninin en çok şey öğreten adımı orası.
+      useWideScreen(tester);
+      final auth = FakeAuthService();
+      addTearDown(auth.dispose);
+      final telemetry = RecordingTelemetry();
+
+      await pumpApp(
+        tester,
+        const AuthGate(),
+        overrides: [
+          authServiceProvider.overrideWithValue(auth),
+          telemetryProvider.overrideWithValue(telemetry),
+        ],
+      );
+
+      expect(telemetry.events, [Ev.welcomeSeen]);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'E-posta'),
+        'ali@example.com',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Parola'),
+        'parola123',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Hesap oluştur'));
+      await tester.pumpAndSettle();
+
+      expect(telemetry.events, [
+        Ev.welcomeSeen,
+        Ev.signupSubmitted,
+        Ev.signupSucceeded,
+      ]);
+    });
+
+    testWidgets('başarısız kayıtta "başarılı" olayı üretilmez', (tester) async {
+      useWideScreen(tester);
+      final auth = FakeAuthService()
+        ..nextFailure = const AuthFailure('Bu e-posta zaten kayıtlı.');
+      addTearDown(auth.dispose);
+      final telemetry = RecordingTelemetry();
+
+      await pumpApp(
+        tester,
+        const AuthGate(),
+        overrides: [
+          authServiceProvider.overrideWithValue(auth),
+          telemetryProvider.overrideWithValue(telemetry),
+        ],
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'E-posta'),
+        'ali@example.com',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Parola'),
+        'parola123',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Hesap oluştur'));
+      await tester.pumpAndSettle();
+
+      expect(telemetry.events, [Ev.welcomeSeen, Ev.signupSubmitted]);
+      expect(telemetry.events, isNot(contains(Ev.signupSucceeded)));
+    });
+
+    testWidgets('giriş yapılınca cihaz bir daha "yeni" sayılmaz', (
+      tester,
+    ) async {
+      useWideScreen(tester);
+      final auth = FakeAuthService();
+      addTearDown(auth.dispose);
+
+      final disk = InMemoryStore();
+      await disk.init();
+
+      await pumpApp(
+        tester,
+        const AuthGate(),
+        overrides: [
+          authServiceProvider.overrideWithValue(auth),
+          localStoreProvider.overrideWithValue(disk),
+        ],
+      );
+      expect(disk.readString(kHasSignedInKey), isNull);
+
+      await auth.signIn(email: 'ali@example.com', password: 'parola123');
+      await tester.pumpAndSettle();
+
+      // Jeton bu soruyu cevaplayamaz: çıkışta silinir ve her çıkış kullanıcıyı
+      // yeniden yeni kullanıcı yapardı.
+      expect(disk.readString(kHasSignedInKey), 'yes');
     });
   });
 }

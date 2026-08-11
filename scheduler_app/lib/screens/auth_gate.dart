@@ -85,7 +85,16 @@ class AuthGate extends ConsumerWidget {
           previous != null && previous.hasValue && previous.value == null;
       final nowSignedIn = next.hasValue && next.value != null;
 
-      if (wasSignedOut && nowSignedIn) {
+      if (!nowSignedIn) return;
+
+      // "Bu cihazda bir kez girildi" (T3a). Girişin türünden bağımsız: kayıtla
+      // da olsa, geri yüklenen bir oturumla da olsa artık yeni kullanıcı
+      // değiliz ve karşılama ekranı bir dahaki sefere giriş kipinde açılmalı.
+      unawaited(
+        ref.read(localStoreProvider).writeString(kHasSignedInKey, 'yes'),
+      );
+
+      if (wasSignedOut) {
         unawaited(_runFirstSync(context, ref));
       }
     });
