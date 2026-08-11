@@ -68,7 +68,7 @@ void main() {
     await pumpWideShell(tester);
 
     // Haftalık görünüm "Bu hafta" alt başlığı ve saat sütunuyla gelir.
-    expect(find.text('Bu hafta'), findsOneWidget);
+    expect(find.textContaining('Bu hafta', findRichText: true), findsOneWidget);
     expect(find.text('09:00'), findsWidgets);
     expect(tester.takeException(), isNull);
   });

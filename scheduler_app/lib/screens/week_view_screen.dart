@@ -64,7 +64,6 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     _pages.dispose();
     _sharedScrollOffset.dispose();
     _poolHover.dispose();
-    _poolDragging.dispose();
     super.dispose();
   }
 
@@ -181,15 +180,6 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
 
   /// Sürüklenen blok panelin üstünde mi — panel bunu dinleyip vurgulanıyor.
   final ValueNotifier<bool> _poolHover = ValueNotifier(false);
-
-  /// Panelden bir kart kaldırılmış durumda mı?
-  ///
-  /// Yalnız "Bu hafta boş" kartının önden çekilmesi için var: kart ızgaranın
-  /// üstünde bir `Stack` katmanı ve `RenderStack` vuruşu ön çocukta
-  /// durdurduğu için, tam onun üstüne bırakılan iş alttaki `DragTarget`'a
-  /// hiç ulaşmıyordu. Boş bir haftaya havuzdan ilk işi koymak ekranın tam
-  /// ortasında çalışmayan tek nokta demekti.
-  final ValueNotifier<bool> _poolDragging = ValueNotifier(false);
 
   bool _isOverPool(Offset globalPosition) {
     final box = _poolKey.currentContext?.findRenderObject() as RenderBox?;
@@ -502,6 +492,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
           onCreate: _createFromHeader,
           rescuableCount: _rescuePlan(store, today).total,
           onRescue: () => _rescueDay(store, today),
+          isEmptyWeek: store.tasksForWeek(_monday).every((day) => day.isEmpty),
         ),
         // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
         // her zaman bugüne yazılır (bkz. [DailyHabitStrip]).
@@ -587,37 +578,11 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                             onPullFromPool: _pullFromPool,
                             poolHover: _poolHover,
                           ),
-                          // Boş hafta kartı ızgaranın *üstünde* ama yalnız
-                          // kendi alanını kaplıyor: kalan her yer hâlâ
-                          // tıklanabilir, yani "boş alana dokun → ekle"
-                          // yolu kapanmıyor.
-                          if (tasksByDay.every((day) => day.isEmpty))
-                            Align(
-                              alignment: const Alignment(0, -0.35),
-                              // Havuzdan bir kart kalkmışken kart yol veriyor:
-                              // vuruşu geçiriyor ve soluklaşıp "burası da
-                              // bırakılabilir" diyor. Gizlemek yerine
-                              // soluklaştırmak bilinçli — kaybolan bir kart
-                              // ekranın ortasında bir sıçrama olurdu.
-                              child: ValueListenableBuilder<bool>(
-                                valueListenable: _poolDragging,
-                                builder: (context, dragging, child) =>
-                                    IgnorePointer(
-                                      ignoring: dragging,
-                                      child: AnimatedOpacity(
-                                        duration: Motion.fast,
-                                        opacity: dragging ? 0.35 : 1,
-                                        child: child,
-                                      ),
-                                    ),
-                                child: _EmptyWeekCard(
-                                  onCreate: () => _quickAdd(
-                                    monday.add(const Duration(days: 3)),
-                                    9,
-                                  ),
-                                ),
-                              ),
-                            ),
+                          // Boş hafta artık ızgaranın üstünde hiçbir şey
+                          // çizmiyor (T2): bilgi başlık çubuğundaki bağlam
+                          // satırında. Buradaki katmanın kalkması, havuzdan
+                          // gelen bırakmanın ekranın tam ortasında kesilmesi
+                          // sorununu da kökünden kaldırdı.
                         ],
                       ),
                     ),
@@ -655,7 +620,6 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                   ref.read(poolPanelOpenProvider.notifier).set(false),
               onOpenTask: (task) => _openEditor(task.date, existing: task),
               onRestore: _restoreFromPool,
-              onDragging: (value) => _poolDragging.value = value,
             )
           : PoolRail(
               count: pooled.length,
@@ -694,52 +658,6 @@ class _ShiftWeekIntent extends Intent {
   final int weeks;
 }
 
-/// Hiç işi olmayan haftada görünen kart.
-///
-/// Boş ızgara tek başına "burada bir şey yok" demiyordu — kullanıcı veriyi mi
-/// kaybettiğini yoksa haftanın gerçekten boş mu olduğunu ayırt edemiyordu.
-class _EmptyWeekCard extends StatelessWidget {
-  const _EmptyWeekCard({required this.onCreate});
-
-  final VoidCallback onCreate;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 300),
-      child: ShadCard(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Bu hafta boş',
-              style: TextStyle(
-                color: c.ink,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Izgarada boş bir saate dokunarak ya da aşağıdan hızlıca iş '
-              'ekleyebilirsin.',
-              style: TextStyle(color: c.inkDim, fontSize: 12.5, height: 1.35),
-            ),
-            const SizedBox(height: 12),
-            ShadButton(
-              size: ShadButtonSize.sm,
-              onPressed: onCreate,
-              child: const Text('Yeni iş'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 // --- Ortak küçük parçalar ----------------------------------------------------
 
 /// Gün başlıkları + saatsiz şeridini taşıyan yükseltilmiş yüzey.

@@ -10,6 +10,7 @@ import 'package:scheduler_app/data/persistence_providers.dart';
 import 'package:scheduler_app/models/task.dart';
 import 'package:scheduler_app/screens/week/pool_panel.dart';
 import 'package:scheduler_app/screens/week_view_screen.dart';
+import 'package:scheduler_app/widgets/week_time_grid.dart';
 
 import 'helpers.dart';
 
@@ -229,8 +230,6 @@ void main() {
       // Panelden ızgaranın ortasına sürükle. Tek sıçramada değil adım adım:
       // sürükleme tanıyıcısı hareketi ancak birkaç olayda ayırt ediyor.
       final from = tester.getCenter(card);
-      // "Bu hafta boş" kartı ızgaranın ortasında duruyor; bırakma noktası
-      // onun dışında olmalı.
       const to = Offset(300, 750);
       final gesture = await tester.startGesture(from);
       // Kart uzun basmayla kalkıyor (bkz. PoolPanel).
@@ -252,13 +251,18 @@ void main() {
       expect(container.read(poolProvider), isEmpty);
     });
 
-    testWidgets('"Bu hafta boş" kartının tam üstüne bırakmak da çalışır', (
+    testWidgets('boş haftada ızgaranın tam ortasına bırakmak çalışır', (
       tester,
     ) async {
-      // Kart ızgaranın üstünde bir `Stack` katmanı; `RenderStack` vuruşu ön
-      // çocukta durdurduğu için tam oraya bırakılan iş alttaki `DragTarget`'a
-      // hiç ulaşmıyordu. Boş bir haftaya havuzdan ilk işi koymanın en doğal
-      // yolu, ekranın tam ortasındaki tek ölü nokta demekti.
+      // Bu test bir yaranın izi. Eskiden boş haftada ızgaranın üstünde yüzen
+      // bir "Bu hafta boş" kartı vardı; `RenderStack` vuruşu ön çocukta
+      // durdurduğu için tam oraya bırakılan iş alttaki `DragTarget`'a hiç
+      // ulaşmıyordu — boş bir haftaya havuzdan ilk işi koymanın en doğal yolu,
+      // ekranın tam ortasındaki tek ölü nokta demekti. Kart bir bayrakla
+      // yamanmıştı; T2'de kart kalkınca yama da kalktı.
+      //
+      // Kart gitti ama soru duruyor: ızgaranın ortasına bırakılan iş iniyor
+      // mu? İleride oraya başka bir katman konursa bu test haber verir.
       wide(tester);
       final job = task('Kenardaki', inPool: true);
 
@@ -273,10 +277,14 @@ void main() {
         seed: (s) => s.addTask(job),
       );
 
-      expect(find.text('Bu hafta boş'), findsOneWidget);
+      // Hafta gerçekten boş: ızgarada tek blok yok, bilgi başlıkta.
+      expect(
+        find.textContaining('hiç iş yok', findRichText: true),
+        findsOneWidget,
+      );
 
       final from = tester.getCenter(find.text('Kenardaki'));
-      final to = tester.getCenter(find.text('Bu hafta boş'));
+      final to = tester.getCenter(find.byType(WeekTimeGrid));
 
       final gesture = await tester.startGesture(from);
       await tester.pump(const Duration(milliseconds: 600));

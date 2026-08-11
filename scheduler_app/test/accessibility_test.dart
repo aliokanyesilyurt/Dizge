@@ -115,31 +115,49 @@ void main() {
       useScreenSize(tester, const Size(1400, 1000));
       await pumpApp(tester, const WeekViewScreen());
 
-      expect(find.text('Bu hafta'), findsOneWidget);
+      expect(
+        find.textContaining('Bu hafta', findRichText: true),
+        findsOneWidget,
+      );
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pumpAndSettle();
-      expect(find.text('Gelecek hafta'), findsOneWidget);
+      expect(
+        find.textContaining('Gelecek hafta', findRichText: true),
+        findsOneWidget,
+      );
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pumpAndSettle();
-      expect(find.text('Bu hafta'), findsOneWidget);
+      expect(
+        find.textContaining('Bu hafta', findRichText: true),
+        findsOneWidget,
+      );
     });
   });
 
   group('boş hafta', () {
-    testWidgets('iş yokken kart görünür, ilk işten sonra kaybolur', (
+    testWidgets('bilgi başlıkta duruyor, ızgaranın ortasında değil', (
       tester,
     ) async {
       useScreenSize(tester, const Size(1400, 1000));
 
       await pumpApp(tester, const WeekViewScreen());
+
       // Boş ızgara tek başına "veri mi kayboldu, hafta mı boş" sorusunu
-      // cevaplamıyordu.
-      expect(find.text('Bu hafta boş'), findsOneWidget);
+      // cevaplamıyor; cevap veriliyor ama bir uyarı gibi değil. Plan
+      // yapılmamış bir hafta hata değil (T2), o yüzden ekranın ortasında
+      // yüzen bir kart yerine bağlam satırının devamı.
+      expect(
+        find.textContaining('hiç iş yok', findRichText: true),
+        findsOneWidget,
+      );
 
       await pumpWithTask(tester);
-      expect(find.text('Bu hafta boş'), findsNothing);
+      expect(
+        find.textContaining('hiç iş yok', findRichText: true),
+        findsNothing,
+      );
     });
   });
 

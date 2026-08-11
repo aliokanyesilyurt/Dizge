@@ -34,6 +34,7 @@ class WeekHeaderBar extends StatelessWidget {
     required this.onCreate,
     required this.rescuableCount,
     required this.onRescue,
+    this.isEmptyWeek = false,
   });
 
   /// "3 – 9 Ağustos 2026" — ekranın tek vurgulu satırı.
@@ -41,6 +42,17 @@ class WeekHeaderBar extends StatelessWidget {
 
   /// "Bu hafta" / "Geçen hafta" — bağlam, vurgu değil.
   final String offsetLabel;
+
+  /// Haftada hiç iş yok mu?
+  ///
+  /// Eskiden bunu ızgaranın ortasında yüzen bir kart söylüyordu (T2). Kart iki
+  /// sorun üretiyordu: plan yapılmamış bir hafta hata değil ki ekranın
+  /// ortasında duyurulsun, ve ızgaranın üstündeki o katman havuzdan gelen
+  /// bırakmayı tam ortada kesiyordu.
+  ///
+  /// Bilgi burada, zaten var olan bağlam satırının devamında: hizalı, sessiz,
+  /// ızgaranın üstünde hiçbir şey kaplamıyor.
+  final bool isEmptyWeek;
 
   final bool isCurrentWeek;
   final GridDensity density;
@@ -139,15 +151,37 @@ class WeekHeaderBar extends StatelessWidget {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  offsetLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isCurrentWeek ? c.accent : c.inkFaint,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.1,
+                Semantics(
+                  // Ekran okuyucu haftanın boşaldığını/dolduğunu duysun; kart
+                  // kalkarken bu bilgiyi de kaybetmiyoruz.
+                  liveRegion: true,
+                  // İki `Text`'li bir `Row` değil, tek bir zengin metin: bu
+                  // başlık 390px'te zaten sınırda (enerji seçici eklenince
+                  // 1.7px taşmıştı) ve ikinci bir kutu eklemek onu 100px
+                  // taşırdı. Tek metinde elips kendiliğinden çalışıyor —
+                  // dar ekranda önce "hiç iş yok" kısalır, düzen bozulmaz.
+                  child: Text.rich(
+                    TextSpan(
+                      text: offsetLabel,
+                      style: TextStyle(
+                        color: isCurrentWeek ? c.accent : c.inkFaint,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.1,
+                      ),
+                      children: [
+                        if (isEmptyWeek)
+                          TextSpan(
+                            text: ' · hiç iş yok',
+                            style: TextStyle(
+                              color: c.inkFaint,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

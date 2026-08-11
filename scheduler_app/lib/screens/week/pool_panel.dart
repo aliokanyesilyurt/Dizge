@@ -25,7 +25,6 @@ class PoolPanel extends StatelessWidget {
     required this.onOpenTask,
     required this.onRestore,
     this.hover,
-    this.onDragging,
   });
 
   final List<Task> tasks;
@@ -34,14 +33,6 @@ class PoolPanel extends StatelessWidget {
 
   /// İşi takvime geri koyar (eski gününe).
   final ValueChanged<Task> onRestore;
-
-  /// Panelden bir kart kaldırıldı / bırakıldı.
-  ///
-  /// Ekranın bunu bilmesi gerekiyor çünkü ızgaranın üstünde duran bazı
-  /// katmanlar (ör. "Bu hafta boş" kartı) sürükleme sırasında bırakma
-  /// hedefinin önünü kesiyor. Panel kendi durumunu bildiriyor; nereye
-  /// yarayacağı ekranın bilgisi.
-  final ValueChanged<bool>? onDragging;
 
   /// Izgaradan sürüklenen blok panelin üstünde mi? Sürükleme sırasında
   /// ızgara yazıyor, panel dinliyor — aradaki ekranı yeniden çizmeden.
@@ -77,7 +68,6 @@ class PoolPanel extends StatelessWidget {
                           task: tasks[i],
                           onTap: () => onOpenTask(tasks[i]),
                           onRestore: () => onRestore(tasks[i]),
-                          onDragging: onDragging,
                         ),
                       ),
               ),
@@ -270,13 +260,11 @@ class _PoolCard extends StatelessWidget {
     required this.task,
     required this.onTap,
     required this.onRestore,
-    this.onDragging,
   });
 
   final Task task;
   final VoidCallback onTap;
   final VoidCallback onRestore;
-  final ValueChanged<bool>? onDragging;
 
   /// Bu kadar gündür bekleyen iş soluklaşır. Havuzun asıl riski çöp kutusuna
   /// dönmesi; solan kart "bunu ya yap ya sil" diyen sessiz bir uyarı.
@@ -371,11 +359,10 @@ class _PoolCard extends StatelessWidget {
           dragAnchorStrategy: pointerDragAnchorStrategy,
           feedback: _DragFeedback(task: task),
           childWhenDragging: Opacity(opacity: 0.3, child: card),
-          onDragStarted: () => onDragging?.call(true),
-          // İptal de bitiş: `onDragEnd` bırakma kabul edilmese de çağrılıyor,
-          // yoksa hedefin dışına bırakan kullanıcı ekranı sürükleme
-          // durumunda kilitli bırakırdı.
-          onDragEnd: (_) => onDragging?.call(false),
+          // Sürükleme durumunu dışarı bildiren geri çağrılar kalktı (T2):
+          // tek tüketicileri, ızgaranın ortasındaki "Bu hafta boş" kartını
+          // bırakma sırasında yoldan çekmekti. Kart gidince yamanın da yeri
+          // kalmadı — ızgaranın üstünde artık kesecek bir katman yok.
           child: GestureDetector(
             onTap: onTap,
             child: MouseRegion(cursor: SystemMouseCursors.click, child: card),
