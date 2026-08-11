@@ -6,3 +6,8 @@
 .env.keys
 .env.local
 .env.*.local
+
+# Panoya yapistirilacak turetilmis SQL (bkz. panoya-yapistir.sh).
+# Migration'in kopyasi; repoda dursa semanin ikinci bir gercegi olur ve
+# zamanla ayrisirdi. Uretici betik git'te, ciktisi degil.
+panoya-yapistir.sql
