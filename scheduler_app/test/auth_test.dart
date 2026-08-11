@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scheduler_app/core/auth_service.dart';
 import 'package:scheduler_app/data/app_store.dart';
+import 'package:scheduler_app/data/local_store.dart';
+import 'package:scheduler_app/data/persistence_providers.dart';
+import 'package:scheduler_app/data/sync/mutation.dart';
+import 'package:scheduler_app/data/sync/outbox.dart';
 import 'package:scheduler_app/models/node.dart';
 import 'package:scheduler_app/screens/account_screen.dart';
 
@@ -38,8 +42,11 @@ void main() {
     void useTallScreen(WidgetTester tester) =>
         useScreenSize(tester, const Size(900, 1800));
 
-    testWidgets('oturum yokken giriş çağrısı görünür', (tester) async {
+    testWidgets('oturum yokken hesap bölümü hiç görünmez', (tester) async {
       useTallScreen(tester);
+      // Kapıdan (AuthGate) sonra bu ekrana yalnız oturum açmış biri
+      // ulaşabiliyor; "Oturum aç" satırı artık ulaşılamayan bir durumun
+      // düğmesi olurdu. Anahtarsız yerel derlemede ise oturum kavramı hiç yok.
       final auth = FakeAuthService();
       addTearDown(auth.dispose);
 
@@ -49,9 +56,9 @@ void main() {
         overrides: [authServiceProvider.overrideWithValue(auth)],
       );
 
-      expect(find.text('Oturum aç'), findsOneWidget);
-      expect(find.text('Misafir'), findsOneWidget);
+      expect(find.text('Oturum aç'), findsNothing);
       expect(find.text('Çıkış yap'), findsNothing);
+      expect(find.text('Misafir'), findsOneWidget);
     });
 
     testWidgets('oturum açıkken e-posta ve çıkış görünür', (tester) async {
@@ -95,10 +102,12 @@ void main() {
       expect(find.text('Misafir'), findsNothing);
     });
 
-    testWidgets('çıkış yerel veriye dokunmaz', (tester) async {
+    testWidgets('çıkış cihazdaki planları da siler', (tester) async {
       useTallScreen(tester);
-      // Cihazdaki takvim kullanıcınındır. Çıkış yalnız jetonu siler; veriyi
-      // silmek "Cihazdaki verileri sil" düğmesinin işi ve o ayrı bir karar.
+      // Kapıdan önce çıkış yerel veriye dokunmuyordu ve o doğru karardı.
+      // Artık dokunuyor (G3): aynı cihazda ikinci bir kişi giriş yapsaydı
+      // öncekinin bütün takvimini görürdü — Hive kutusu tek ve kullanıcıdan
+      // bağımsız. Açığı kapı yarattı, kapatmak da onun borcu.
       final auth = FakeAuthService(
         user: const AuthUser(id: 'k1', email: 'ali@example.com'),
       );
@@ -115,6 +124,53 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(auth.signOutCount, 1);
+      expect(container.read(appStoreProvider).notes, isEmpty);
+    });
+
+    testWidgets('gönderilmemiş değişiklik varken çıkış önce sorar', (
+      tester,
+    ) async {
+      useTallScreen(tester);
+      // Kuyruktaki mutasyon henüz hiçbir yerde yok: ne sunucuda, ne başka bir
+      // cihazda. Sessizce silinseydi kullanıcı onu geri getiremezdi.
+      final auth = FakeAuthService(
+        user: const AuthUser(id: 'k1', email: 'ali@example.com'),
+      );
+      addTearDown(auth.dispose);
+
+      final store = InMemoryStore();
+      await store.init();
+      final outbox = Outbox(store)
+        ..enqueue(
+          Mutation(
+            kind: EntityKind.note,
+            entityId: 'not-1',
+            op: MutationOp.upsert,
+            payload: const {},
+          ),
+        );
+
+      final container = await pumpApp(
+        tester,
+        const AccountScreen(),
+        overrides: [
+          authServiceProvider.overrideWithValue(auth),
+          localStoreProvider.overrideWithValue(store),
+          outboxProvider.overrideWithValue(outbox),
+        ],
+        seed: (s) => s.addNote(_note()),
+      );
+
+      await tester.tap(find.text('Çıkış yap'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Yüklenmemiş değişiklikler var'), findsOneWidget);
+
+      // Vazgeçmek gerçekten vazgeçmek: ne oturum kapanır ne veri silinir.
+      await tester.tap(find.text('Vazgeç'));
+      await tester.pumpAndSettle();
+
+      expect(auth.signOutCount, 0);
       expect(container.read(appStoreProvider).notes, hasLength(1));
     });
   });
