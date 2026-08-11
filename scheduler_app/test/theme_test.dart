@@ -204,6 +204,51 @@ void main() {
       expect(apart > 30 && apart < 330, isTrue, reason: 'ton farkı $apart°');
     });
 
+    test('iki tema aynı renk ailesini konuşur', () {
+      // Bu testin varlık sebebi gerçek bir ayrışma: koyu tema N1–N4'te neon
+      // camgöbeği/magentaya geçerken açık tema eski indigo/gülde kaldı ve
+      // uygulama, tema değiştirince başka bir uygulamaya dönüşüyordu.
+      //
+      // Ölçü yine **ton**, kontrast değil: açık temanın rengi okunabilirlik
+      // için zorunlu olarak daha koyu, yani parlaklıkları eşit olamaz. Kimliği
+      // taşıyan şey ton.
+      for (final (name, dark, lightColor) in [
+        ('accent', AppPalette.dark.accent, AppPalette.light.accent),
+        ('secondary', AppPalette.dark.secondary, AppPalette.light.secondary),
+        ('nowLine', AppPalette.dark.nowLine, AppPalette.light.nowLine),
+      ]) {
+        final d = HSLColor.fromColor(dark).hue;
+        final l = HSLColor.fromColor(lightColor).hue;
+        final apart = (d - l).abs();
+        final wrapped = apart > 180 ? 360 - apart : apart;
+
+        expect(
+          wrapped,
+          lessThan(15),
+          reason:
+              '$name ton farkı ${wrapped.toStringAsFixed(1)}° — '
+              'iki tema aynı aileden görünmüyor',
+        );
+      }
+    });
+
+    test('açık temanın marka renkleri kâğıt üstünde okunur', () {
+      // Koyu temanın neon rengini olduğu gibi taşımak cazip ama yanlış:
+      // #22D3EE beyaz üstünde 1.81:1 çıkar. Bu test, ileride "iki tema aynı
+      // renk olsun" diye yapılacak iyi niyetli bir düzeltmenin metni okunmaz
+      // hâle getirmesini engelliyor.
+      const p = AppPalette.light;
+
+      expect(contrastRatio(p.accent, p.surface), greaterThanOrEqualTo(4.5));
+      expect(contrastRatio(p.secondary, p.surface), greaterThanOrEqualTo(4.5));
+      // "Şu an" çizgisi metin değil, konum işareti: eşiği 3:1.
+      expect(contrastRatio(p.nowLine, p.surface), greaterThanOrEqualTo(3.0));
+      expect(
+        contrastRatio(p.navActiveInk, p.navActiveFill),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
     test('tamamlanan blok soluklaşır ve ikincil yazıya döner', () {
       const color = Color(0xFF4FC3F7);
       final open = AppPalette.light.event(color);

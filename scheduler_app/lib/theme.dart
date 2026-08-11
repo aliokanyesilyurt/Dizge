@@ -205,7 +205,17 @@ class AppPalette extends ThemeExtension<AppPalette> {
     glowAccent: Color(0x5922D3EE),
   );
 
-  /// Gündüz: kâğıt beyazı kartlar, hafif soğuk gri zemin, aynı indigo.
+  /// Gündüz: kâğıt beyazı kartlar, hafif soğuk gri zemin, **aynı camgöbeği**.
+  ///
+  /// T1 — bu palet uzun süre eski indigo/gül renklerinde kaldı; koyu tema
+  /// N1–N4'te neon camgöbeği/magentaya geçerken buraya kimse dokunmadı ve iki
+  /// tema farklı **marka** gibi görünmeye başladı. Tema değiştirmek bir tercih
+  /// olmalı, başka bir uygulamaya geçmek değil.
+  ///
+  /// Koyu temanın rengi **kopyalanmadı**: `#22D3EE` beyaz kâğıtta 1.81:1 —
+  /// WCAG AA metin eşiği 4.5:1. Onun yerine **ton açısı korunup parlaklık
+  /// düşürüldü**; kimlik tonda taşınır, okunabilirlik parlaklıkta. Üç rolde de
+  /// koyu ile açık arasındaki ton farkı 5°'nin altında.
   static const light = AppPalette(
     brightness: Brightness.light,
     bg: Color(0xFFF7F8FC),
@@ -214,17 +224,23 @@ class AppPalette extends ThemeExtension<AppPalette> {
     hover: Color(0xFFF1F2F8),
     sidebar: Color(0xFFFFFFFF),
     sidebarHover: Color(0xFFF3F4FA),
-    navActiveFill: Color(0xFFEEF0FE),
-    navActiveInk: Color(0xFF4338CA),
+    navActiveFill: Color(0xFFE6F6FA),
+    navActiveInk: Color(0xFF0E7490),
     line: Color(0xFFE3E5EF),
     lineSoft: Color(0xFFEDEFF5),
     ink: Color(0xFF14161C),
     inkDim: Color(0xFF5A5F6E),
     inkFaint: Color(0xFF8B90A0),
-    accent: Color(0xFF4F46E5),
-    accentSoft: Color(0xFFEEF0FE),
+    // Beyaz üstünde 5.36:1. Bir tık açığı (#0891B2) 3.68 ile eşiğin altında
+    // kalıyor, bir tık koyusu (#155E75) geçiyor ama camgöbeği olmaktan çıkıp
+    // laciverde dönüyor — kimliği taşımıyor.
+    accent: Color(0xFF0E7490),
+    accentSoft: Color(0xFFE6F6FA),
     onAccent: Color(0xFFFFFFFF),
-    secondary: Color(0xFFE11D48),
+    // Beyaz üstünde 6.32:1.
+    secondary: Color(0xFFA21CAF),
+    // `warning` ve `danger` markaya bağlanmaz: bunlar marka rengi değil,
+    // evrensel işaret. Tema değişince anlamları değişmemeli.
     warning: Color(0xFFB45309),
     danger: Color(0xFFDC2626),
     gridDay: Color(0xFFFFFFFF),
@@ -233,9 +249,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     gridHourLine: Color(0xFFE7E9F1),
     gridHalfLine: Color(0xFFF2F3F8),
     gridColumnLine: Color(0xFFEDEFF6),
-    gridTodayWash: Color(0x0A4F46E5),
-    nowLine: Color(0xFFF43F5E),
-    dropTarget: Color(0x334F46E5),
+    gridTodayWash: Color(0x0F0E7490),
+    // Metin değil konum çizgisi; eşik 3:1 ve bu 4.82:1. Koyu temadaki
+    // magentanın (#FF2BD6) gündüz hâli — tondan 4° uzakta.
+    nowLine: Color(0xFFD6009E),
+    dropTarget: Color(0x330E7490),
     shadowContact: Color(0x14161C1F),
     shadowAmbient: Color(0x0D161C24),
     // Açıkta parıltı yok: beyaz kâğıt üstünde neon hale kir gibi durur ve
