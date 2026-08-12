@@ -3,14 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/group_context.dart';
 import '../theme.dart';
+import 'group_dialogs.dart';
 
-/// Kenar çubuğundaki bağlam seçici: "Kişisel" ile grup adları arasında geçiş.
+/// Kenar çubuğundaki bağlam seçici: "Kişisel" ile grup adları arasında geçiş,
+/// ve grup işlemlerinin (kur / katıl / yönet) tek kapısı.
 ///
-/// **Grubu olmayan kullanıcıda hiç görünmez.** Planın en büyük riski "kişisel
-/// görünüm grup işlerini sessizce gizler" idi; hiç grup yokken gizlenebilecek
-/// bir iş de yok, o yüzden seçici o durumda yalnız gürültü olurdu. Bir grup
-/// belirdiği anda seçici de belirir ve **hep açıkta durur**: sorunun cevabı
-/// ("işlerim nerede?") ekranın sabit bir yerinde yazılı olmalı.
+/// **Her zaman görünür**, grup yoksa bile. İki sebep birden: planın en büyük
+/// riski "kişisel görünüm grup işlerini sessizce gizler" ve bunun cevabı
+/// ekranın sabit bir yerinde durmalı; ayrıca ilk grubun kurulduğu yer de
+/// burası — menü gizlenirse hiç grup kurulamazdı.
 ///
 /// Bağlam bir süzgeç, ikinci bir depo değil (Y4b) — seçim yalnız neyin
 /// gösterildiğini değiştirir, veri tek yerde durur.
@@ -20,11 +21,35 @@ class GroupSwitcher extends ConsumerWidget {
   /// Daraltılmış kenar çubuğunda yalnız simge + ipucu görünür.
   final bool collapsed;
 
+  /// Menüdeki eylem satırlarının değerleri. Grup kimlikleriyle çakışmamaları
+  /// için `#` ile başlıyorlar — uuid hiçbir zaman böyle başlamaz.
+  static const _yeni = '#yeni';
+  static const _katil = '#katil';
+  static const _yonet = '#yonet';
+
+  /// Boş dize = Kişisel. `null` kullanılamaz: PopupMenuButton null'ı
+  /// "vazgeçildi" sayar ve seçim hiç ulaşmazdı.
+  static const _kisisel = '';
+
+  void _onSelected(BuildContext context, WidgetRef ref, String value) {
+    switch (value) {
+      case _yeni:
+        showCreateGroupDialog(context);
+      case _katil:
+        showAcceptInviteDialog(context);
+      case _yonet:
+        final active = ref.read(groupContextProvider).active;
+        if (active != null) showManageGroupDialog(context, active);
+      default:
+        ref
+            .read(groupContextProvider.notifier)
+            .select(value.isEmpty ? null : value);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ctx = ref.watch(groupContextProvider);
-    if (ctx.groups.isEmpty) return const SizedBox.shrink();
-
     final c = context.colors;
     final inGroup = !ctx.isPersonal;
     final icon = inGroup ? Icons.groups_rounded : Icons.person_outline_rounded;
@@ -37,19 +62,42 @@ class GroupSwitcher extends ConsumerWidget {
       position: PopupMenuPosition.under,
       color: c.surfaceAlt,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
-      // Boş dize = Kişisel. `null` kullanılamaz: PopupMenuButton null'ı
-      // "vazgeçildi" sayar ve seçim hiç ulaşmazdı.
-      onSelected: (id) => ref
-          .read(groupContextProvider.notifier)
-          .select(id.isEmpty ? null : id),
+      onSelected: (value) => _onSelected(context, ref, value),
       itemBuilder: (_) => [
-        _entry(context, id: '', label: 'Kişisel', active: ctx.isPersonal),
+        _context(
+          context,
+          id: _kisisel,
+          label: 'Kişisel',
+          active: ctx.isPersonal,
+        ),
         for (final g in ctx.groups)
-          _entry(
+          _context(
             context,
             id: g.id,
             label: g.name,
             active: g.id == ctx.activeId,
+          ),
+        const PopupMenuDivider(),
+        _action(
+          context,
+          value: _yeni,
+          icon: Icons.add_rounded,
+          label: 'Yeni grup…',
+        ),
+        _action(
+          context,
+          value: _katil,
+          icon: Icons.mail_outline_rounded,
+          label: 'Daveti kabul et…',
+        ),
+        // Yönetim yalnız bir grubun içindeyken anlamlı: "Kişisel"in davet
+        // edilecek üyesi ya da çıkılacak bir kapısı yok.
+        if (inGroup)
+          _action(
+            context,
+            value: _yonet,
+            icon: Icons.tune_rounded,
+            label: 'Grubu yönet…',
           ),
       ],
       child: AnimatedContainer(
@@ -100,7 +148,8 @@ class GroupSwitcher extends ConsumerWidget {
     );
   }
 
-  PopupMenuItem<String> _entry(
+  /// Bağlam satırı: seçilince süzgeç değişir.
+  PopupMenuItem<String> _context(
     BuildContext context, {
     required String id,
     required String label,
@@ -131,6 +180,35 @@ class GroupSwitcher extends ConsumerWidget {
           ),
           if (active)
             Icon(Icons.check_rounded, size: 15, color: c.navActiveInk),
+        ],
+      ),
+    );
+  }
+
+  /// Eylem satırı: seçilince diyalog açar. Bağlam satırlarından soluk tonuyla
+  /// ayrılıyor — biri "nereye bakıyorum", öteki "ne yapıyorum".
+  PopupMenuItem<String> _action(
+    BuildContext context, {
+    required String value,
+    required IconData icon,
+    required String label,
+  }) {
+    final c = context.colors;
+    return PopupMenuItem<String>(
+      value: value,
+      height: 40,
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: c.inkFaint),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              color: c.inkDim,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );

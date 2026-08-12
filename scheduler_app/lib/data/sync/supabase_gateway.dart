@@ -111,6 +111,43 @@ class SupabaseGateway implements RemoteGateway {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
+  /// Grup kurar (`create_group`) ve kurulan grubu döner.
+  ///
+  /// Sunucu yalnız kimliği döndürüyor; adı ve sahibi burada biliniyor, ikinci
+  /// bir çekim turu için sebep yok.
+  @override
+  Future<Group> createGroup(String name) async {
+    final id = await _api.rpc('create_group', {'group_name': name});
+    return Group(
+      id: id as String,
+      name: name.trim(),
+      ownerId: _api.currentUserId,
+    );
+  }
+
+  @override
+  Future<String> createInvite(String groupId, {String? email}) async {
+    final token = await _api.rpc('create_invite', {
+      'gid': groupId,
+      // Boş dize `null` demek: adrese yazılmamış, herkese açık davet.
+      'invite_email': (email == null || email.trim().isEmpty)
+          ? null
+          : email.trim(),
+    });
+    return token as String;
+  }
+
+  @override
+  Future<String> acceptInvite(String token) async {
+    final groupId = await _api.rpc('accept_invite', {
+      'invite_token': token.trim(),
+    });
+    return groupId as String;
+  }
+
+  @override
+  Future<void> leaveGroup(String groupId) => _api.leaveGroup(groupId);
+
   @override
   Future<PushResult> pushSnapshot(Map<String, dynamic> snapshot) async {
     final mutations = <Mutation>[];

@@ -51,6 +51,12 @@ class _FakeApi implements SupabaseApi {
       if (DateTime.parse(r['server_at'] as String).isAfter(since)) r,
   ];
 
+  /// Bırakılan üyelikler, sırasıyla.
+  final List<String> left = [];
+
+  @override
+  Future<void> leaveGroup(String groupId) async => left.add(groupId);
+
   List<Map<String, dynamic>> mutationsSentTo(String fn) => [
     for (final c in calls)
       if (c.fn == fn)
@@ -425,6 +431,72 @@ void main() {
       });
 
       expect(api.calls.map((c) => c.fn), contains('replace_categories'));
+    });
+  });
+
+  group('grup işlemleri (Y4.3)', () {
+    test('grup kurulur ve kuran sahip sayılır', () async {
+      final api = _FakeApi(userId: 'ali')
+        ..onRpc = (fn, _) => fn == 'create_group' ? 'grup-1' : null;
+
+      final group = await SupabaseGateway(api).createGroup('  Ekip  ');
+
+      expect(group.id, 'grup-1');
+      // Ad kırpılıyor: sunucu da `btrim` uyguluyor, ikisi ayrışmamalı.
+      expect(group.name, 'Ekip');
+      expect(group.isOwnedBy('ali'), isTrue);
+      expect(api.calls.single.params['group_name'], '  Ekip  ');
+    });
+
+    test('adressiz davet null e-postayla gider', () async {
+      final api = _FakeApi()..onRpc = (_, _) => 'token-abc';
+
+      final token = await SupabaseGateway(api).createInvite('grup-1');
+
+      expect(token, 'token-abc');
+      final params = api.calls.single.params;
+      expect(params['gid'], 'grup-1');
+      // Boş dize değil **null**: sunucu ikisini ayırıyor ve boş dize
+      // "kimsenin adresi" diye kaydedilirdi.
+      expect(params['invite_email'], isNull);
+    });
+
+    test('boş e-posta da adressiz sayılır', () async {
+      final api = _FakeApi()..onRpc = (_, _) => 'token-abc';
+
+      await SupabaseGateway(api).createInvite('grup-1', email: '   ');
+
+      expect(api.calls.single.params['invite_email'], isNull);
+    });
+
+    test('adrese yazılı davet adresi taşır', () async {
+      final api = _FakeApi()..onRpc = (_, _) => 'token-abc';
+
+      await SupabaseGateway(
+        api,
+      ).createInvite('grup-1', email: '  biri@posta.com ');
+
+      expect(api.calls.single.params['invite_email'], 'biri@posta.com');
+    });
+
+    test('daveti kabul etmek girilen grubu döner', () async {
+      final api = _FakeApi()..onRpc = (_, _) => 'grup-7';
+
+      final gid = await SupabaseGateway(api).acceptInvite('  token-abc  ');
+
+      expect(gid, 'grup-7');
+      // Kopyala-yapıştır boşluk taşır; sunucuya temizi gitmeli.
+      expect(api.calls.single.params['invite_token'], 'token-abc');
+    });
+
+    test('gruptan çıkmak üyelik satırını siler', () async {
+      final api = _FakeApi();
+
+      await SupabaseGateway(api).leaveGroup('grup-1');
+
+      expect(api.left, ['grup-1']);
+      // Bir RPC değil: politika zaten "kendi üyeliğini bırakabilir" diyor.
+      expect(api.calls, isEmpty);
     });
   });
 }

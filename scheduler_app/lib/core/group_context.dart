@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/app_store.dart';
 import '../data/local_store.dart';
 import '../data/persistence_providers.dart';
 import '../data/sync/remote_gateway.dart';
@@ -92,6 +93,23 @@ class GroupContextController extends StateNotifier<GroupContext> {
     await _store.writeString(kActiveGroupKey, groupId ?? '');
   }
 
+  /// Yeni katılınan grubu listeye katar ve bağlamı ona taşır.
+  ///
+  /// Sunucudan tazelemek yerine buradan eklemenin sebebi bir gidiş-dönüş
+  /// tasarrufu değil: [refresh] hatayı yutuyor: ağ o anda düşerse grup
+  /// listeye hiç girmez ve kullanıcı az önce kurduğu grubu göremezdi.
+  Future<void> adopt(Group group) async {
+    final groups = [
+      for (final g in state.groups)
+        if (g.id != group.id) g,
+      group,
+    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+    state = GroupContext(groups: groups, activeId: group.id);
+    await _writeCache(groups);
+    await _store.writeString(kActiveGroupKey, group.id);
+  }
+
   /// Grup listesini sunucudan tazeler.
   ///
   /// Hata **yutuluyor**: çevrimdışı açılışta liste tazelenemiyorsa doğru
@@ -116,13 +134,71 @@ class GroupContextController extends StateNotifier<GroupContext> {
 
     state = GroupContext(groups: groups, activeId: nextActive);
 
-    await _store.writeString(
-      kGroupsCacheKey,
-      jsonEncode([for (final g in groups) g.toJson()]),
-    );
+    await _writeCache(groups);
     if (!stillMember) await _store.writeString(kActiveGroupKey, '');
   }
+
+  Future<void> _writeCache(List<Group> groups) => _store.writeString(
+    kGroupsCacheKey,
+    jsonEncode([for (final g in groups) g.toJson()]),
+  );
 }
+
+/// Grup kurma, davet etme, daveti kabul etme ve gruptan çıkma (Y4.3).
+///
+/// Neden [GroupContextController]'ın içinde değil: gruptan çıkmak yerel
+/// satırların temizlenmesini de gerektiriyor (Y4d) ve o iş [AppStore]'da.
+/// Controller'a depoyu enjekte etmek döngü kurardı — `appStoreProvider` zaten
+/// [activeGroupIdProvider]'ı dinliyor, o da bu controller'dan geliyor.
+///
+/// Dördü de **çevrimiçi ister** (Y4f). Kuyruk yok: bağlantı yoksa çağrı
+/// [RemoteException] ile düşer ve arayüz bunu söyler.
+class GroupActions {
+  const GroupActions(this._ref);
+
+  final Ref _ref;
+
+  RemoteGateway get _gateway => _ref.read(remoteGatewayProvider);
+  GroupContextController get _context =>
+      _ref.read(groupContextProvider.notifier);
+
+  /// Grup kurar ve bağlamı **hemen** yeni gruba taşır.
+  ///
+  /// Kurduğu grubun içine düşmek, kullanıcının bir sonraki hamlesinin
+  /// (birini davet etmek, ilk işi yazmak) zaten orada olması demek.
+  Future<Group> create(String name) async {
+    final group = await _gateway.createGroup(name);
+    await _context.adopt(group);
+    return group;
+  }
+
+  /// Davet üretir; token'ı çağıran panoya kopyalar (Y4g).
+  Future<String> invite(String groupId, {String? email}) =>
+      _gateway.createInvite(groupId, email: email);
+
+  /// Daveti kabul eder ve girilen grubu açar.
+  ///
+  /// Sunucu yalnız grubun kimliğini dönüyor — adı bilinmiyor, o yüzden
+  /// [adopt] değil tam tazeleme gerekiyor.
+  Future<void> accept(String token) async {
+    final groupId = await _gateway.acceptInvite(token);
+    await _context.refresh();
+    await _context.select(groupId);
+  }
+
+  /// Gruptan çıkar: sunucudaki üyelik satırı silinir, **yereldeki kopyalar
+  /// da** (Y4d) — ama o silme outbox'a yazılmaz.
+  ///
+  /// Sıra önemli: önce sunucu. Yerelden silip sunucu çağrısı düşseydi
+  /// kullanıcı hâlâ üye olduğu bir grubun işlerini kaybederdi.
+  Future<void> leave(String groupId) async {
+    await _gateway.leaveGroup(groupId);
+    _ref.read(appStoreProvider).purgeGroup(groupId);
+    await _context.refresh();
+  }
+}
+
+final groupActionsProvider = Provider<GroupActions>(GroupActions.new);
 
 final groupContextProvider =
     StateNotifierProvider<GroupContextController, GroupContext>(

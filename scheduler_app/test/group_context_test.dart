@@ -8,7 +8,9 @@ import 'package:scheduler_app/data/app_store.dart';
 import 'package:scheduler_app/data/local_store.dart';
 import 'package:scheduler_app/data/persistence_providers.dart';
 import 'package:scheduler_app/data/sync/mutation.dart';
+import 'package:scheduler_app/data/sync/outbox.dart';
 import 'package:scheduler_app/data/sync/remote_gateway.dart';
+import 'package:scheduler_app/data/sync/supabase_api.dart';
 import 'package:scheduler_app/models/group.dart';
 import 'package:scheduler_app/models/habit.dart';
 import 'package:scheduler_app/models/node.dart';
@@ -48,6 +50,59 @@ class _FakeGateway implements RemoteGateway {
     fetchCount++;
     if (throwOnFetch) throw Exception('ağ koptu');
     return groups;
+  }
+
+  // --- Grup işlemleri --------------------------------------------------------
+
+  /// Sunucunun reddi: sıradaki grup çağrısı bununla düşer.
+  RemoteException? nextFailure;
+
+  final List<String> created = [];
+  final List<({String groupId, String? email})> invited = [];
+  final List<String> accepted = [];
+  final List<String> left = [];
+
+  void _maybeFail() {
+    final f = nextFailure;
+    if (f != null) {
+      nextFailure = null;
+      throw f;
+    }
+  }
+
+  @override
+  Future<Group> createGroup(String name) async {
+    _maybeFail();
+    created.add(name);
+    final group = Group(id: 'yeni-${created.length}', name: name.trim());
+    groups = [...groups, group];
+    return group;
+  }
+
+  @override
+  Future<String> createInvite(String groupId, {String? email}) async {
+    _maybeFail();
+    invited.add((groupId: groupId, email: email));
+    return 'davet-token-${invited.length}';
+  }
+
+  @override
+  Future<String> acceptInvite(String token) async {
+    _maybeFail();
+    accepted.add(token);
+    // Sunucu daveti kabul edince kullanıcı artık üye: liste de öyle döner.
+    groups = [...groups, _ev];
+    return _ev.id;
+  }
+
+  @override
+  Future<void> leaveGroup(String groupId) async {
+    _maybeFail();
+    left.add(groupId);
+    groups = [
+      for (final g in groups)
+        if (g.id != groupId) g,
+    ];
   }
 }
 
@@ -332,6 +387,163 @@ void main() {
       // değiştirdiği anda her şeyin yeniden yüklenmesini beklerdi.
       expect(identical(container.read(appStoreProvider), before), isTrue);
       expect(before.tasks, hasLength(1));
+    });
+  });
+
+  group('grup işlemleri (Y4.3)', () {
+    test('kurulan grup listeye girer ve bağlam ona taşınır', () async {
+      final store = InMemoryStore();
+      final gateway = _FakeGateway();
+      final container = _container(store: store, gateway: gateway);
+
+      final group = await container.read(groupActionsProvider).create('Ekip');
+
+      expect(gateway.created, ['Ekip']);
+      expect(container.read(groupContextProvider).groups, [group]);
+      expect(container.read(activeGroupIdProvider), group.id);
+      // Kalıcı: uygulama kapanıp açılınca da aynı grupta olunmalı.
+      expect(store.readString(kActiveGroupKey), group.id);
+      expect(store.readString(kGroupsCacheKey), contains('Ekip'));
+    });
+
+    test('kurma sunucudan tazelemeye bağlı değil', () async {
+      final gateway = _FakeGateway();
+      final container = _container(gateway: gateway);
+      final before = gateway.fetchCount;
+
+      await container.read(groupActionsProvider).create('Ekip');
+
+      // Tazeleme hatayı yutuyor; ağ o anda düşseydi kullanıcı az önce
+      // kurduğu grubu göremezdi.
+      expect(gateway.fetchCount, before);
+      expect(container.read(groupContextProvider).groups, hasLength(1));
+    });
+
+    test('grup adı listede sıralı durur', () async {
+      final container = _container(gateway: _FakeGateway(groups: [_ev]));
+      await container.read(groupContextProvider.notifier).refresh();
+
+      await container.read(groupActionsProvider).create('Anahtar');
+
+      expect(container.read(groupContextProvider).groups.map((g) => g.name), [
+        'Anahtar',
+        'Ev',
+      ]);
+    });
+
+    test('davet token u üretilir ve e-posta iletilir', () async {
+      final gateway = _FakeGateway();
+      final container = _container(gateway: gateway);
+
+      final token = await container
+          .read(groupActionsProvider)
+          .invite('g1', email: 'biri@posta.com');
+
+      expect(token, 'davet-token-1');
+      expect(gateway.invited.single.groupId, 'g1');
+      expect(gateway.invited.single.email, 'biri@posta.com');
+    });
+
+    test('kabul edilen davet gruba sokar ve bağlamı oraya taşır', () async {
+      final gateway = _FakeGateway();
+      final container = _container(gateway: gateway);
+
+      await container.read(groupActionsProvider).accept('  token  ');
+
+      expect(gateway.accepted, ['  token  ']);
+      expect(container.read(activeGroupIdProvider), _ev.id);
+      expect(container.read(groupContextProvider).label, 'Ev');
+    });
+
+    test('sunucu reddi çağırana taşınır, bağlam değişmez', () async {
+      final gateway = _FakeGateway()
+        ..nextFailure = const RemoteException('davet zaten kullanılmış');
+      final container = _container(gateway: gateway);
+
+      await expectLater(
+        container.read(groupActionsProvider).accept('token'),
+        throwsA(isA<RemoteException>()),
+      );
+      expect(container.read(groupContextProvider).isPersonal, isTrue);
+    });
+  });
+
+  group('gruptan çıkmak (Y4d)', () {
+    test('o grubun yerel satırları silinir, kişisel olanlar durur', () async {
+      final gateway = _FakeGateway(groups: [_ekip, _ev]);
+      final container = _container(gateway: gateway);
+      await container.read(groupContextProvider.notifier).refresh();
+
+      final store = container.read(appStoreProvider);
+      store.addTask(_task('Kişisel iş'));
+      store.addTask(_task('Ekibin işi', groupId: 'g1'));
+      store.addTask(_task('Evin işi', groupId: 'g2'));
+      store.addNote(Note(title: 'Ekip notu', groupId: 'g1'));
+      store.addHabit(
+        Habit(title: 'Ekip alışkanlığı', color: _mavi, groupId: 'g1'),
+      );
+
+      await container.read(groupActionsProvider).leave('g1');
+
+      expect(gateway.left, ['g1']);
+      expect(store.tasks.map((t) => t.title), ['Kişisel iş', 'Evin işi']);
+      expect(store.notes, isEmpty);
+      expect(store.habits, isEmpty);
+    });
+
+    test('silme outbox a yazılmaz — karşı tarafta kalmalı', () async {
+      final store = InMemoryStore();
+      final outbox = Outbox(store)..load();
+      final container = _container(gateway: _FakeGateway(groups: [_ekip]));
+      await container.read(groupContextProvider.notifier).refresh();
+
+      final appStore = container.read(appStoreProvider);
+      await appStore.attachPersistence(store, outbox: outbox);
+      appStore.addTask(_task('Ekibin işi', groupId: 'g1'));
+      final beforeDeletes = outbox.pending
+          .where((m) => m.op == MutationOp.delete)
+          .length;
+
+      await container.read(groupActionsProvider).leave('g1');
+
+      expect(appStore.tasks, isEmpty);
+      expect(
+        outbox.pending.where((m) => m.op == MutationOp.delete).length,
+        beforeDeletes,
+        reason: 'gruptan çıkmak bir senkron değil, görüş alanının daralması',
+      );
+    });
+
+    test('çıkılan grup listeden düşer ve bağlam Kişisel e döner', () async {
+      final store = InMemoryStore();
+      final container = _container(
+        store: store,
+        gateway: _FakeGateway(groups: [_ekip]),
+      );
+      await container.read(groupContextProvider.notifier).refresh();
+      await container.read(groupContextProvider.notifier).select('g1');
+
+      await container.read(groupActionsProvider).leave('g1');
+
+      expect(container.read(groupContextProvider).groups, isEmpty);
+      expect(container.read(groupContextProvider).isPersonal, isTrue);
+      expect(store.readString(kActiveGroupKey), '');
+    });
+
+    test('sunucu reddederse yerel satırlar durur', () async {
+      final gateway = _FakeGateway(groups: [_ekip])
+        ..nextFailure = const RemoteException('ağ koptu');
+      final container = _container(gateway: gateway);
+      final store = container.read(appStoreProvider);
+      store.addTask(_task('Ekibin işi', groupId: 'g1'));
+
+      await expectLater(
+        container.read(groupActionsProvider).leave('g1'),
+        throwsA(isA<RemoteException>()),
+      );
+      // Sıra bu yüzden sabit: önce sunucu. Tersi olsaydı kullanıcı hâlâ üye
+      // olduğu bir grubun işlerini kaybederdi.
+      expect(store.tasks, hasLength(1));
     });
   });
 }

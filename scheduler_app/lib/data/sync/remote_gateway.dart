@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/group.dart';
 import 'mutation.dart';
+import 'supabase_api.dart';
 
 /// Bir gönderim denemesinin sonucu.
 class PushResult {
@@ -77,6 +78,31 @@ abstract class RemoteGateway {
   /// bir şey değil, üyeliğinin sonucu. Çevrimdışıyken son bilinen liste yerel
   /// önbellekten okunur — burası yalnız tazeleme yolu.
   Future<List<Group>> fetchGroups();
+
+  // --- Grup işlemleri (Y4.3) -------------------------------------------------
+  //
+  // Dördü de **çevrimiçi ister** ve hiçbiri outbox'a girmez (Y4f). Outbox
+  // `Mutation` taşıyor ve hakemi "son yazan kazanır"; grup kurmakla "aynı anda
+  // başkasının kurduğu grup" arasında böyle bir hakem yok. Bağlantı yoksa
+  // doğru davranış sessizce kuyruğa almak değil, düğmeyi kapatıp söylemek.
+
+  /// Yeni grup kurar ve kuranı sahip olarak içine alır. Kurulan grubu döner.
+  Future<Group> createGroup(String name);
+
+  /// Tek kullanımlık davet üretir ve token'ını döner.
+  ///
+  /// [email] verilirse davet **o adrese yazılır** (Y3f/Y4g): token sızsa bile
+  /// başka bir hesapta çalışmaz. Yalnız grup sahibi çağırabilir.
+  Future<String> createInvite(String groupId, {String? email});
+
+  /// Daveti kabul eder; girilen grubun kimliğini döner.
+  Future<String> acceptInvite(String token);
+
+  /// Kullanıcının kendi üyeliğini bırakır.
+  ///
+  /// Sunucudaki satırlara dokunmaz: onlar grubun ve orada kalır. Yereldeki
+  /// kopyaların temizliği ayrı bir iş (Y4d, [AppStore.purgeGroup]).
+  Future<void> leaveGroup(String groupId);
 }
 
 /// Backend bağlanana kadarki varsayılan. Uygulamayı %100 offline çalıştırır.
@@ -103,6 +129,27 @@ class NoopRemoteGateway implements RemoteGateway {
 
   @override
   Future<List<Group>> fetchGroups() async => const [];
+
+  // Grup işlemleri sunucusuz **yapılamaz** ve sessizce başarılı numarası
+  // yapmak en kötüsü olurdu: kullanıcı grubu kurulmuş sanır, kimseyi davet
+  // edemediğinde nedenini bulamazdı.
+  @override
+  Future<Group> createGroup(String name) async => throw _yokSunucu;
+
+  @override
+  Future<String> createInvite(String groupId, {String? email}) async =>
+      throw _yokSunucu;
+
+  @override
+  Future<String> acceptInvite(String token) async => throw _yokSunucu;
+
+  @override
+  Future<void> leaveGroup(String groupId) async => throw _yokSunucu;
+
+  static const _yokSunucu = RemoteException(
+    'Gruplar için hesap bağlantısı gerekiyor.',
+    fatal: true,
+  );
 }
 
 final remoteGatewayProvider = Provider<RemoteGateway>(

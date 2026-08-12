@@ -151,7 +151,11 @@ void main() {
     test('üyelik yardımcıları security definer ve stable', () {
       // `definer` olmasa özyinelemeyi kıramaz, `stable` olmasa politikadaki
       // `(select ...)` sarmalı satır başına çalışmayı engelleyemez.
-      for (final name in ['my_group_ids', 'is_group_member', 'is_group_owner']) {
+      for (final name in [
+        'my_group_ids',
+        'is_group_member',
+        'is_group_owner',
+      ]) {
         final fn = RegExp(
           'create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.$name(.*?)\\\$\\\$',
           dotAll: true,

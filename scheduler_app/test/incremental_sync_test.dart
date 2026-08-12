@@ -91,6 +91,21 @@ class _FakeGateway implements RemoteGateway {
 
   @override
   Future<List<Group>> fetchGroups() async => const [];
+  @override
+  Future<Group> createGroup(String name) async =>
+      throw UnimplementedError('bu test grup kurmuyor');
+
+  @override
+  Future<String> createInvite(String groupId, {String? email}) async =>
+      throw UnimplementedError('bu test davet üretmiyor');
+
+  @override
+  Future<String> acceptInvite(String token) async =>
+      throw UnimplementedError('bu test davet kabul etmiyor');
+
+  @override
+  Future<void> leaveGroup(String groupId) async =>
+      throw UnimplementedError('bu test gruptan çıkmıyor');
 }
 
 void main() {

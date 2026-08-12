@@ -587,6 +587,27 @@ class AppStore extends ChangeNotifier {
 
   /// Dış dünyada (ör. eski ekranlarda TaskRepository doğrudan) bir değişiklik
   /// olduysa store'u tazelemek için çağrılır.
+  /// Bir grubun yerel kopyalarını siler — **outbox'a hiçbir şey yazmadan**
+  /// (Y4d).
+  ///
+  /// Gruptan çıkan kullanıcının cihazında o grubun işleri yoksa kalırdı:
+  /// artımlı çekim yalnız ekler ve sunucu, ayrılan üyeye o satırları artık
+  /// göndermiyor ama mezar taşı da yollamıyor — satır silinmedi, görünmez
+  /// oldu.
+  ///
+  /// Silmenin mutasyon üretmemesi bu işin **can alıcı** yeri. Üretseydi
+  /// hikâye şu olurdu: "gruptan çıktım, kendi kopyamı sildim, karşı tarafta da
+  /// silindi." Sunucudaki satır grubun ve orada kalmalı; burada olan bir
+  /// senkron değil, görüş alanının daralması.
+  void purgeGroup(String groupId) {
+    final before = TaskRepository.all.length + _notes.length + _habits.length;
+    TaskRepository.all.removeWhere((t) => t.groupId == groupId);
+    _notes.removeWhere((n) => n.groupId == groupId);
+    _habits.removeWhere((h) => h.groupId == groupId);
+    final after = TaskRepository.all.length + _notes.length + _habits.length;
+    if (after != before) _touched();
+  }
+
   void refresh() => _touched();
 
   void _touched() {

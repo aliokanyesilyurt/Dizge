@@ -31,14 +31,63 @@ const _ekip = Group(id: 'g1', name: 'Ekip');
 const _ev = Group(id: 'g2', name: 'Ev');
 
 void main() {
-  testWidgets('grubu olmayan kullanıcıda seçici hiç görünmez', (tester) async {
+  testWidgets('grubu olmayan kullanıcıda da seçici durur', (tester) async {
     await pumpApp(
       tester,
       const Scaffold(body: GroupSwitcher(collapsed: false)),
       overrides: [localStoreProvider.overrideWithValue(InMemoryStore())],
     );
 
-    expect(find.text('Kişisel'), findsNothing);
+    // İlk grubun kurulduğu yer burası; gizlenseydi hiç grup kurulamazdı.
+    expect(find.text('Kişisel'), findsOneWidget);
+  });
+
+  testWidgets('menüde grup kurma ve daveti kabul etme yolları var', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const Scaffold(body: GroupSwitcher(collapsed: false)),
+      overrides: [localStoreProvider.overrideWithValue(InMemoryStore())],
+    );
+
+    await tester.tap(find.byType(GroupSwitcher));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Yeni grup…'), findsOneWidget);
+    expect(find.text('Daveti kabul et…'), findsOneWidget);
+    // Yönetim yalnız bir grubun içindeyken anlamlı.
+    expect(find.text('Grubu yönet…'), findsNothing);
+  });
+
+  testWidgets('grup bağlamında yönetim yolu açılır', (tester) async {
+    await pumpApp(
+      tester,
+      const Scaffold(body: GroupSwitcher(collapsed: false)),
+      overrides: [
+        localStoreProvider.overrideWithValue(_storeWith([_ekip], active: 'g1')),
+      ],
+    );
+
+    await tester.tap(find.byType(GroupSwitcher));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Grubu yönet…'), findsOneWidget);
+  });
+
+  testWidgets('"Yeni grup" diyaloğu açılır', (tester) async {
+    await pumpApp(
+      tester,
+      const Scaffold(body: GroupSwitcher(collapsed: false)),
+      overrides: [localStoreProvider.overrideWithValue(InMemoryStore())],
+    );
+
+    await tester.tap(find.byType(GroupSwitcher));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Yeni grup…'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Grup adı'), findsOneWidget);
   });
 
   testWidgets('grup varken seçici bulunulan bağlamı yazar', (tester) async {

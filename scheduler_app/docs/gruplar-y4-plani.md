@@ -1,6 +1,6 @@
 # Y4 Planı — Grup Arayüzü
 
-**Durum:** Y4.1 ve Y4.2 indi; sırada Y4.3 (12 Ağustos)
+**Durum:** Y4.1–Y4.3 indi; sırada Y4.4 (12 Ağustos)
 **Önceki:** `gruplar-plani.md` §5 (taslak), `gruplar-y3-plani.md` (şema indi)
 **Önkoşul:** Y3 migration'ı sunucuda çalıştı; §11 doğrulaması henüz koşmadı.
 
@@ -119,11 +119,16 @@ o hesapta çalışır. Bağlantı sızsa bile işe yaramaz.
 | Y4.3 | Grup kur / davet et / daveti kabul et / gruptan çık | **Evet** — paylaşım burada gerçek olur |
 | Y4.4 | `profiles` + blok üstünde sahiplik işareti | **Evet** — "Ali toplantıyı taşımış" |
 
-Y4.1 ve Y4.2 indi. Y4.2'de seçici **grubu olmayan kullanıcıda hiç
-görünmüyor**: plan onu "her zaman görünür" diye yazmıştı, gerekçesi kişisel
-görünümün grup işlerini sessizce gizlemesiydi. Hiç grup yokken gizlenebilecek
-bir iş de yok — o durumda seçici yalnız ölü bir düğme olurdu. İlk grup
-belirdiği anda seçici de beliriyor ve orada kalıyor.
+Y4.1, Y4.2 ve Y4.3 indi.
+
+Y4.2 seçiciyi grubu olmayan kullanıcıda gizlemişti (gizlenecek iş yokken ölü
+bir düğme durmasın diye). **Y4.3 bunu geri aldı**: ilk grubun kurulduğu yer o
+menü ve gizlenirse hiç grup kurulamıyor. Planın "her zaman görünür" cümlesi
+sonuçta doğru çıktı — ama gerekçesi yazılandan farklı.
+
+Y4.3'ün üç işi de tek bir menüden çıkıyor (kur / katıl / yönet) ve üçü de
+diyalog; grup yönetimi için ayrı bir ekran açmak, kullanıcıyı takvimden koparıp
+dönüş yolunu ona bırakmak olurdu.
 
 Sıra zorunlu: Y4.1 → Y4.2 → Y4.3 → Y4.4. Y4.3 inmeden ikinci bir kullanıcı
 gruba giremeyeceği için Y4.2 tek kişiyle test edilir (kendi kurduğun grup).
@@ -132,13 +137,21 @@ gruba giremeyeceği için Y4.2 tek kişiyle test edilir (kendi kurduğun grup).
 
 ## 10. Bitti sayılır
 
-* Aynı hesabın iki cihazında aynı grup görünür; birinde grup bağlamında
+Kod tarafı (otomatik doğrulanan):
+
+* [x] Gruptan çıkan cihazda o grubun işleri yerelden siliniyor ve **silme
+  outbox'a yazılmıyor** — karşı tarafta duruyor.
+* [x] Çevrimdışıyken grup düğmeleri pasif; kuyruğa hiçbir şey yazılmıyor.
+* [x] `flutter analyze` temiz, testler yeşil.
+
+Elle doğrulanacak (Y4.4'ten önce, iki gerçek hesapla):
+
+* [ ] Aynı hesabın iki cihazında aynı grup görünür; birinde grup bağlamında
   yazılan iş diğerinde **grup bağlamında** belirir, kişiselde belirmez.
-* İki ayrı hesap aynı grupta: A'nın taşıdığı blok B'de saniyeler içinde yerine
-  oturur (Y2 sinyali + Y1 çekimi).
-* Gruptan çıkan cihazda o grubun işleri kaybolur ve **karşı tarafta durur**.
-* Çevrimdışıyken grup kurma düğmesi pasif; kuyruğa hiçbir şey yazılmaz.
-* `flutter analyze` temiz, testler yeşil, Windows sürümü derleniyor.
+* [ ] İki ayrı hesap aynı grupta: A'nın taşıdığı blok B'de saniyeler içinde
+  yerine oturur (Y2 sinyali + Y1 çekimi).
+* [ ] Adrese yazılı davet başka bir hesapta reddediliyor.
+* [ ] Windows sürümü derleniyor.
 
 ---
 

@@ -55,6 +55,18 @@ abstract class SupabaseApi {
   /// ayırt edilemez, mezar taşının gelmesi şart (B3).
   Future<List<Map<String, dynamic>>> fetchSince(String table, DateTime since);
 
+  /// Kullanıcının kendi üyelik satırını siler (Y4.3: gruptan çık).
+  ///
+  /// Neden bir RPC değil: `group_members_leave` politikası bunu zaten tek
+  /// satırlık bir kuralla anlatıyor — "insan kendi üyeliğini bırakabilir".
+  /// Aynı şeyi `security definer` bir fonksiyona sarmak, politikanın yanından
+  /// dolaşan ikinci bir kapı açmak olurdu.
+  ///
+  /// `user_id` süzgeci **istemcide yok**: hangi satırın silinebileceğine RLS
+  /// karar veriyor. Buraya yazmak, güvenliğin istemcide olduğu izlenimi
+  /// verirdi.
+  Future<void> leaveGroup(String groupId);
+
   /// "Sunucuda bir şey değişti" sinyali (Y2). Veri taşımaz.
   Stream<void> get remoteChanges;
 }
@@ -99,6 +111,11 @@ class LiveSupabaseApi implements SupabaseApi {
     );
     return [for (final r in rows as List) (r as Map).cast<String, dynamic>()];
   }
+
+  @override
+  Future<void> leaveGroup(String groupId) => _guard(
+    () => _client.from('group_members').delete().eq('group_id', groupId),
+  );
 
   StreamController<void>? _changes;
   RealtimeChannel? _channel;
