@@ -96,6 +96,11 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    # Marka işareti. Yuvarlak ve saydam: kenar çubuğunda, karşılama ekranında
+    # ve açılış karesinde aynı görsel, her tema zemininde temiz oturuyor.
+    - assets/brand/
+
   fonts:
     # Gövde yazı tipi. Statik ağırlıklar bilinçli tercih: değişken sürüm
     # (InterVariable.ttf) her `fontWeight` için ayrıca `FontVariation`
