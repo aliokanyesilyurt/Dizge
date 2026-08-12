@@ -1,4 +1,5 @@
 import '../../core/app_config.dart';
+import '../../models/group.dart';
 import 'mutation.dart';
 import 'remote_gateway.dart';
 import 'supabase_api.dart';
@@ -95,6 +96,19 @@ class SupabaseGateway implements RemoteGateway {
       // İmleç **gelen satırlardan** hesaplanıyor, "şimdi"den değil: aradaki
       // saat farkı ya da bir sonraki turda yazılan satır atlanırdı.
       ..['cursor'] = _latestServerAt([...nodes, ...habits])?.toIso8601String();
+  }
+
+  /// Üyesi olunan gruplar (Y4).
+  ///
+  /// Süzgeç yok ve olmamalı: RLS zaten yalnız üyesi olunan grupları
+  /// gösteriyor. Buraya bir `where` yazmak, güvenliğin istemcide olduğu
+  /// izlenimi verirdi — `fetchAll`'daki aynı sebep.
+  @override
+  Future<List<Group>> fetchGroups() async {
+    if (!isConfigured) return const [];
+    final rows = await _api.fetchAll('groups');
+    return [for (final r in rows) Group.fromRow(r)]
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
   @override

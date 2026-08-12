@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/connectivity.dart';
+import '../core/group_context.dart';
 import '../core/navigation_controller.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/group_switcher.dart';
 import 'account_screen.dart';
 import 'day_view_screen.dart';
 import 'habits_screen.dart';
@@ -65,7 +69,12 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _trackScreen(ref.read(navigationProvider).section);
+      if (!mounted) return;
+      _trackScreen(ref.read(navigationProvider).section);
+      // Grup listesi burada tazeleniyor çünkü kabuk yalnız oturum açıkken
+      // kuruluyor: hem yeni girişi hem geri yüklenen oturumu tek yer karşılar.
+      // Başarısız olursa sessiz — seçicide son bilinen liste kalır (Y4.2).
+      unawaited(ref.read(groupContextProvider.notifier).refresh());
     });
   }
 
@@ -267,6 +276,7 @@ class _Sidebar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _Brand(collapsed: collapsed, onToggle: onToggleCollapse),
+                GroupSwitcher(collapsed: collapsed),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 12),

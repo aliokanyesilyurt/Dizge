@@ -10,6 +10,7 @@ import 'package:scheduler_app/data/sync/mutation.dart';
 import 'package:scheduler_app/data/sync/outbox.dart';
 import 'package:scheduler_app/data/sync/remote_gateway.dart';
 import 'package:scheduler_app/data/sync/sync_engine.dart';
+import 'package:scheduler_app/models/group.dart';
 import 'package:scheduler_app/models/habit.dart';
 import 'package:scheduler_app/models/node.dart';
 import 'package:scheduler_app/models/task.dart';
@@ -87,6 +88,9 @@ class _FakeGateway implements RemoteGateway {
   @override
   Future<PushResult> pushSnapshot(Map<String, dynamic> s) async =>
       PushResult.empty;
+
+  @override
+  Future<List<Group>> fetchGroups() async => const [];
 }
 
 void main() {

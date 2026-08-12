@@ -6,6 +6,7 @@ import 'package:scheduler_app/data/sync/first_sync.dart';
 import 'package:scheduler_app/data/sync/mutation.dart';
 import 'package:scheduler_app/data/sync/outbox.dart';
 import 'package:scheduler_app/data/sync/remote_gateway.dart';
+import 'package:scheduler_app/models/group.dart';
 import 'package:scheduler_app/models/task.dart';
 
 /// Sunucu yerine geçen sahte. Ne çekildiğini ve ne basıldığını sayar.
@@ -36,6 +37,9 @@ class _FakeGateway implements RemoteGateway {
     pushedSnapshot = snapshot;
     return PushResult.empty;
   }
+
+  @override
+  Future<List<Group>> fetchGroups() async => const [];
 }
 
 Map<String, dynamic> _snapshotWithTask(String title) => {

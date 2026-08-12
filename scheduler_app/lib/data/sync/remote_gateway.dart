@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/group.dart';
 import 'mutation.dart';
 
 /// Bir gönderim denemesinin sonucu.
@@ -69,6 +70,13 @@ abstract class RemoteGateway {
 
   /// Yerel durumu bütünüyle sunucuya yazar (outbox taştığında kurtarma yolu).
   Future<PushResult> pushSnapshot(Map<String, dynamic> snapshot);
+
+  /// Kullanıcının üyesi olduğu gruplar (Y4).
+  ///
+  /// Outbox'tan geçmiyor ve geçmemeli: grup listesi kullanıcının **yazdığı**
+  /// bir şey değil, üyeliğinin sonucu. Çevrimdışıyken son bilinen liste yerel
+  /// önbellekten okunur — burası yalnız tazeleme yolu.
+  Future<List<Group>> fetchGroups();
 }
 
 /// Backend bağlanana kadarki varsayılan. Uygulamayı %100 offline çalıştırır.
@@ -92,6 +100,9 @@ class NoopRemoteGateway implements RemoteGateway {
   @override
   Future<PushResult> pushSnapshot(Map<String, dynamic> snapshot) async =>
       PushResult.empty;
+
+  @override
+  Future<List<Group>> fetchGroups() async => const [];
 }
 
 final remoteGatewayProvider = Provider<RemoteGateway>(

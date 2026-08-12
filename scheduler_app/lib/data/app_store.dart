@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_config.dart';
 import '../core/day_rescue.dart';
+import '../core/group_context.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
 import '../models/habit.dart';
@@ -55,6 +56,17 @@ class AppStore extends ChangeNotifier {
   bool _dirty = false;
 
   bool get hasPendingWrites => _dirty;
+
+  /// Yeni kayıtların doğduğu bağlam (Y4c): grup bağlamındayken açılan hızlı
+  /// ekleme, doğan işi o grubun kimliğiyle yazar.
+  ///
+  /// Damga tek bir yerde, `add*` metotlarında vuruluyor — çağrı yerlerinde
+  /// değil. Altı ayrı ekran kendi damgasını vursaydı yedincisi unutulur ve o
+  /// ekranda üretilen iş, grup bağlamında yazılıp kişiselde kaybolurdu.
+  ///
+  /// Alanı provider katmanı yazıyor ([appStoreProvider]); depo bağlamı
+  /// **izlemiyor**, yalnız son değeri tutuyor.
+  String? activeGroupId;
 
   /// Depoyu bağlar ve varsa kayıtlı durumu yükler. Bootstrap'ta bir kez çağrılır.
   Future<void> attachPersistence(LocalStore store, {Outbox? outbox}) async {
@@ -176,6 +188,7 @@ class AppStore extends ChangeNotifier {
   // --- Görev mutasyonları (TaskRepository'ye köprü + bildirim) ---------------
 
   void addTask(Task task) {
+    task.groupId ??= activeGroupId;
     TaskRepository.add(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
     _telemetry.capture(
@@ -498,6 +511,7 @@ class AppStore extends ChangeNotifier {
   // --- Not mutasyonları ------------------------------------------------------
 
   void addNote(Note note) {
+    note.groupId ??= activeGroupId;
     _notes.add(note);
     _record(EntityKind.note, MutationOp.upsert, note.id, note.toJson());
     _telemetry.capture(Ev.noteCreated);
@@ -521,6 +535,7 @@ class AppStore extends ChangeNotifier {
   // --- Alışkanlık mutasyonları ----------------------------------------------
 
   void addHabit(Habit habit) {
+    habit.groupId ??= activeGroupId;
     _habits.add(habit);
     _record(EntityKind.habit, MutationOp.upsert, habit.id, habit.toJson());
     _telemetry.capture(Ev.habitCreated, props: {'cadence': habit.cadence.name});
@@ -725,13 +740,41 @@ class AppStore extends ChangeNotifier {
 ///
 /// Telemetri buradan enjekte edilir: testlerde [telemetryProvider] override
 /// edilmediği için store sessiz kalır.
-final appStoreProvider = ChangeNotifierProvider<AppStore>(
-  (ref) => AppStore(telemetry: ref.watch(telemetryProvider)),
-);
+final appStoreProvider = ChangeNotifierProvider<AppStore>((ref) {
+  final store = AppStore(telemetry: ref.watch(telemetryProvider));
+  // `listen`, `watch` değil: bağlam değişince deponun kendisi yeniden
+  // kurulsaydı bellekteki bütün takvim gider ve diskten yeniden hidrasyon
+  // gerekirdi. Değişen şey yalnız yeni kayıtların varsayılan bağlamı.
+  ref.listen<String?>(
+    activeGroupIdProvider,
+    (_, next) => store.activeGroupId = next,
+    fireImmediately: true,
+  );
+  return store;
+});
+
+/// Bağlam süzgeci (Y4b).
+///
+/// Kişisel bağlamda `groupId == null` olanlar, grup bağlamında yalnız o
+/// grubunkiler. Süzgeç burada, provider katmanında duruyor: widget'ların
+/// içinde olsaydı her ekran kendi kuralını yazar ve biri unutulduğunda o ekran
+/// sessizce başka bir bağlamın işlerini gösterirdi.
+List<T> _inContext<T>(
+  List<T> items,
+  String? activeGroupId,
+  String? Function(T) groupOf,
+) => [
+  for (final item in items)
+    if (groupOf(item) == activeGroupId) item,
+];
 
 /// Belirli bir günün görevleri (saat sırasına göre). Takvim/gün ekranları için.
 final tasksForDateProvider = Provider.family<List<Task>, DateTime>((ref, day) {
-  return ref.watch(appStoreProvider).tasksForDate(day);
+  return _inContext(
+    ref.watch(appStoreProvider).tasksForDate(day),
+    ref.watch(activeGroupIdProvider),
+    (t) => t.groupId,
+  );
 });
 
 /// Bir haftanın 7 günlük görev matrisi (haftalık ızgara).
@@ -739,7 +782,11 @@ final tasksForWeekProvider = Provider.family<List<List<Task>>, DateTime>((
   ref,
   monday,
 ) {
-  return ref.watch(appStoreProvider).tasksForWeek(monday);
+  final active = ref.watch(activeGroupIdProvider);
+  return [
+    for (final day in ref.watch(appStoreProvider).tasksForWeek(monday))
+      _inContext(day, active, (t) => t.groupId),
+  ];
 });
 
 /// Havuzda bekleyen işler ("Kenarda Bekleyenler"), en eski önce.
@@ -748,7 +795,12 @@ final tasksForWeekProvider = Provider.family<List<List<Task>>, DateTime>((
 /// bekleyen üstte durursa unutulmuş iş göze çarpar; en yeni üstte olsaydı
 /// eskiler listenin dibinde sessizce yaşlanırdı.
 final poolProvider = Provider<List<Task>>((ref) {
-  return ref.watch(appStoreProvider).tasks.where((t) => t.inPool).toList()
+  final active = ref.watch(activeGroupIdProvider);
+  return ref
+      .watch(appStoreProvider)
+      .tasks
+      .where((t) => t.inPool && t.groupId == active)
+      .toList()
     ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
 });
 
@@ -759,8 +811,13 @@ final poolProvider = Provider<List<Task>>((ref) {
 /// atılan bir iş buradan da düşseydi, paneli açmayan biri onu hiçbir yerde
 /// bulamazdı — kaybolan iş, kaybolan güven demek.
 final todosProvider = Provider<List<Task>>((ref) {
+  final active = ref.watch(activeGroupIdProvider);
   final list =
-      ref.watch(appStoreProvider).tasks.where((t) => !t.isRoutine).toList()
+      ref
+          .watch(appStoreProvider)
+          .tasks
+          .where((t) => !t.isRoutine && t.groupId == active)
+          .toList()
         ..sort((a, b) {
           final byDate = a.date.compareTo(b.date);
           return byDate != 0 ? byDate : Task.compare(a, b);
@@ -770,7 +827,12 @@ final todosProvider = Provider<List<Task>>((ref) {
 
 /// Tekrar eden işler (Rutinler ekranı).
 final routinesProvider = Provider<List<Task>>((ref) {
-  return ref.watch(appStoreProvider).tasks.where((t) => t.isRoutine).toList()
+  final active = ref.watch(activeGroupIdProvider);
+  return ref
+      .watch(appStoreProvider)
+      .tasks
+      .where((t) => t.isRoutine && t.groupId == active)
+      .toList()
     ..sort(Task.compare);
 });
 
@@ -781,11 +843,18 @@ final backlinksProvider = Provider.family<List<Node>, String>((ref, id) {
 
 /// Tüm notlar (bilgi bankası listesi), güncelleme tarihine göre yeni → eski.
 final notesProvider = Provider<List<Note>>((ref) {
-  return ref.watch(appStoreProvider).notes.toList()
-    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  return _inContext(
+    ref.watch(appStoreProvider).notes.toList(),
+    ref.watch(activeGroupIdProvider),
+    (n) => n.groupId,
+  )..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 });
 
 /// Tüm alışkanlıklar (Alışkanlıklar ekranı).
 final habitsProvider = Provider<List<Habit>>((ref) {
-  return ref.watch(appStoreProvider).habits;
+  return _inContext(
+    ref.watch(appStoreProvider).habits,
+    ref.watch(activeGroupIdProvider),
+    (h) => h.groupId,
+  );
 });

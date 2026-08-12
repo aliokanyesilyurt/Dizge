@@ -1,6 +1,6 @@
 # Y4 Planı — Grup Arayüzü
 
-**Durum:** yazıldı, onay bekliyor (12 Ağustos)
+**Durum:** Y4.1 ve Y4.2 indi; sırada Y4.3 (12 Ağustos)
 **Önceki:** `gruplar-plani.md` §5 (taslak), `gruplar-y3-plani.md` (şema indi)
 **Önkoşul:** Y3 migration'ı sunucuda çalıştı; §11 doğrulaması henüz koşmadı.
 
@@ -118,6 +118,12 @@ o hesapta çalışır. Bağlantı sızsa bile işe yaramaz.
 | Y4.2 | Kenar çubuğunda bağlam seçici + süzgeç | **Evet** — tek kişilik grupla bile çalışır |
 | Y4.3 | Grup kur / davet et / daveti kabul et / gruptan çık | **Evet** — paylaşım burada gerçek olur |
 | Y4.4 | `profiles` + blok üstünde sahiplik işareti | **Evet** — "Ali toplantıyı taşımış" |
+
+Y4.1 ve Y4.2 indi. Y4.2'de seçici **grubu olmayan kullanıcıda hiç
+görünmüyor**: plan onu "her zaman görünür" diye yazmıştı, gerekçesi kişisel
+görünümün grup işlerini sessizce gizlemesiydi. Hiç grup yokken gizlenebilecek
+bir iş de yok — o durumda seçici yalnız ölü bir düğme olurdu. İlk grup
+belirdiği anda seçici de beliriyor ve orada kalıyor.
 
 Sıra zorunlu: Y4.1 → Y4.2 → Y4.3 → Y4.4. Y4.3 inmeden ikinci bir kullanıcı
 gruba giremeyeceği için Y4.2 tek kişiyle test edilir (kendi kurduğun grup).
