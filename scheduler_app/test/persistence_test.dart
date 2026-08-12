@@ -169,6 +169,73 @@ void main() {
     });
   });
 
+  group('grup alanları (Y4)', () {
+    Task grupIsi() => Task(
+      title: 'Grubun işi',
+      color: const Color(0xFF529CCA),
+      date: DateTime(2026, 8, 12),
+      groupId: 'grup-1',
+      ownerId: 'ali',
+    );
+
+    test('grup ve köken JSON turunda korunur', () {
+      final geri = Task.fromJson(grupIsi().toJson());
+
+      expect(geri.groupId, 'grup-1');
+      expect(geri.ownerId, 'ali');
+    });
+
+    test('kişisel kayıt grup anahtarını null olarak yazar', () {
+      // Anahtarın **yokluğu** sunucuda "grubuna dokunma" demek. Kişisel bir
+      // kaydın susması, "işi gruptan çıkardım"ın hiç gitmemesi olurdu.
+      final json = Task(
+        title: 'Kişisel',
+        color: const Color(0xFF529CCA),
+        date: DateTime(2026, 8, 12),
+      ).toJson();
+
+      expect(json.containsKey('groupId'), isTrue);
+      expect(json['groupId'], isNull);
+      // Köken sunucunun yazdığı bir alan; boşken her kayda serpilmez.
+      expect(json.containsKey('ownerId'), isFalse);
+    });
+
+    test('not ve alışkanlık da taşır', () {
+      final not = Note.fromJson(
+        Note(title: 'Not', groupId: 'grup-1', ownerId: 'ali').toJson(),
+      );
+      final aliskanlik = Habit.fromJson(
+        Habit(
+          title: 'Su iç',
+          color: const Color(0xFF81C784),
+          groupId: 'grup-1',
+        ).toJson(),
+      );
+
+      expect(not.groupId, 'grup-1');
+      expect(not.ownerId, 'ali');
+      expect(aliskanlik.groupId, 'grup-1');
+    });
+
+    test('copy() grubu ve kökeni korur', () {
+      // Geri alma bu yoldan geçiyor: düşseydi undo, grup işini sessizce
+      // kişiselleştirirdi.
+      final kopya = grupIsi().copy();
+
+      expect(kopya.groupId, 'grup-1');
+      expect(kopya.ownerId, 'ali');
+    });
+
+    test('duplicateTo() grubu devralır, kökeni devralmaz', () {
+      // Grup işini kopyalamak o grupta çalışmaktır. Kökeni devralmak ise
+      // kopyayı yazmadığı bir kişiye mal etmek olurdu.
+      final kopya = grupIsi().duplicateTo(DateTime(2026, 8, 13));
+
+      expect(kopya.groupId, 'grup-1');
+      expect(kopya.ownerId, isNull);
+    });
+  });
+
   group('Outbox', () {
     late InMemoryStore store;
     late Outbox outbox;

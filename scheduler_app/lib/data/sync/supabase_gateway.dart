@@ -146,9 +146,15 @@ class SupabaseGateway implements RemoteGateway {
   /// ("2026-08-10T12:00:00.000"). Postgres onu `timestamptz`e çevirirken UTC
   /// sanar. UTC+3'te her damga üç saat ileri okunur — ve şemadaki saat kayması
   /// koruması (`now() + 5 dakika`) yüzünden **her mutasyon reddedilirdi**.
+  ///
+  /// İkinci fark grupla geldi (Y4a): `groupId` payload'ın **içinde** yaşıyor
+  /// (bir kaydın niteliği olduğu için), sunucu ise onu mutasyonun **tepesinde**
+  /// bekliyor — çünkü orada bir sütun. Anahtarın varlığı korunuyor: payload
+  /// grubunu bilmiyorsa yukarı da çıkmıyor ve sunucu satırın grubuna dokunmuyor.
   static Map<String, dynamic> _wire(Mutation m) => {
     ...m.toJson(),
     'at': m.at.toUtc().toIso8601String(),
+    if (m.payload.containsKey('groupId')) 'groupId': m.payload['groupId'],
   };
 
   /// Sunucunun `{accepted, rejected}` cevabını [PushResult]'a çevirir.
@@ -201,7 +207,14 @@ class SupabaseGateway implements RemoteGateway {
   ) => [
     for (final r in rows)
       if (r['deleted_at'] == null && r['payload'] is Map)
-        (r['payload'] as Map).cast<String, dynamic>(),
+        {
+          ...(r['payload'] as Map).cast<String, dynamic>(),
+          // Grup ve köken payload'da değil, satırın **sütunlarında** (Y4a).
+          // Sütun payload'ın içindekini bilerek eziyor: payload'a düşmüş eski
+          // bir kopya olabilir, yetkinin dayandığı değer ise sütun.
+          'groupId': r['group_id'] as String?,
+          'ownerId': ?r['owner_id'] as String?,
+        },
   ];
 
   /// Sunucu satırından istemci şekline: `color_hex` → `colorHex`, sıra korunur.

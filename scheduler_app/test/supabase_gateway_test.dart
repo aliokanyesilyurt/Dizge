@@ -177,6 +177,94 @@ void main() {
     });
   });
 
+  group('gruplar (Y4)', () {
+    test('grup ve köken sütunları payload\'a katılır', () async {
+      // Y4a. `group_id` ve `owner_id` payload'ın içinde değil, satırın
+      // sütunlarında. Gateway onları katmasaydı Y3'ün taşıdığı bütün grup
+      // bilgisi tam burada, sessizce yere düşerdi.
+      final api = _FakeApi()
+        ..tables = {
+          'nodes': [
+            {
+              'id': 'g1',
+              'kind': 'task',
+              'payload': {'id': 'g1', 'kind': 'task', 'title': 'Grubun işi'},
+              'group_id': 'grup-1',
+              'owner_id': 'ali',
+              'deleted_at': null,
+            },
+          ],
+          'habits': <Map<String, dynamic>>[],
+          'categories': <Map<String, dynamic>>[],
+        };
+
+      final snapshot = (await SupabaseGateway(api).pull())!;
+
+      final node = _rows(snapshot, 'nodes').single;
+      expect(node['groupId'], 'grup-1');
+      expect(node['ownerId'], 'ali');
+    });
+
+    test('sütun, payload\'daki eski kopyayı ezer', () async {
+      // Payload'a düşmüş bir `groupId` olabilir (başka bir cihaz yazmış).
+      // Yetkinin dayandığı değer sütun; ikisi çeliştiğinde sütun kazanmalı,
+      // yoksa istemci satırı ait olmadığı grupta gösterir.
+      final api = _FakeApi()
+        ..tables = {
+          'nodes': [
+            {
+              'id': 'g1',
+              'kind': 'task',
+              'payload': {'id': 'g1', 'title': 'İş', 'groupId': 'eski-grup'},
+              'group_id': null,
+              'deleted_at': null,
+            },
+          ],
+          'habits': <Map<String, dynamic>>[],
+          'categories': <Map<String, dynamic>>[],
+        };
+
+      final snapshot = (await SupabaseGateway(api).pull())!;
+
+      expect(_rows(snapshot, 'nodes').single['groupId'], isNull);
+    });
+
+    test('payload\'daki grup, mutasyonun tepesine çıkar', () async {
+      // Sunucu `groupId`'yi mutasyonun tepesinde bekliyor, çünkü orada bir
+      // sütun; istemcide ise kaydın bir niteliği ve payload'ın içinde.
+      final api = _FakeApi();
+      final m = Mutation(
+        id: 'm1',
+        kind: EntityKind.task,
+        entityId: 'is-1',
+        op: MutationOp.upsert,
+        payload: {'id': 'is-1', 'title': 'İş', 'groupId': 'grup-1'},
+      );
+
+      await SupabaseGateway(api).push([m]);
+
+      expect(
+        api.mutationsSentTo('apply_mutations').single['groupId'],
+        'grup-1',
+      );
+    });
+
+    test('grubu bilmeyen mutasyon anahtarı hiç yollamaz', () async {
+      // Sunucu anahtarın **yokluğu** ile null değerini ayırıyor: yokluk
+      // "grubuna dokunma", null "gruptan çıkar". Grup kavramından habersiz bir
+      // kayıt (ör. eski sürümde kuyruğa girmiş) susmalı; null yollasaydı grup
+      // işini sessizce kişiselleştirirdi.
+      final api = _FakeApi();
+
+      await SupabaseGateway(api).push([_task('a')]);
+
+      expect(
+        api.mutationsSentTo('apply_mutations').single.containsKey('groupId'),
+        isFalse,
+      );
+    });
+  });
+
   group('pull', () {
     test('çekilen satırlar loadJson şemasına derlenir', () async {
       final api = _FakeApi()

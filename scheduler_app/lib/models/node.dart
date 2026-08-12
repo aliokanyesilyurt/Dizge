@@ -34,6 +34,20 @@ abstract class Node {
   DateTime get createdAt;
   DateTime get updatedAt;
 
+  /// Hangi gruba ait; **null ise kişisel** (Y4).
+  ///
+  /// Sunucuda payload'ın içinde değil, satırın `group_id` sütununda duruyor —
+  /// `SupabaseGateway` okurken buraya katıyor, gönderirken tel gösteriminin
+  /// tepesine çıkarıyor. Bir kaydın grubu, o kaydın niteliğidir; ikinci bir
+  /// "satır meta" kanalı açmak `mergeJson`'ın sözleşmesini bozardı (Y4a).
+  String? get groupId;
+
+  /// Kaydı **oluşturan** kişi. Sunucu yazar, istemci hiç dokunmaz (Y4).
+  ///
+  /// Sahiplik değil köken: grup kaydını her üye düzenleyebilir, bu alan yalnız
+  /// "kimin işi" işaretini besler. Yetkinin kaynağı RLS, bu alan değil.
+  String? get ownerId;
+
   Map<String, dynamic> toJson();
 }
 
@@ -52,6 +66,10 @@ class Note implements Node {
   final DateTime createdAt;
   @override
   DateTime updatedAt;
+  @override
+  String? groupId;
+  @override
+  final String? ownerId;
 
   Note({
     String? id,
@@ -60,6 +78,8 @@ class Note implements Node {
     Set<String>? tags,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.groupId,
+    this.ownerId,
   }) : id = id ?? newNodeId(),
        tags = tags ?? <String>{},
        createdAt = createdAt ?? DateTime.now(),
@@ -77,6 +97,7 @@ class Note implements Node {
     'tags': tags.toList(),
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
+    ...groupFields(groupId, ownerId),
   };
 
   factory Note.fromJson(Map<String, dynamic> j) => Note(
@@ -86,10 +107,26 @@ class Note implements Node {
     tags: readTags(j['tags']),
     createdAt: readDate(j['createdAt']),
     updatedAt: readDate(j['updatedAt']),
+    groupId: j['groupId'] as String?,
+    ownerId: j['ownerId'] as String?,
   );
 }
 
 // --- Serileştirme yardımcıları (tüm modeller ortak kullanır) ---------------
+
+/// Grup alanlarının JSON karşılığı — üç modelde de aynı (Y4a).
+///
+/// [groupId] **null olsa bile yazılıyor** ve bu bilinçli: sunucu anahtarın
+/// yokluğu ile null değerini ayırıyor — yokluk "grubuna dokunma", null
+/// "gruptan çıkar" demek. Kaydın grubunu bilen istemcinin susması, "işi
+/// gruptan çıkardım"ın sunucuya hiç gitmemesi olurdu.
+///
+/// [ownerId] ise yalnız doluyken: onu sunucu yazıyor, istemci hiç üretmiyor.
+/// Boş bir anahtarı her kayda serpmek, yerel dosyaya anlamsız gürültü eklerdi.
+Map<String, dynamic> groupFields(String? groupId, String? ownerId) => {
+  'groupId': groupId,
+  'ownerId': ?ownerId,
+};
 
 /// Renk <-> "AARRGGBB" hex string. JSON'da okunur ve platformdan bağımsız.
 String colorToHex(Color c) =>

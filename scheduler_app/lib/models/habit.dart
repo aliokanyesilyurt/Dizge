@@ -29,6 +29,12 @@ class Habit {
   /// açılışta kendini en yeni ilan etmesi ve sunucudaki kopyayı ezmesi olurdu.
   DateTime updatedAt;
 
+  /// Hangi gruba ait; null ise kişisel (Y4). Bkz. [Node.groupId].
+  String? groupId;
+
+  /// Kaydı oluşturan kişi; sunucu yazar (Y4). Bkz. [Node.ownerId].
+  final String? ownerId;
+
   Habit({
     String? id,
     required this.title,
@@ -38,6 +44,8 @@ class Habit {
     Set<DateTime>? doneDates,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.groupId,
+    this.ownerId,
   }) : id = id ?? newNodeId(),
        doneDates = doneDates ?? <DateTime>{},
        createdAt = createdAt ?? DateTime.now(),
@@ -131,6 +139,7 @@ class Habit {
     'doneDates': doneDates.map(dateToKey).toList(),
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
+    ...groupFields(groupId, ownerId),
   };
 
   factory Habit.fromJson(Map<String, dynamic> j) => Habit(
@@ -153,5 +162,7 @@ class Habit {
     // Yokluğu `null` olarak geçiyor ki kurucu [createdAt]'e düşebilsin.
     // `readDate` burada yanlış olurdu: eksik alanı "şimdi" sayardı.
     updatedAt: readDateOrNull(j['updatedAt']),
+    groupId: j['groupId'] as String?,
+    ownerId: j['ownerId'] as String?,
   );
 }

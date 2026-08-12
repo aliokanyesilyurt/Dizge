@@ -239,6 +239,12 @@ class Task implements Node {
   /// tıpkı [completedOn] gibi.
   final Set<DateTime> skippedOn;
 
+  @override
+  String? groupId;
+
+  @override
+  final String? ownerId;
+
   Task({
     String? id,
     required this.title,
@@ -262,6 +268,8 @@ class Task implements Node {
     this.timeSpentMinutes = 0,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.groupId,
+    this.ownerId,
   }) : id = id ?? newNodeId(),
        date = dayKey(date),
        completedOn = completedOn ?? <DateTime>{},
@@ -402,6 +410,10 @@ class Task implements Node {
     timeSpentMinutes: timeSpentMinutes,
     createdAt: createdAt,
     updatedAt: updatedAt,
+    // Aynı işin aynısı: grubu da kökeni de aynı kalmalı. Düşseydi geri alma
+    // (undo) sessizce grup işini kişiselleştirirdi.
+    groupId: groupId,
+    ownerId: ownerId,
   );
 
   /// Kullanıcının "Kopyala" dediğinde ürettiği yeni iş.
@@ -434,6 +446,10 @@ class Task implements Node {
     status: status,
     priority: priority,
     energy: energy,
+    // Grup devralınır: bir grup işini kopyalamak o grupta çalışmaktır.
+    // Köken **devralınmaz** — kopyayı kopyalayan yazdı, sunucu `owner_id`'yi
+    // zaten çağırana yazacak.
+    groupId: groupId,
   );
 
   @override
@@ -463,6 +479,7 @@ class Task implements Node {
     'timeSpentMinutes': timeSpentMinutes,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
+    ...groupFields(groupId, ownerId),
   };
 
   factory Task.fromJson(Map<String, dynamic> j) => Task(
@@ -500,6 +517,8 @@ class Task implements Node {
     timeSpentMinutes: (j['timeSpentMinutes'] as num?)?.toInt() ?? 0,
     createdAt: readDate(j['createdAt']),
     updatedAt: readDate(j['updatedAt']),
+    groupId: j['groupId'] as String?,
+    ownerId: j['ownerId'] as String?,
   );
 }
 
