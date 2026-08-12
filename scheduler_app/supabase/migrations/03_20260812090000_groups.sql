@@ -1,8 +1,8 @@
 -- =============================================================================
 -- 03 · Gruplar: şema, üyelik, davet ve RLS        (damga: 20260812090000)
 --
--- Durum: panodan çalıştırıldı (12 Ağustos); üç kullanıcılı doğrulama (§11)
--- yapılmadı.
+-- Durum: panodan hatasız çalıştırıldı (12 Ağustos). Üç kullanıcılı doğrulama
+-- bekliyor: `supabase/dogrulama-03-gruplar.sql`.
 --
 -- Plan: docs/gruplar-y3-plani.md
 --
