@@ -1,5 +1,7 @@
 -- =============================================================================
--- Scheduler — Supabase şeması
+-- 01 · Scheduler — Supabase şeması        (damga: 20260811090000)
+--
+-- Durum: uygulandı, RLS iki gerçek kullanıcıyla doğrulandı (11 Ağustos).
 --
 -- Plan: docs/backend-supabase-plani.md (S1) · docs/giris-kapisi-plani.md (M1)
 -- İlk migration. `supabase db push` ile uygulanır; elle SQL düzenleyicisine

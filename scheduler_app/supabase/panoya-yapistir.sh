@@ -13,8 +13,13 @@
 # Çıktı dosyası git'e girmez (bkz. supabase/.gitignore): türetilmiş bir kopya,
 # repoda durursa şemanın ikinci bir gerçeği olur ve zamanla ayrışır.
 #
+# Dosya adı: <NN>_<14 haneli damga>_<ad>.sql — sıra numarası önde, çünkü çıplak
+# damga kaçıncı migration olduğunu söylemiyor. Damga yine de duruyor: defterin
+# sürümü o. Her dosyanın tepesinde numarası, damgası ve sunucudaki durumu yazar.
+#
 # Ağ düzeldiğinde (telefon hotspot'u, VPN) bu betiğe gerek kalmaz:
 #   supabase db push
+# (CLI `NN_` önekini tanımaz; o gün gelirse önekler kalkar, damgalar kalır.)
 #
 # Varsayılan olarak **son** migration'ı paketler. Birden fazlası bekliyorsa
 # (ör. Realtime uygulanmadan gruplar geldiyse) hepsi sırayla verilebilir:
@@ -61,8 +66,12 @@ fi
   echo ');'
   echo
   for f in "${FILES[@]}"; do
-    version=$(basename "$f" | cut -d_ -f1)
-    name=$(basename "$f" .sql | cut -d_ -f2-)
+    # Defterin birincil anahtarı **damga**, sıra numarası değil. Ad başındaki
+    # `NN_` yalnız okunurluk için ve sunucuda kayıtlı sürümler damgalar:
+    # sürümü sıradan türetmek, uygulanmış migration'ları defterde ikinci kez
+    # açar ve `db push` onları yeniden göndermeye çalışırdı.
+    version=$(basename "$f" | grep -oE '[0-9]{14}' | head -1)
+    name=$(basename "$f" .sql | sed -E 's/^[0-9]+_//; s/^[0-9]{14}_//')
     echo 'insert into supabase_migrations.schema_migrations (version, name)'
     echo "values ('$version', '$name')"
     echo 'on conflict (version) do nothing;'

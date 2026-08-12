@@ -1,5 +1,7 @@
 -- =============================================================================
--- Realtime yayını
+-- 02 · Realtime yayını        (damga: 20260811180000)
+--
+-- Durum: panodan çalıştırıldı (12 Ağustos); olay akışı henüz doğrulanmadı.
 --
 -- Plan: docs/gruplar-plani.md (Y2)
 --
