@@ -289,6 +289,34 @@ void main() {
       );
     });
 
+    test('imleç başa alınınca çekim epoch\'tan sorar', () async {
+      // Y3e. Gruba bugün katılan biri için imleç bir tuzak: grubun geçen
+      // hafta yazılmış satırları imlecin gerisinde kalır, `fetchSince` kesin
+      // büyük filtrelediği için onları hiç sormaz ve kullanıcı grubu **boş**
+      // görür — hata da almadan.
+      final (e, gateway, disk, _) = await engine(snapshot: _incoming());
+      await disk.writeString(kSyncCursorKey, '2026-08-05T12:30:00.000Z');
+
+      await e.resetPullCursor();
+      await e.syncNow();
+
+      expect(gateway.pulledSince.last!.millisecondsSinceEpoch, 0);
+    });
+
+    test('imleç başa alınınca çekim kendiliğinden koşar', () async {
+      // Üyelik değişimi bir sonraki turu beklememeli: katılan kişi grubu
+      // hemen görmeli.
+      final (e, gateway, _, store) = await engine(
+        snapshot: _incoming(nodes: [_task('Grubun işi').toJson()]),
+      );
+
+      await e.resetPullCursor();
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+
+      expect(gateway.pulledSince, hasLength(1));
+      expect(store.tasks.single.title, 'Grubun işi');
+    });
+
     test('realtime sinyali çekimi tetikler', () async {
       // Y2 olmadan Y1 boşta kalıyordu: uygulama dururken hiçbir şey çekimi
       // tetiklemiyor, yani karşı tarafın değişikliği yine gelmiyordu.

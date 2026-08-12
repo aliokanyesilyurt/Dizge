@@ -36,11 +36,13 @@ abstract class SupabaseApi {
   /// Bir Postgres fonksiyonunu çağırır (`apply_mutations`, `replace_categories`).
   Future<dynamic> rpc(String function, Map<String, dynamic> params);
 
-  /// Tablonun bu kullanıcıya ait bütün satırları.
+  /// Tablonun bu kullanıcıya **görünen** bütün satırları: kendi satırları ve
+  /// üyesi olduğu grupların satırları (Y3).
   ///
-  /// `user_id` koşulu istemcide **tekrarlanmıyor**: RLS onu sunucuda zaten
+  /// Sahiplik koşulu istemcide **tekrarlanmıyor**: RLS onu sunucuda zaten
   /// uyguluyor. Burada tekrar yazmak, güvenliğin istemcide olduğu izlenimi
-  /// verirdi — değil.
+  /// verirdi — değil. Grup satırlarının kendiliğinden akması da bunun sonucu:
+  /// istemci tarafında değişen tek bir satır yok.
   Future<List<Map<String, dynamic>>> fetchAll(String table);
 
   /// [since]'den **sonra sunucuda** değişmiş satırlar (Y1).

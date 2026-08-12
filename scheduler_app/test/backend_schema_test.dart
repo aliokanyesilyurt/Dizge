@@ -116,6 +116,88 @@ void main() {
     });
   });
 
+  group('gruplar (Y3)', () {
+    test('grup tabloları şemada', () {
+      expect(tables, containsAll(['groups', 'group_members', 'group_invites']));
+    });
+
+    test('hiçbir politika group_members tablosunu doğrudan sorgulamaz', () {
+      // Y3c'nin bekçisi. Politikanın içine `select ... from group_members`
+      // yazmak iki ayrı şekilde bozuk:
+      //
+      //   * `group_members`'ın **kendi** politikası aynı tabloya bakınca
+      //     Postgres `infinite recursion detected in policy` der;
+      //   * alt sorgu satır başına değerlendirilirse büyük takvimde sorgu
+      //     çöker.
+      //
+      // Doğrusu `security definer` + `stable` yardımcı fonksiyon. Bu test o
+      // kararı, altı ay sonra "tek satırlık bir alt sorgu" yazacak olan kişi
+      // için yerinde tutuyor.
+      final policies = RegExp(
+        r'create\s+policy(.*?);',
+        dotAll: true,
+      ).allMatches(sql).map((m) => m.group(1)!);
+
+      for (final p in policies) {
+        expect(
+          p.contains('from group_members') ||
+              p.contains('from public.group_members'),
+          isFalse,
+          reason: 'politika group_members\'ı doğrudan sorguluyor: $p',
+        );
+      }
+    });
+
+    test('üyelik yardımcıları security definer ve stable', () {
+      // `definer` olmasa özyinelemeyi kıramaz, `stable` olmasa politikadaki
+      // `(select ...)` sarmalı satır başına çalışmayı engelleyemez.
+      for (final name in ['my_group_ids', 'is_group_member', 'is_group_owner']) {
+        final fn = RegExp(
+          'create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.$name(.*?)\\\$\\\$',
+          dotAll: true,
+        ).firstMatch(sql);
+
+        expect(fn, isNotNull, reason: '$name tanımlı değil');
+        expect(fn!.group(1), contains('security definer'), reason: name);
+        expect(fn.group(1), contains('stable'), reason: name);
+      }
+    });
+
+    test('daveti kabul eden fonksiyon definer', () {
+      // Daveti kabul eden kişi henüz üye değil: RLS'e göre ne grubu ne daveti
+      // görebilir. `invoker` olsaydı fonksiyon kendi okuyamadığı satırı
+      // doğrulamaya çalışırdı.
+      final fn = RegExp(
+        r'create\s+(?:or\s+replace\s+)?function\s+public\.accept_invite(.*?)\$\$',
+        dotAll: true,
+      ).firstMatch(sql);
+
+      expect(fn, isNotNull, reason: 'accept_invite tanımlı değil');
+      expect(fn!.group(1), contains('security definer'));
+    });
+
+    test('üyelik satırına doğrudan yazan politika yok', () {
+      // Üyelik yalnız `accept_invite` üzerinden açılır. Buraya bir insert
+      // politikası girerse davet akışının yanından ikinci bir kapı açılır.
+      final writes = RegExp(r'create\s+policy(.*?);', dotAll: true)
+          .allMatches(sql)
+          .map((m) => m.group(1)!)
+          .where((p) => p.contains('on public.group_members'))
+          .where(
+            (p) =>
+                p.contains('for all') ||
+                p.contains('for insert') ||
+                p.contains('for update'),
+          );
+
+      expect(
+        writes,
+        isEmpty,
+        reason: 'group_members yazma politikası taşıyor: $writes',
+      );
+    });
+  });
+
   group('fonksiyonlar', () {
     test('apply_mutations security invoker', () {
       // Plan B5: `definer` seçilseydi fonksiyon RLS'i baypas ederdi ve doğru

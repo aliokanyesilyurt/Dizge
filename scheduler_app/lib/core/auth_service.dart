@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class AuthUser {
   const AuthUser({required this.id, required this.email});
 
-  /// Sunucudaki `user_id` — satırların sahipliği buna bağlı.
+  /// Sunucudaki `owner_id` — satırı kimin oluşturduğu buna yazılıyor.
   final String id;
 
   final String email;

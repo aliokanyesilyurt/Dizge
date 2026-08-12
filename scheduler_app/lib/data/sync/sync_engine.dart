@@ -13,6 +13,9 @@ import 'remote_gateway.dart';
 /// Artımlı çekimin nereden devam edeceği — **sunucu** damgası (Y1c).
 const String kSyncCursorKey = 'sync_cursor';
 
+/// İmlecin başlangıç noktası: "her şeyi çek".
+final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+
 /// Senkronun kullanıcıya gösterilebilir durumu.
 enum SyncState {
   /// Gönderilecek bir şey yok.
@@ -206,6 +209,23 @@ class SyncEngine {
     }
   }
 
+  /// Artımlı çekimi başa alır: bir sonraki tur her şeyi yeniden sorar (Y3e).
+  ///
+  /// Grup üyeliği değişince **şart**. İmleç tek bir `server_at` damgası ve
+  /// `fetchSince` kesin büyük filtreliyor: bugün bir gruba katılan
+  /// kullanıcının, grubun geçen hafta yazılmış satırları imlecin gerisinde
+  /// kalır. RLS onları artık göstermeye izin verir ama çekim hiç sormaz —
+  /// kullanıcı grubu boş görür ve hata da almaz. Sessiz olduğu için en
+  /// tehlikelisi bu.
+  ///
+  /// Tam çekim (`since: null`) değil, **başa alınmış artımlı** çekim: tam
+  /// çekim `loadJson`'a gider ve yerel durumu ezer (A4). Buradaki yol
+  /// birleştiriyor; bedeli bir kerelik fazladan indirme, riski yok.
+  Future<void> resetPullCursor() async {
+    await _store.writeString(kSyncCursorKey, _epoch.toIso8601String());
+    _scheduleFlush(immediate: true);
+  }
+
   /// Sunucudaki değişiklikleri çeker ve yerel duruma katar (Y1).
   ///
   /// İmleç yoksa **epoch**'tan başlanıyor: bu, "her şeyi çek" demek ve kurulum
@@ -219,9 +239,7 @@ class SyncEngine {
     if (merge == null) return;
 
     final saved = _store.readString(kSyncCursorKey);
-    final since =
-        (saved == null ? null : DateTime.tryParse(saved)) ??
-        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    final since = (saved == null ? null : DateTime.tryParse(saved)) ?? _epoch;
 
     final snapshot = await _gateway.pull(since: since);
     if (snapshot == null) return;

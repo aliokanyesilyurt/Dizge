@@ -15,25 +15,39 @@
 #
 # Ağ düzeldiğinde (telefon hotspot'u, VPN) bu betiğe gerek kalmaz:
 #   supabase db push
+#
+# Varsayılan olarak **son** migration'ı paketler. Birden fazlası bekliyorsa
+# (ör. Realtime uygulanmadan gruplar geldiyse) hepsi sırayla verilebilir:
+#   supabase/panoya-yapistir.sh supabase/migrations/2026081118*.sql \
+#                               supabase/migrations/2026081209*.sql
+# Migration'lar idempotent yazıldığı için zaten uygulanmış olanı tekrar
+# göndermek zararsız; eksik bırakmak değil.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 OUT='supabase/panoya-yapistir.sql'
-LATEST=$(ls supabase/migrations/*.sql | sort | tail -1)
-VERSION=$(basename "$LATEST" | cut -d_ -f1)
-NAME=$(basename "$LATEST" .sql | cut -d_ -f2-)
+
+if [ "$#" -gt 0 ]; then
+  FILES=("$@")
+else
+  FILES=("$(ls supabase/migrations/*.sql | sort | tail -1)")
+fi
 
 {
   echo "-- Bu dosya TÜRETİLMİŞ bir yardımcıdır ve git'e girmez."
-  echo "-- Tek gerçek kaynak: $LATEST"
+  echo "-- Tek gerçek kaynak: ${FILES[*]}"
   echo "-- Buradaki tek fark, sonundaki migration defteri kaydı."
   echo "--"
   echo "-- Yeniden üretmek için: supabase/panoya-yapistir.sh"
   echo
-  cat "$LATEST"
-  echo
-  echo
+
+  for f in "${FILES[@]}"; do
+    cat "$f"
+    echo
+    echo
+  done
+
   echo '-- ============================================================================='
   echo '-- Migration defteri'
   echo '-- ============================================================================='
@@ -46,9 +60,15 @@ NAME=$(basename "$LATEST" .sql | cut -d_ -f2-)
   echo '  name       text'
   echo ');'
   echo
-  echo 'insert into supabase_migrations.schema_migrations (version, name)'
-  echo "values ('$VERSION', '$NAME')"
-  echo 'on conflict (version) do nothing;'
+  for f in "${FILES[@]}"; do
+    version=$(basename "$f" | cut -d_ -f1)
+    name=$(basename "$f" .sql | cut -d_ -f2-)
+    echo 'insert into supabase_migrations.schema_migrations (version, name)'
+    echo "values ('$version', '$name')"
+    echo 'on conflict (version) do nothing;'
+    echo
+  done
 } > "$OUT"
 
-echo "Üretildi: $OUT  ($(wc -l < "$OUT") satır, migration: $VERSION $NAME)"
+echo "Üretildi: $OUT  ($(wc -l < "$OUT") satır)"
+for f in "${FILES[@]}"; do echo "  · $(basename "$f")"; done
