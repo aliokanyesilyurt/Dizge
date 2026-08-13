@@ -7,6 +7,7 @@ import 'package:scheduler_app/data/sync/mutation.dart';
 import 'package:scheduler_app/data/sync/outbox.dart';
 import 'package:scheduler_app/data/sync/remote_gateway.dart';
 import 'package:scheduler_app/models/group.dart';
+import 'package:scheduler_app/models/profile.dart';
 import 'package:scheduler_app/models/task.dart';
 
 /// Sunucu yerine geçen sahte. Ne çekildiğini ve ne basıldığını sayar.
@@ -40,6 +41,11 @@ class _FakeGateway implements RemoteGateway {
 
   @override
   Future<List<Group>> fetchGroups() async => const [];
+  @override
+  Future<List<Profile>> fetchProfiles() async => const [];
+  @override
+  Future<void> updateDisplayName(String displayName) async =>
+      throw UnimplementedError('bu test ad değiştirmiyor');
   @override
   Future<Group> createGroup(String name) async =>
       throw UnimplementedError('bu test grup kurmuyor');

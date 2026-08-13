@@ -57,6 +57,13 @@ class _FakeApi implements SupabaseApi {
   @override
   Future<void> leaveGroup(String groupId) async => left.add(groupId);
 
+  /// Yazılan görünen adlar, sırasıyla.
+  final List<String> profileWrites = [];
+
+  @override
+  Future<void> upsertProfile({required String displayName}) async =>
+      profileWrites.add(displayName);
+
   List<Map<String, dynamic>> mutationsSentTo(String fn) => [
     for (final c in calls)
       if (c.fn == fn)

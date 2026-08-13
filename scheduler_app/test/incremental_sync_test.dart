@@ -13,6 +13,7 @@ import 'package:scheduler_app/data/sync/sync_engine.dart';
 import 'package:scheduler_app/models/group.dart';
 import 'package:scheduler_app/models/habit.dart';
 import 'package:scheduler_app/models/node.dart';
+import 'package:scheduler_app/models/profile.dart';
 import 'package:scheduler_app/models/task.dart';
 
 /// Y1 — artımlı çekim ve birleştirme.
@@ -91,6 +92,11 @@ class _FakeGateway implements RemoteGateway {
 
   @override
   Future<List<Group>> fetchGroups() async => const [];
+  @override
+  Future<List<Profile>> fetchProfiles() async => const [];
+  @override
+  Future<void> updateDisplayName(String displayName) async =>
+      throw UnimplementedError('bu test ad değiştirmiyor');
   @override
   Future<Group> createGroup(String name) async =>
       throw UnimplementedError('bu test grup kurmuyor');

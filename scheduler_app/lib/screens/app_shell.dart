@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/connectivity.dart';
 import '../core/group_context.dart';
 import '../core/navigation_controller.dart';
+import '../core/profile_directory.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
 import '../theme.dart';
@@ -75,6 +76,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       // kuruluyor: hem yeni girişi hem geri yüklenen oturumu tek yer karşılar.
       // Başarısız olursa sessiz — seçicide son bilinen liste kalır (Y4.2).
       unawaited(ref.read(groupContextProvider.notifier).refresh());
+      // Adlar da aynı anda (Y4.4d): profiller yalnız grup bağlamında görünüyor,
+      // onlara ayrı bir tazeleme takvimi icat etmeye değmez.
+      unawaited(ref.read(profileDirectoryProvider.notifier).refresh());
     });
   }
 

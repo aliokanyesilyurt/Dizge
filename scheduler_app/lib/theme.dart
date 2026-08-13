@@ -599,6 +599,47 @@ Color inkOn(Color background) =>
 /// paletten okunamıyor; adı olan bir sabit, gövdeye gömülmüş bir hex'ten iyi.
 const Color kUnknownCategoryColor = Color(0xFF529CCA);
 
+/// Avatar rozetlerinin renk merdiveni (Y4.4c).
+///
+/// Renk **kimlikten** türer, addan değil: biri adını "Ali"den "Ali Okan"a
+/// çevirdiğinde geçmiş haftalardaki bütün blokları renk değiştirseydi, kullanıcı
+/// için sebepsiz bir kayma olurdu. Baş harf değişir (ad değişti), renk kalır
+/// (kişi değişmedi).
+///
+/// Renkler **temadan bağımsız**: rozet opak bir daire, yani kontrast yalnız
+/// dolgu ile mürekkep arasında — sayfanın zeminiyle ilgisi yok. Aynı kişi açık
+/// ve koyu temada aynı renkte görünür, ki iki temayı yan yana açan biri aynı
+/// kişiyi iki farklı insan sanmasın.
+///
+/// Orta tonlar seçildi: [inkOn] hepsinde koyu mürekkebi seçiyor ve dokuzunun
+/// dokuzu da AA eşiğini (4.5:1) geçiyor — `avatar_test.dart` bunu her koşuda
+/// yeniden ölçüyor.
+const List<Color> kAvatarColors = [
+  Color(0xFF7FB2E5), // mavi
+  Color(0xFF74C7A8), // deniz yeşili
+  Color(0xFFE0A379), // kiremit
+  Color(0xFFB49BDE), // mor
+  Color(0xFFE895A6), // gül
+  Color(0xFF6FC3D2), // camgöbeği
+  Color(0xFFCBBE72), // hardal
+  Color(0xFFA8B3C4), // kurşun
+];
+
+/// Kimlikten sabit bir renk seçer.
+///
+/// `hashCode` **kullanılmıyor**: Dart'ta dize hash'i çalışma zamanları arasında
+/// değişebilir ve aynı kişi bir gün mavi, ertesi gün mor olurdu. Basit ve
+/// kararlı bir toplam yeterli — burada aranan dağılım kalitesi değil, aynı
+/// girdinin her zaman aynı çıktıyı vermesi.
+Color avatarColorFor(String userId) {
+  if (userId.isEmpty) return kAvatarColors.last;
+  var sum = 0;
+  for (final unit in userId.codeUnits) {
+    sum = (sum + unit) % 1000003;
+  }
+  return kAvatarColors[sum % kAvatarColors.length];
+}
+
 /// WCAG 2.1 kontrast oranı (1:1 – 21:1).
 ///
 /// Palette'in kendi içinde duruyor çünkü [AppPalette.readableOn] buna dayanıyor:

@@ -1,5 +1,6 @@
 import '../../core/app_config.dart';
 import '../../models/group.dart';
+import '../../models/profile.dart';
 import 'mutation.dart';
 import 'remote_gateway.dart';
 import 'supabase_api.dart';
@@ -147,6 +148,25 @@ class SupabaseGateway implements RemoteGateway {
 
   @override
   Future<void> leaveGroup(String groupId) => _api.leaveGroup(groupId);
+
+  /// Görülebilen profiller (Y4.4).
+  ///
+  /// `fetchGroups`'un aynısı: süzgeç yok, RLS zaten yalnız kendi satırını ve
+  /// ortak grubu olanların satırını gösteriyor. Kimliksiz satır atlanıyor —
+  /// haritanın anahtarı o ve boş anahtar bir profili kaybettirirdi.
+  @override
+  Future<List<Profile>> fetchProfiles() async {
+    if (!isConfigured) return const [];
+    final rows = await _api.fetchAll('profiles');
+    return [
+      for (final r in rows)
+        if (Profile.fromRow(r) case final p when p.userId.isNotEmpty) p,
+    ];
+  }
+
+  @override
+  Future<void> updateDisplayName(String displayName) =>
+      _api.upsertProfile(displayName: displayName.trim());
 
   @override
   Future<PushResult> pushSnapshot(Map<String, dynamic> snapshot) async {

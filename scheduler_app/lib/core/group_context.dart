@@ -8,6 +8,7 @@ import '../data/local_store.dart';
 import '../data/persistence_providers.dart';
 import '../data/sync/remote_gateway.dart';
 import '../models/group.dart';
+import 'profile_directory.dart';
 
 /// O an bakılan bağlamın anahtarı. Boş dize = **Kişisel**.
 ///
@@ -183,6 +184,9 @@ class GroupActions {
   Future<void> accept(String token) async {
     final groupId = await _gateway.acceptInvite(token);
     await _context.refresh();
+    // Yeni grup arkadaşlarının adları bu andan itibaren görünür oldu (Y4.4):
+    // tazelemezsek kullanıcı gruba girer ve herkesi `?` rozetiyle görürdü.
+    await _ref.read(profileDirectoryProvider.notifier).refresh();
     await _context.select(groupId);
   }
 

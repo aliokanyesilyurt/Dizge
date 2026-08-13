@@ -14,6 +14,7 @@ import 'package:scheduler_app/data/sync/supabase_api.dart';
 import 'package:scheduler_app/models/group.dart';
 import 'package:scheduler_app/models/habit.dart';
 import 'package:scheduler_app/models/node.dart';
+import 'package:scheduler_app/models/profile.dart';
 import 'package:scheduler_app/models/task.dart';
 
 /// Y4.2 — bağlam seçici ve süzgeç.
@@ -50,6 +51,26 @@ class _FakeGateway implements RemoteGateway {
     fetchCount++;
     if (throwOnFetch) throw Exception('ağ koptu');
     return groups;
+  }
+
+  // --- Profiller (Y4.4) ------------------------------------------------------
+
+  List<Profile> profiles = const [];
+  bool throwOnProfiles = false;
+  int profileFetchCount = 0;
+  final List<String> renamed = [];
+
+  @override
+  Future<List<Profile>> fetchProfiles() async {
+    profileFetchCount++;
+    if (throwOnProfiles) throw Exception('ağ koptu');
+    return profiles;
+  }
+
+  @override
+  Future<void> updateDisplayName(String displayName) async {
+    _maybeFail();
+    renamed.add(displayName);
   }
 
   // --- Grup işlemleri --------------------------------------------------------

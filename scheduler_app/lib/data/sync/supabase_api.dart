@@ -67,6 +67,18 @@ abstract class SupabaseApi {
   /// verirdi.
   Future<void> leaveGroup(String groupId);
 
+  /// Kullanıcının kendi profil satırını yazar (Y4.4: görünen ad).
+  ///
+  /// `upsert`: satır normalde kayıt trigger'ıyla doğmuş oluyor ama doğmamış
+  /// olabilir de (trigger hatayı yutuyor, §5). `update` yazsaydım o hesapta
+  /// ad kaydetmek sessizce hiçbir şey yapmazdı — kullanıcı yazar, kaydeder,
+  /// hiçbir şey olmaz.
+  ///
+  /// `user_id` çağıranın kimliğinden alınır ve parametre değildir: başkasının
+  /// satırını hedefleyebilen bir imza, RLS onu reddetse bile yanlış soruyu
+  /// sormayı mümkün kılardı.
+  Future<void> upsertProfile({required String displayName});
+
   /// "Sunucuda bir şey değişti" sinyali (Y2). Veri taşımaz.
   Stream<void> get remoteChanges;
 }
@@ -116,6 +128,23 @@ class LiveSupabaseApi implements SupabaseApi {
   Future<void> leaveGroup(String groupId) => _guard(
     () => _client.from('group_members').delete().eq('group_id', groupId),
   );
+
+  @override
+  Future<void> upsertProfile({required String displayName}) async {
+    final uid = currentUserId;
+    if (uid == null) {
+      throw const RemoteException('Oturum yok.', fatal: true);
+    }
+    await _guard(
+      // `updated_at` gönderilmiyor: onu sunucudaki trigger yazıyor (04 §5b).
+      // Cihaz saatine bırakılsaydı, saati ileri kurulmuş bir telefonun yazdığı
+      // ad sonsuza dek kazanan olurdu.
+      () => _client.from('profiles').upsert({
+        'user_id': uid,
+        'display_name': displayName,
+      }),
+    );
+  }
 
   StreamController<void>? _changes;
   RealtimeChannel? _channel;

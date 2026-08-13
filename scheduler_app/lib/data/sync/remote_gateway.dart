@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/group.dart';
+import '../../models/profile.dart';
 import 'mutation.dart';
 import 'supabase_api.dart';
 
@@ -103,6 +104,17 @@ abstract class RemoteGateway {
   /// Sunucudaki satırlara dokunmaz: onlar grubun ve orada kalır. Yereldeki
   /// kopyaların temizliği ayrı bir iş (Y4d, [AppStore.purgeGroup]).
   Future<void> leaveGroup(String groupId);
+
+  // --- Profiller (Y4.4) ------------------------------------------------------
+
+  /// Görülebilen profiller: kendi satırın + ortak grubun olanların satırı.
+  ///
+  /// Süzgeç istemcide **yok**; kimin adını görebildiğine RLS karar veriyor
+  /// (migration 04 §3a). [fetchGroups]'takiyle aynı gerekçe.
+  Future<List<Profile>> fetchProfiles();
+
+  /// Kendi görünen adını yazar. Yalnız kendi satırı — imzada kimlik yok.
+  Future<void> updateDisplayName(String displayName);
 }
 
 /// Backend bağlanana kadarki varsayılan. Uygulamayı %100 offline çalıştırır.
@@ -145,6 +157,15 @@ class NoopRemoteGateway implements RemoteGateway {
 
   @override
   Future<void> leaveGroup(String groupId) async => throw _yokSunucu;
+
+  // Sunucusuz profil yok: gösterilecek başka kullanıcı da yok. Boş liste
+  // dönmek burada doğru cevap — grup işlemlerinin aksine bu bir **eylem**
+  // değil, bir sorgu; başarısız olması gereken bir söz vermiyor.
+  @override
+  Future<List<Profile>> fetchProfiles() async => const [];
+
+  @override
+  Future<void> updateDisplayName(String displayName) async => throw _yokSunucu;
 
   static const _yokSunucu = RemoteException(
     'Gruplar için hesap bağlantısı gerekiyor.',
