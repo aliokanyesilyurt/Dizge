@@ -75,6 +75,14 @@ class Ev {
   /// Var olan hesapla giriş yapıldı — huninin kayıt kolundan ayrı.
   static const signInSucceeded = 'sign_in_succeeded';
 
+  /// "Google ile devam et"e basıldı ve tarayıcı açıldı (G8.2).
+  ///
+  /// Yalnız **başlangıç** ölçülüyor: akışın sonu tarayıcıda ve dönüşte
+  /// oturum açılırsa olay zaten [signInSucceeded] değil, sessizce gelir.
+  /// Buradaki sayı ile giriş sayısı arasındaki fark, tarayıcıya gidip
+  /// dönmeyenleri gösterir — bu yolun tek gerçek riski o.
+  static const googleSignInStarted = 'google_sign_in_started';
+
   // Sağlık
   static const syncFlushed = 'sync_flushed';
   static const persistFailed = 'persist_failed';

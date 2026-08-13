@@ -28,6 +28,20 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Google ile girişin geri dönüşü (G8b). Tarayıcı bu adrese
+                 yönlendiğinde Android uygulamayı öne alır; jetonu adresten
+                 okuyup oturumu açmak supabase_flutter'ın işi.
+
+                 `singleTop` yukarıda zaten tanımlı: onsuz dönüş, uygulamanın
+                 ikinci bir kopyasını açar ve kullanıcı boş bir takvimle
+                 karşılaşırdı. Adres AppConfig.oauthCallbackUrl ile aynı
+                 olmalı. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="dizge" android:host="login-callback"/>
+            </intent-filter>
         </activity>
         <!-- PostHog'u manifest'ten otomatik başlatma. Kurulum Dart tarafında
              (core/telemetry.dart) yapılır: anahtar yoksa hiç açılmaz ve

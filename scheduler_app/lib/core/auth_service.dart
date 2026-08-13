@@ -67,6 +67,20 @@ abstract class AuthService {
   /// karar verir (bkz. `account_screen._signOut`).
   Future<void> signOut();
 
+  /// Google hesabıyla giriş — **sistem tarayıcısında** (G8a).
+  ///
+  /// Dönen `Future`, girişin bittiğini değil **tarayıcının açıldığını**
+  /// söyler. Oturum, kullanıcı tarayıcıda işini bitirip uygulamaya
+  /// döndüğünde [changes] üzerinden gelir; çağıran sonucu buradan değil
+  /// akıştan öğrenir. Bu, e-posta yolundan farkı: orada `signIn` döndüğünde
+  /// iş bitmiştir.
+  ///
+  /// Tarayıcı hiç açılamazsa ya da sunucuda Google sağlayıcısı kapalıysa
+  /// [AuthFailure] fırlatır (G8d). Dönüş yolunda çıkan hatalar (kullanıcı
+  /// izni reddetti, sağlayıcı hata döndürdü) çağrıya değil **[changes]
+  /// akışına** düşer — ekran ikisini birden dinlemeli.
+  Future<void> signInWithGoogle();
+
   // --- Parola kurtarma -------------------------------------------------------
   //
   // Sert kapı, unutulan parolayı **kalıcı kilitlenmeye** çevirir: uygulamaya
@@ -130,6 +144,11 @@ class NoopAuthService implements AuthService {
   /// Oturum yokken çıkmak, zaten istenen durumda olmak demek — hata değil.
   @override
   Future<void> signOut() async {}
+
+  @override
+  Future<void> signInWithGoogle() async {
+    throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
+  }
 
   @override
   Future<void> sendRecoveryCode(String email) async {

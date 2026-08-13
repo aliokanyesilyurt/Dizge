@@ -69,6 +69,21 @@ class AppConfig {
   static bool get backendAvailable =>
       supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty;
 
+  // --- Google ile giriş ----------------------------------------------------
+
+  /// Tarayıcıdaki giriş bitince Supabase'in jetonu geri yollayacağı adres
+  /// (G8b). Özel şema: `dizge` marka adı — `io.supabase.*` gibi bir ön ek,
+  /// uygulamanın adını altyapı sağlayıcısına bağlardı.
+  ///
+  /// `--dart-define` ile verilmiyor: derlemeden derlemeye değişemez. Adres
+  /// aynı zamanda platform kaydının içinde duruyor (Windows registry, Android
+  /// manifest, iOS/macOS plist) ve Supabase panosundaki "Redirect URLs"
+  /// listesine yazılı. Dördü birden değişmeden bunu değiştirmek, dönüşü
+  /// sessizce koparırdı.
+  ///
+  /// Web'de kullanılmaz: orada dönüş, sayfanın kendi adresidir.
+  static const String oauthCallbackUrl = 'dizge://login-callback';
+
   // --- Kalıcılık -----------------------------------------------------------
 
   /// Şifreli kutunun adı. Sürüm eki taşımaz; şema değişimi

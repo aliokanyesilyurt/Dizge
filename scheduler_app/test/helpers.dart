@@ -151,6 +151,31 @@ class FakeAuthService implements AuthService {
     _emit(null);
   }
 
+  /// Google akışının **başlatıldığı** kaç kez. Gerçek serviste bu çağrı yalnız
+  /// tarayıcıyı açar; oturum sonra akıştan gelir. Sahtede de öyle: burada
+  /// kullanıcı yayınlanmıyor, testler girişi [emitGoogleReturn] ile taklit
+  /// ediyor.
+  int googleSignInCount = 0;
+
+  @override
+  Future<void> signInWithGoogle() async {
+    googleSignInCount++;
+    final failure = nextFailure;
+    if (failure != null) {
+      nextFailure = null;
+      throw failure;
+    }
+  }
+
+  /// Tarayıcıdan dönüşü taklit eder: oturum açılır ve akış haber verir.
+  void emitGoogleReturn({String email = 'google@ornek.com'}) =>
+      _emit(AuthUser(id: 'kullanici-google', email: email));
+
+  /// Dönüş yolunda çıkan hatayı taklit eder (sağlayıcı kapalı, izin
+  /// reddedildi). Gerçek serviste bu hata çağrıya değil **akışa** düşer;
+  /// ekranın ikisini de dinlediği ancak böyle sınanabilir.
+  void emitGoogleFailure(AuthFailure failure) => _controller.addError(failure);
+
   @override
   Future<void> sendRecoveryCode(String email) async {
     final failure = nextFailure;

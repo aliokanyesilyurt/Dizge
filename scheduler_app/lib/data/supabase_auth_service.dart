@@ -1,8 +1,10 @@
 // Paket de `AuthUser` diye bir tip ihraç ediyor. Gizleniyor: bu dosyadaki
 // `AuthUser` her zaman **bizim** modelimiz olmalı, yoksa çeviri katmanının
 // anlamı kalmaz.
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
+import '../core/app_config.dart';
 import '../core/auth_service.dart';
 
 /// [AuthService]'in Supabase uygulaması.
@@ -39,6 +41,41 @@ class SupabaseAuthService implements AuthService {
 
   @override
   Future<void> signOut() => _guard(_auth.signOut);
+
+  /// Google akışı `_guard`'ın dışında duruyor, çünkü buradaki başarısızlıklar
+  /// ağ hatası değil: `signInWithOAuth` sunucuya gitmez, adresi kendi kurar ve
+  /// tarayıcıyı açar. "Sunucuya ulaşılamadı" demek yanlış teşhis olurdu.
+  ///
+  /// `externalApplication`: giriş sayfası uygulamanın içindeki bir web
+  /// görünümünde değil, gerçek tarayıcıda açılır. Google gömülü görünümlerde
+  /// girişi zaten reddediyor (`disallowed_useragent`); üstelik kullanıcının
+  /// tarayıcıda kayıtlı oturumu ancak orada işe yarar.
+  @override
+  Future<void> signInWithGoogle() async {
+    try {
+      final launched = await _auth.signInWithOAuth(
+        OAuthProvider.google,
+        // Web'de dönüş sayfanın kendi adresi; özel şema orada anlamsız ve
+        // verilirse tarayıcı çalıştıramayacağı bir adrese yönlenir.
+        redirectTo: kIsWeb ? null : AppConfig.oauthCallbackUrl,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        throw const AuthFailure(
+          'Tarayıcı açılamadı. E-posta ve parolayla girebilirsin.',
+        );
+      }
+    } on AuthException catch (e) {
+      throw _translate(e);
+    } on AuthFailure {
+      rethrow;
+    } catch (e) {
+      // url_launcher platformda tarayıcı bulamazsa PlatformException atar.
+      throw const AuthFailure(
+        'Tarayıcı açılamadı. E-posta ve parolayla girebilirsin.',
+      );
+    }
+  }
 
   /// `shouldCreateUser: false` bilinçli: varsayılan `true` olsaydı yanlış
   /// yazılmış bir e-posta sessizce yeni bir hesap açar, kullanıcı da kodu girip
@@ -114,6 +151,18 @@ class SupabaseAuthService implements AuthService {
       return const AuthFailure(
         'Kod geçersiz ya da süresi dolmuş. Yeni bir kod iste.',
       );
+    }
+    // Sunucuda Google sağlayıcısı açılmamış (G8d). Kullanıcının yaptığı şeyle
+    // ilgisi yok — kendi hesabında değil, kurulumda eksik var.
+    if (m.contains('provider is not enabled') ||
+        m.contains('unsupported provider')) {
+      return const AuthFailure(
+        'Google girişi bu sunucuda açık değil. E-posta ve parolayla girebilirsin.',
+      );
+    }
+    // Kullanıcı tarayıcıda "izin verme" dedi ya da akışı yarıda bıraktı.
+    if (m.contains('access_denied') || m.contains('access denied')) {
+      return const AuthFailure('Google girişi tamamlanmadı.');
     }
     if (m.contains('rate limit') || m.contains('too many')) {
       return const AuthFailure(

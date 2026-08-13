@@ -28,5 +28,19 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- Google ile girişin geri dönüşü (G8b) — AppConfig.oauthCallbackUrl. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.example.schedulerApp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dizge</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

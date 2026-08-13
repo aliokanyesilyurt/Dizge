@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/auth_service.dart';
+import '../core/connectivity.dart';
 import '../core/telemetry.dart';
 import '../data/persistence_providers.dart';
 import '../theme.dart';
@@ -48,8 +49,17 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
   late _Mode _mode;
   bool _busy = false;
+
+  /// Google akışı ayrı bir bayrak taşıyor: iki düğme var ve dönen halkanın
+  /// hangisinin üstünde olduğu, kullanıcının neyi beklediğini söylüyor.
+  bool _googleBusy = false;
   String? _error;
   String? _info;
+
+  /// Bir iş sürerken bütün form kilitlenir. Tarayıcı açılırken form alanlarını
+  /// açık bırakmak, kullanıcıyı iki yerde birden giriş yapıyor sanmaya
+  /// bırakırdı.
+  bool get _locked => _busy || _googleBusy;
 
   @override
   void initState() {
@@ -141,6 +151,34 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     }
   }
 
+  /// Tarayıcıyı açar ve bırakır.
+  ///
+  /// Burada `await`'in bittiği yer **giriş değil, tarayıcının açılması**
+  /// (G8a). Oturum dönüşte `AuthGate`'in dinlediği akıştan gelir; bu ekran
+  /// kendini kapatmaz.
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _googleBusy = true;
+      _error = null;
+      _info = null;
+    });
+
+    try {
+      ref.read(telemetryProvider).capture(Ev.googleSignInStarted);
+      await ref.read(authServiceProvider).signInWithGoogle();
+      if (mounted) {
+        setState(
+          () =>
+              _info = 'Tarayıcıda girişi tamamla, sonra bu pencereye geri dön.',
+        );
+      }
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _googleBusy = false);
+    }
+  }
+
   // --- Metinler --------------------------------------------------------------
 
   String get _title => switch (_mode) {
@@ -171,6 +209,24 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     final c = context.colors;
     final recovering =
         _mode == _Mode.recoverRequest || _mode == _Mode.recoverVerify;
+    final offline =
+        ref.watch(networkStatusProvider).valueOrNull == NetworkStatus.offline;
+
+    // Google dönüşündeki hata çağrıya değil **akışa** düşer (bkz.
+    // `AuthService.signInWithGoogle`). Yalnız çağrı dinlenseydi, sağlayıcı
+    // kapalıyken kullanıcı tarayıcıya gidip boş dönerdi ve bu ekran hiçbir şey
+    // olmamış gibi durur — G8d'nin kapattığı delik tam burası.
+    ref.listen<AsyncValue<AuthUser?>>(authUserProvider, (previous, next) {
+      final error = next.error;
+      if (error == null) return;
+      setState(() {
+        _googleBusy = false;
+        _info = null;
+        _error = error is AuthFailure
+            ? error.message
+            : 'Giriş tamamlanamadı. Tekrar dene.';
+      });
+    });
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -222,7 +278,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     if (_mode != _Mode.recoverVerify)
                       TextField(
                         controller: _email,
-                        enabled: !_busy,
+                        enabled: !_locked,
                         autofocus: true,
                         keyboardType: TextInputType.emailAddress,
                         autofillHints: const [AutofillHints.email],
@@ -238,11 +294,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       TextField(
                         controller: _password,
                         focusNode: _passwordFocus,
-                        enabled: !_busy,
+                        enabled: !_locked,
                         obscureText: true,
                         autofillHints: const [AutofillHints.password],
                         textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _busy ? null : _submit(),
+                        onSubmitted: (_) => _locked ? null : _submit(),
                         decoration: const InputDecoration(hintText: 'Parola'),
                       ),
                     ],
@@ -250,7 +306,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     if (_mode == _Mode.recoverVerify)
                       TextField(
                         controller: _code,
-                        enabled: !_busy,
+                        enabled: !_locked,
                         autofocus: true,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
@@ -259,7 +315,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         ],
                         autofillHints: const [AutofillHints.oneTimeCode],
                         textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _busy ? null : _submit(),
+                        onSubmitted: (_) => _locked ? null : _submit(),
                         decoration: const InputDecoration(
                           hintText: '6 haneli kod',
                         ),
@@ -307,7 +363,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
                     const SizedBox(height: 18),
                     FilledButton(
-                      onPressed: _busy ? null : _submit,
+                      onPressed: _locked ? null : _submit,
                       child: _busy
                           ? SizedBox(
                               width: 18,
@@ -320,15 +376,83 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           : Text(_action),
                     ),
 
+                    // Kurtarma adımlarında yok: orada soru "sen kimsin" değil,
+                    // "bu adrese gelen kodu girebiliyor musun". Araya bir
+                    // Google düğmesi koymak, parolasını unutan kullanıcıyı
+                    // üçüncü bir yola saptırırdı.
+                    if (!recovering) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(color: c.lineSoft, height: 1),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              'ya da',
+                              style: TextStyle(
+                                color: c.inkFaint,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(color: c.lineSoft, height: 1),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Düğme sağlayıcı kapalıyken de görünür (G8d): bir
+                      // yapılandırma bayrağı, tek kişilik bir projede
+                      // unutulacak ikinci bir anahtar olurdu. Kapalıysa
+                      // kullanıcı sebebini yukarıdaki hata satırında okur.
+                      //
+                      // Resmî Google "G" işareti paketlenmiyor: marka varlığı
+                      // Google'ın kendi kılavuzundan alınıp `assets/brand/`
+                      // içine konmadan, elle çizilmiş bir yaklaşığı koymak
+                      // logoyu yanlış göstermek olurdu.
+                      OutlinedButton(
+                        onPressed: _locked || offline
+                            ? null
+                            : _signInWithGoogle,
+                        child: _googleBusy
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: c.inkDim,
+                                ),
+                              )
+                            : const Text('Google ile devam et'),
+                      ),
+                      if (offline) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Google girişi tarayıcı üzerinden olur; çevrimdışıyken '
+                          'çalışmaz.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: c.inkFaint,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ],
+
                     const SizedBox(height: 6),
                     if (recovering)
                       TextButton(
-                        onPressed: _busy ? null : () => _goTo(_Mode.signIn),
+                        onPressed: _locked ? null : () => _goTo(_Mode.signIn),
                         child: const Text('Girişe dön'),
                       )
                     else ...[
                       TextButton(
-                        onPressed: _busy
+                        onPressed: _locked
                             ? null
                             : () => _goTo(
                                 _mode == _Mode.signUp
@@ -345,7 +469,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       // parola, veriye kalıcı olarak erişilememesi demek.
                       if (_mode == _Mode.signIn)
                         TextButton(
-                          onPressed: _busy
+                          onPressed: _locked
                               ? null
                               : () => _goTo(_Mode.recoverRequest),
                           child: const Text('Parolamı unuttum'),
