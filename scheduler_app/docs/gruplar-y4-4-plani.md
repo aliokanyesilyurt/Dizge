@@ -1,6 +1,7 @@
 # Y4.4 Planı — Kimlik: profiller, avatarlar, sahiplik işareti
 
-**Durum:** onay bekliyor
+**Durum:** ✅ **kod tarafı bitti** — altı dilimin altısı indi (13 Ağustos).
+Kalan: migration 04'ün panoda çalıştırılması ve §10'daki elle tur.
 **Tarih:** 13 Ağustos 2026
 **Önceki:** `gruplar-y4-plani.md` §6 (karar Y4e), `gruplar-y3-plani.md` (migration 03)
 **Önkoşul:** Migration 03 sunucuda çalıştı; `owner_id` istemciye kadar geliyor (Y4.1).
@@ -168,13 +169,16 @@ düzeltmek olurdu.
 
 Kod tarafı (otomatik doğrulanan):
 
-* [ ] Kişisel bağlamda hiçbir yüzeyde rozet yok.
-* [ ] Grup bağlamında her iş rozet taşıyor; profil bilinmiyorsa `?`.
-* [ ] Fotoğraf yüklenemediğinde baş harfe düşülüyor, hata kutusu açılmıyor.
-* [ ] Baş harf mürekkebi her palet renginde AA eşiğini geçiyor.
-* [ ] Ad değişince baş harf değişiyor, **renk değişmiyor**.
-* [ ] Çevrimdışıyken ad kaydetme düğmesi pasif; outbox'a hiçbir şey yazılmıyor.
-* [ ] `flutter analyze` temiz, testler yeşil, Windows derleniyor.
+* [x] Kişisel bağlamda hiçbir yüzeyde rozet yok.
+* [x] Grup bağlamında her iş rozet taşıyor; profil bilinmiyorsa `?`.
+* [x] Fotoğraf yüklenemediğinde baş harfe düşülüyor, hata kutusu açılmıyor.
+* [x] Baş harf mürekkebi her palet renginde AA eşiğini geçiyor.
+* [x] Ad değişince baş harf değişiyor, **renk değişmiyor**.
+* [x] Çevrimdışıyken ad kaydetme düğmesi pasif; outbox'a hiçbir şey yazılmıyor.
+* [x] `flutter analyze` temiz, **435 test yeşil**, Windows sürümü derleniyor.
+
+Yeni testler: `profile_directory_test` (16), `user_avatar_test` (10),
+`owner_avatar_test` (5), `display_name_test` (7), `owner_details_test` (5).
 
 Elle doğrulanacak (iki gerçek hesapla):
 
@@ -194,6 +198,27 @@ Elle doğrulanacak (iki gerçek hesapla):
 | Yüzlerce blokta avatar çizimi ızgarayı yavaşlatır | Düşük | Baş harf rozeti tek `Container` + `Text`; fotoğraf `ImageCache`'ten gelir |
 | İki cihazdan aynı anda ad değişimi | Düşük | `updated_at` ile LWW — satır tek, hakem var |
 | Trigger var olan kullanıcıları atlar | Orta | Geri dolum aynı migration'da (§2) |
+
+---
+
+## 11b. Kapanış notu
+
+Altı dilim de indi. Plandan sapılan üç yer:
+
+* **`updated_at` trigger'ı** (§2) — plan bu sütunu istemciye yazdırıyordu.
+  Cihaz saatine bırakılan bir hakem, saati ileri kurulmuş bir telefonun
+  yazdığı adı sonsuza dek kazanan yapardı; migration'a tek satırlık bir
+  trigger girdi (04 §5b). `apply_mutations`'ın saat kayması korumasının aynı
+  gerekçesi.
+* **`Tooltip` ekran okuyucuda adı iki kez okuyordu** — ipucu kendi etiketini de
+  ağaca koyuyor. `excludeFromSemantics` ile susturuldu; anlamı rozetin kendi
+  `Semantics` düğümü taşıyor.
+* **Hesap ekranı başlığında e-posta iki kez** — profil bilinmiyorken başlık
+  e-postaya düşüyor ve alt satır da e-postaydı. Alt satır artık başlığın ne
+  olduğuna bakıyor.
+
+Planın öngörmediği bir iş de yol boyunca kapandı: kenar çubuğundaki hesap
+kutusu "Misafir" yazan sabit bir metindi, artık gerçek adı gösteriyor.
 
 ---
 

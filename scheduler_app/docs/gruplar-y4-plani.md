@@ -1,6 +1,8 @@
 # Y4 Planı — Grup Arayüzü
 
-**Durum:** Y4.1–Y4.3 indi; sırada Y4.4 (12 Ağustos)
+**Durum:** dördü de indi — Y4.1–Y4.3 (12 Ağustos), Y4.4 (13 Ağustos).
+Y4.4 kendi planına taşındı: `gruplar-y4-4-plani.md` (avatar sistemi, `profiles`
+migration'ı ve ad düzenleme, bu dosyanın §6'sında öngörülenden büyük çıktı).
 **Önceki:** `gruplar-plani.md` §5 (taslak), `gruplar-y3-plani.md` (şema indi)
 **Önkoşul:** Y3 migration'ı sunucuda çalıştı; §11 doğrulaması henüz koşmadı.
 
@@ -119,7 +121,7 @@ o hesapta çalışır. Bağlantı sızsa bile işe yaramaz.
 | Y4.3 | Grup kur / davet et / daveti kabul et / gruptan çık | **Evet** — paylaşım burada gerçek olur |
 | Y4.4 | `profiles` + blok üstünde sahiplik işareti | **Evet** — "Ali toplantıyı taşımış" |
 
-Y4.1, Y4.2 ve Y4.3 indi.
+Dördü de indi.
 
 Y4.2 seçiciyi grubu olmayan kullanıcıda gizlemişti (gizlenecek iş yokken ölü
 bir düğme durmasın diye). **Y4.3 bunu geri aldı**: ilk grubun kurulduğu yer o
