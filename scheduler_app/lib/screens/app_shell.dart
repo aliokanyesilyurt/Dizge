@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/auth_service.dart';
 import '../core/connectivity.dart';
 import '../core/group_context.dart';
 import '../core/navigation_controller.dart';
@@ -12,6 +13,7 @@ import '../core/theme_mode_controller.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/group_switcher.dart';
+import '../widgets/user_avatar.dart';
 import 'account_screen.dart';
 import 'day_view_screen.dart';
 import 'habits_screen.dart';
@@ -623,7 +625,7 @@ class _ThemeToggleButton extends ConsumerWidget {
   }
 }
 
-class _ProfileTile extends StatelessWidget {
+class _ProfileTile extends ConsumerWidget {
   final bool selected;
   final bool collapsed;
   final VoidCallback onTap;
@@ -635,15 +637,20 @@ class _ProfileTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final userId = ref.watch(authUserProvider).valueOrNull?.id;
+    final me = ref.watch(profileProvider(userId));
 
-    final avatar = Container(
-      width: 32,
-      height: 32,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: c.accentSoft, shape: BoxShape.circle),
-      child: Icon(Icons.person_rounded, size: 17, color: c.navActiveInk),
+    // Kendi avatarın (Y4.4d). Jenerik kişi ikonunun yerine geçiyor: o ikon
+    // "bir hesap" diyordu, bu "senin hesabın" diyor.
+    //
+    // İpucu kapalı: adın zaten iki santim yanında yazıyor.
+    final avatar = UserAvatar(
+      profile: me,
+      userId: userId,
+      size: 32,
+      showTooltip: false,
     );
 
     final tile = InkWell(
@@ -667,7 +674,10 @@ class _ProfileTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Misafir',
+                          // Profil gelene kadar "Misafir": bir kare boyunca
+                          // "Adsız" yazmak, adı gerçekten boş olan biriyle
+                          // henüz yüklenmemiş olanı aynı gösterirdi.
+                          me?.label ?? 'Misafir',
                           overflow: TextOverflow.clip,
                           softWrap: false,
                           style: TextStyle(

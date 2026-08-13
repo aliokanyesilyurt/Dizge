@@ -5,6 +5,7 @@ import '../data/app_store.dart';
 import '../models/node.dart';
 import '../services/link_index.dart';
 import '../theme.dart';
+import '../widgets/owner_avatar.dart';
 import 'section_header.dart';
 import 'task_list_scaffold.dart' show EmptyState;
 
@@ -143,6 +144,13 @@ class _NoteRowState extends State<_NoteRow> {
             children: [
               Icon(Icons.description_rounded, size: 18, color: c.inkDim),
               const SizedBox(width: 12),
+              // Sahiplik rozeti (Y4.4d); kişisel bağlamda gizli. Not ikonunun
+              // **yerine** geçmiyor, yanına geliyor: ikon "bu bir not" diyor,
+              // rozet "bu notu kim yazdı" — ikisi farklı soru.
+              if (widget.note.ownerId != null) ...[
+                OwnerAvatar(ownerId: widget.note.ownerId, size: 16),
+                const SizedBox(width: 9),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

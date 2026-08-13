@@ -5,6 +5,7 @@ import '../core/navigation_controller.dart';
 import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
+import '../widgets/owner_avatar.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
 
@@ -371,6 +372,18 @@ class _Cell extends StatelessWidget {
               ),
             ),
           ),
+          // Sahiplik rozeti (Y4.4d). Hücre dar olduğu için 12px ve **satırın
+          // sonunda**: başa koymak, zaten tek satıra sığmayan başlıktan bir
+          // parça daha alırdı. Kişisel bağlamda kendini gizler.
+          if (task.ownerId != null) ...[
+            const SizedBox(width: 3),
+            Padding(
+              // Nokta ve yazı üstten hizalı; rozet de onlarla aynı çizgide
+              // dursun diye 1px iniyor.
+              padding: const EdgeInsets.only(top: 1),
+              child: OwnerAvatar(ownerId: task.ownerId, size: 12),
+            ),
+          ],
         ],
       ),
     );

@@ -9,6 +9,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../core/time_grid.dart';
 import '../models/task.dart';
 import '../theme.dart';
+import 'owner_avatar.dart';
 
 /// Google Takvim tarzı haftalık zaman ızgarası.
 ///
@@ -969,6 +970,19 @@ class _EventBlockState extends State<_EventBlock> {
         ),
     ];
 
+    // Sahiplik rozeti sağ üstte (Y4.4d). Kişisel bağlamda [OwnerAvatar]
+    // kendini gizliyor, yani bu satır orada boş bir `SizedBox`tan ibaret.
+    //
+    // Başlığın **sonuna** konuyor, başına değil: baştaki her piksel başlığın
+    // okunabilir uzunluğundan gidiyor ve 15 dakikalık blokta o pikseller
+    // "Kahve"yi "Kah…" yapardı.
+    final owner = <Widget>[
+      if (task.ownerId != null) ...[
+        const SizedBox(width: 4),
+        OwnerAvatar(ownerId: task.ownerId, size: compact ? 12 : 14),
+      ],
+    ];
+
     final body = Container(
       padding: EdgeInsets.fromLTRB(5, compact ? 1 : 3, 5, 2),
       child: compact
@@ -986,6 +1000,7 @@ class _EventBlockState extends State<_EventBlock> {
                 ),
                 const SizedBox(width: 4),
                 Text(task.startString, maxLines: 1, style: timeStyle),
+                ...owner,
               ],
             )
           : Column(
@@ -1005,6 +1020,7 @@ class _EventBlockState extends State<_EventBlock> {
                         style: titleStyle,
                       ),
                     ),
+                    ...owner,
                   ],
                 ),
                 Text(

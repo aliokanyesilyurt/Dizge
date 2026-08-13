@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../theme.dart';
+import '../widgets/owner_avatar.dart';
 import 'section_header.dart';
 
 /// Rutinler ve Yapılacaklar ekranlarının paylaştığı liste düzeni.
@@ -180,6 +181,13 @@ class _RowState extends State<_Row> {
                 ),
               ),
               const SizedBox(width: 13),
+              // Sahiplik rozeti (Y4.4d). Burada **satır başında**: listede
+              // yer var ve göz zaten soldan tarıyor, "kimin işi" sorusu
+              // başlığı okumadan yanıtlanıyor. Kişisel bağlamda gizli.
+              if (t.ownerId != null) ...[
+                OwnerAvatar(ownerId: t.ownerId, size: 16),
+                const SizedBox(width: 9),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
