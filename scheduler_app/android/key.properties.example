@@ -1,0 +1,19 @@
+# Yayın imzası — bu dosyanın **kopyası** `key.properties` adıyla yanına konur.
+#
+# `key.properties` git'te yok ve olmamalı: içindeki parola, senin adına
+# güncelleme yayımlama yetkisidir. Anahtar deposu dosyası (.jks) de repoya
+# girmemeli; onu kaybedersen aynı uygulamayı bir daha güncelleyemezsin —
+# yedeğini repo dışında bir yerde tut.
+#
+# Anahtar deposunu üretmek (bir kez, parolayı sen seçersin):
+#
+#   keytool -genkey -v -keystore %USERPROFILE%\dizge-release.jks \
+#     -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias dizge
+#
+# `-validity 10000` yaklaşık 27 yıl: anahtarın süresi dolarsa uygulamayı
+# güncelleyemezsin, o yüzden kısa tutmanın hiçbir faydası yok.
+
+storeFile=C:/Users/KULLANICI/dizge-release.jks
+storePassword=BURAYA_DEPO_PAROLASI
+keyAlias=dizge
+keyPassword=BURAYA_ANAHTAR_PAROLASI

@@ -50,7 +50,12 @@ bool SendAppLinkToInstance(const std::wstring& title) {
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   // Zaten açık bir pencere varsa bu süreç yalnızca adresi taşıyıcıdır.
-  if (SendAppLinkToInstance(L"scheduler_app")) {
+  //
+  // Buradaki dize aşağıdaki `window.Create(...)` başlığıyla **birebir aynı
+  // olmak zorunda**: arama pencereyi başlığından buluyor. İkisi ayrışırsa
+  // tek-örnek koruması sessizce çalışmaz — Google girişinden dönen her
+  // adres ikinci bir pencere açar ve kullanıcı iki uygulamaya bakar.
+  if (SendAppLinkToInstance(L"Dizge")) {
     return EXIT_SUCCESS;
   }
 
@@ -74,7 +79,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"scheduler_app", origin, size)) {
+  if (!window.Create(L"Dizge", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

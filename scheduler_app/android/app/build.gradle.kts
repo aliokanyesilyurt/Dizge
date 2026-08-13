@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,8 +7,21 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Yayın imzası `android/key.properties`ten okunuyor. Dosya **git'te değil**:
+// içinde anahtar deposunun parolası var ve o parola sızarsa herkes senin
+// adına güncelleme yayımlayabilir.
+//
+// Dosya yoksa derleme durmuyor, hata ayıklama anahtarına düşüyor (aşağıdaki
+// `release` bloğu) — ama sesli bir uyarıyla. Sessizce düşseydi, mağazaya
+// gitmeyen ama "yayın" diye dağıtılan bir APK üretilirdi.
+val keystoreProperties = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val hasReleaseKey = keystoreProperties.getProperty("storeFile") != null
+
 android {
-    namespace = "com.example.scheduler_app"
+    namespace = "com.aliokan.dizge"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,8 +35,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.scheduler_app"
+        // Kurulduktan sonra **değiştirilemez**: paket kimliği cihazda
+        // uygulamanın kim olduğu. Değiştirmek yeni bir uygulama demek —
+        // eskisi güncellenmez, yan yana kurulur.
+        applicationId = "com.aliokan.dizge"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -30,11 +47,33 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseKey) {
+                signingConfigs.getByName("release")
+            } else {
+                // Hata ayıklama anahtarıyla imzalanan APK **kurulur ve
+                // çalışır**, ama güncellenemez: gerçek anahtarla imzalanmış
+                // bir sürüm sonradan gelince Android onu "başka bir
+                // uygulama" sayar ve kullanıcı eskisini silmek zorunda kalır.
+                logger.warn(
+                    "\n  UYARI · Yayın APK'sı hata ayıklama anahtarıyla imzalanıyor." +
+                    "\n  Gerçek anahtar için: android/key.properties " +
+                    "(bkz. android/key.properties.example)\n"
+                )
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

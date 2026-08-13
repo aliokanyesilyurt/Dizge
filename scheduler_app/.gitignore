@@ -48,3 +48,10 @@ app.*.map.json
 # Sir olmasa da (publishable key istemciye zaten dagitiliyor) ortama ozel:
 # her gelistirici kendi env.json'unu env.example.json'dan kopyalar.
 env.json
+
+# Yayin imzasi. Parola ve anahtar deposu repoya asla girmez: parola sizarsa
+# herkes senin adina guncelleme yayimlayabilir, .jks kaybolursa uygulamayi
+# bir daha guncelleyemezsin.
+/android/key.properties
+*.jks
+*.keystore

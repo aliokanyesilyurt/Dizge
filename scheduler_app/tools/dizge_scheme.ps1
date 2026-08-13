@@ -54,8 +54,8 @@ if ($Unregister) {
 
 if (-not $ExePath) {
     $candidates = @(
-        (Join-Path $project 'build\windows\x64\runner\Release\scheduler_app.exe'),
-        (Join-Path $project 'build\windows\x64\runner\Debug\scheduler_app.exe')
+        (Join-Path $project 'build\windows\x64\runner\Release\Dizge.exe'),
+        (Join-Path $project 'build\windows\x64\runner\Debug\Dizge.exe')
     )
     $ExePath = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 }
@@ -68,7 +68,7 @@ Uygulama bulunamadı. Önce derle:
 
 ya da yolu kendin ver:
 
-    tools\dizge_scheme.ps1 -ExePath C:\yol\scheduler_app.exe
+    tools\dizge_scheme.ps1 -ExePath C:\yol\Dizge.exe
 '@
     exit 1
 }

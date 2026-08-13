@@ -134,6 +134,58 @@ flutter build appbundle \
 
 ---
 
+## Sürüm çıkarma
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\surum_cikar.ps1
+```
+
+Testleri koşar, iki hedefi de derler ve `build/surum/` altına koyar:
+
+| Çıktı | Ne |
+|---|---|
+| `Dizge-<sürüm>-windows.zip` | Uygulama klasörü + `dizge_scheme.ps1` + `OKU-BENI.txt` |
+| `Dizge-<sürüm>-<yapı>.apk` | Yandan yüklenebilir tek APK (ABI'ye bölünmemiş) |
+
+`-Target windows` / `-Target android` ile tek hedef, `-SkipTests` ile testsiz.
+
+Betiğin elle `flutter build` çalıştırmaktan farkı, **`env.json`'u unutmaması**.
+Unutulduğunda derleme başarılı olur ama uygulama sunucusuz açılır: hatasız
+çalışan, hiçbir hesaba bağlanamayan bir sürüm. Fark edilmesi en zor kusur bu.
+
+### Android imzası
+
+Yayın APK'sı `android/key.properties`ten okunan anahtarla imzalanır. Dosya
+yoksa derleme durmaz, hata ayıklama anahtarına düşer ve **sesli uyarır** —
+öyle bir APK kurulur ve çalışır ama gerçek anahtarlı bir sürüme sonradan
+güncellenemez.
+
+Anahtar deposu bir kez üretilir (parolayı sen seçersin):
+
+```powershell
+keytool -genkey -v -keystore $env:USERPROFILE\dizge-release.jks `
+  -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias dizge
+```
+
+Sonra `android/key.properties.example` kopyalanıp doldurulur. `.jks` dosyası
+ve `key.properties` git'te değil ve olmamalı: parola sızarsa başkası senin
+adına güncelleme yayımlayabilir, `.jks` kaybolursa uygulamayı bir daha
+güncelleyemezsin. Yedeğini repo dışında tut.
+
+### Windows'ta `dizge://`
+
+Google ile giriş, tarayıcıdan uygulamaya `dizge://login-callback` ile dönüyor.
+Windows bu adresi ancak registry'de bir kayıt varsa uygulamaya bağlar:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\dizge_scheme.ps1
+```
+
+Kayıt **çalıştırılabilir dosyanın tam yolunu** taşıyor; exe taşınırsa ya da
+adı değişirse betik yeniden koşturulmalı.
+
+---
+
 ## Backend bağlama (Supabase / Firebase)
 
 Uygulama kodunun hiçbir yeri backend paketini tanımaz. Tek yapılacak

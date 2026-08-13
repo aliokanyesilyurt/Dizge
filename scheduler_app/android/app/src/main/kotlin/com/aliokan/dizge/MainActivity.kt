@@ -1,4 +1,4 @@
-package com.example.scheduler_app
+package com.aliokan.dizge
 
 import io.flutter.embedding.android.FlutterActivity
 
