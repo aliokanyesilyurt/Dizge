@@ -40,3 +40,53 @@ class OwnerAvatar extends ConsumerWidget {
     );
   }
 }
+
+/// Sahibin **tam adı**, grup bağlamında; kişisel bağlamda null.
+///
+/// Rozet yüzeyde, ad detayda: 14px'lik bir dairede "Ali Okan" yazamayız ama
+/// önizlemede, düzenleyicide ve ekran okuyucuda kısaltmaya gerek de yok.
+///
+/// Bir widget değil düz bir işlev, çünkü çağıranların biri metin cümlesi
+/// kuruyor (ekran okuyucu), diğeri satır çiziyor.
+String? ownerNameFor(WidgetRef ref, String? ownerId) {
+  if (ownerId == null || ownerId.isEmpty) return null;
+  if (ref.watch(activeGroupIdProvider) == null) return null;
+  return ref.watch(profileProvider(ownerId))?.label ?? 'Bilinmeyen kişi';
+}
+
+/// Detay yüzeylerinde "kimin işi" satırı: rozet + tam ad (Y4.4f).
+///
+/// Kişisel bağlamda hiç çizilmez — [OwnerAvatar] ile aynı kural, aynı sebep.
+class OwnerLine extends ConsumerWidget {
+  const OwnerLine({super.key, required this.ownerId, this.style});
+
+  final String? ownerId;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final name = ownerNameFor(ref, ownerId);
+    if (name == null) return const SizedBox.shrink();
+
+    return Row(
+      children: [
+        // İpucu kapalı: ad zaten hemen yanında yazıyor.
+        UserAvatar(
+          profile: ref.watch(profileProvider(ownerId)),
+          userId: ownerId,
+          size: 16,
+          showTooltip: false,
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+      ],
+    );
+  }
+}

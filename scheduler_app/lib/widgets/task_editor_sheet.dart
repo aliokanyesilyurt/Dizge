@@ -6,6 +6,7 @@ import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
 import 'drawing_canvas.dart';
+import 'owner_avatar.dart';
 
 /// İş editörü. Kaydedildiyse/silindiyse true döner.
 ///
@@ -229,6 +230,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 children: [
+                  _ownerRow(c),
                   _kindRow(c),
                   if (_isRoutine) _repeatRow(c),
                   _dateRow(),
@@ -248,6 +250,26 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       ),
     );
   }
+
+  /// "Bu işi kim yazdı" satırı (Y4.4f).
+  ///
+  /// Salt okunur ve öyle kalmalı: sahiplik bir tercih değil, satırın sunucuda
+  /// yazılı geçmişi. Buraya bir seçici koymak, başkasının işini üstlenmeyi
+  /// (ya da kendi işini başkasına yazmayı) mümkün kılardı.
+  ///
+  /// Kişisel bağlamda [OwnerLine] kendini gizliyor; o zaman bu satır sıfır
+  /// yükseklikte bir boşluğa iniyor.
+  Widget _ownerRow(AppPalette c) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    child: OwnerLine(
+      ownerId: widget.existing?.ownerId,
+      style: TextStyle(
+        color: c.inkFaint,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
 
   Widget _grabber(AppPalette c) => Container(
     width: 36,

@@ -4,13 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/app_config.dart';
 import '../core/auth_service.dart';
 import '../core/connectivity.dart';
+import '../core/profile_directory.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
 import '../data/app_store.dart';
 import '../data/local_store.dart';
 import '../data/persistence_providers.dart';
+import '../data/sync/supabase_api.dart';
 import '../data/sync/sync_engine.dart';
 import '../theme.dart';
+import '../widgets/user_avatar.dart';
 
 /// Hesap, görünüm, gizlilik ve veri ayarları.
 ///
@@ -41,6 +44,8 @@ class AccountScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(24, 26, 24, 40),
               children: [
                 const _ProfileHeader(),
+                const SizedBox(height: 16),
+                const _DisplayNameField(),
                 const SizedBox(height: 28),
 
                 // --- Görünüm ---
@@ -129,23 +134,19 @@ class _ProfileHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final user = ref.watch(authUserProvider).valueOrNull;
+    final me = ref.watch(profileProvider(user?.id));
+    final title = me?.label ?? user?.email ?? 'Misafir';
 
     return Row(
       children: [
-        Container(
-          width: 60,
-          height: 60,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [c.accent, Color.lerp(c.accent, c.secondary, 0.55)!],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: c.shadowMd,
-          ),
-          child: Icon(Icons.person_rounded, color: c.onAccent, size: 28),
+        // Gradyanlı kutu ve jenerik ikon kalktı (Y4.4e): o kutu "bir hesap"
+        // diyordu, bu daire "senin hesabın" diyor — grup arkadaşlarının
+        // gördüğü rozetin ta kendisi, aynı renk ve aynı harflerle.
+        UserAvatar(
+          profile: me,
+          userId: user?.id,
+          size: 60,
+          showTooltip: false,
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -153,25 +154,171 @@ class _ProfileHeader extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                user?.email ?? 'Misafir',
+                // Başlık artık ad; e-posta bir satır aşağı indi. Bu ekranın
+                // ilk satırı, kullanıcının başkalarına nasıl göründüğü olmalı.
+                title,
                 style: Theme.of(context).textTheme.headlineSmall,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 3),
               Text(
-                user == null
-                    ? 'Oturum açılmadı — veriler bu cihazda'
-                    : 'Oturum açık — değişiklikler hesabına eşitleniyor',
+                // Ad bilinmiyorsa başlık zaten e-posta oldu; onu bir de altına
+                // yazmak aynı şeyi iki kez söylemek olurdu.
+                switch ((user, title == user?.email)) {
+                  (null, _) => 'Oturum açılmadı — veriler bu cihazda',
+                  (final u?, false) => u.email,
+                  _ => 'Oturum açık — değişiklikler hesabına eşitleniyor',
+                },
                 style: TextStyle(
                   color: c.inkFaint,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Görünen adı değiştirme (Y4.4g).
+///
+/// Yalnız oturum açıkken görünür: adı olmayan bir hesabın değiştirilecek adı
+/// da yok.
+///
+/// Çevrimdışıyken kaydet düğmesi **pasif** (Y4f'nin aynı gerekçesi): bu bir
+/// `Mutation` değil, outbox'a giremez. Sessizce kuyruğa almak, kullanıcıya
+/// adının değiştiğini söyleyip karşı tarafta eskisini bırakmak olurdu.
+class _DisplayNameField extends ConsumerStatefulWidget {
+  const _DisplayNameField();
+
+  @override
+  ConsumerState<_DisplayNameField> createState() => _DisplayNameFieldState();
+}
+
+class _DisplayNameFieldState extends ConsumerState<_DisplayNameField> {
+  final _controller = TextEditingController();
+  bool _saving = false;
+
+  /// Denetleyiciye hangi adın yazıldığı. Sunucudan gelen ad değiştiğinde
+  /// kutuyu tazelemek gerekiyor ama kullanıcı yazarken **değil** — bu alan
+  /// o ikisini ayırıyor.
+  String? _seeded;
+
+  static const _maxLength = 40;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save(String userId) async {
+    final name = _controller.text.trim();
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (name.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Görünen ad boş olamaz.')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(profileDirectoryProvider.notifier)
+          .updateDisplayName(userId, name);
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('Adın kaydedildi.')));
+    } on RemoteException catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Ad kaydedilemedi. Sonra tekrar dene.')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final user = ref.watch(authUserProvider).valueOrNull;
+    if (user == null) return const SizedBox.shrink();
+
+    final me = ref.watch(profileProvider(user.id));
+    final serverName = me?.displayName ?? '';
+    if (_seeded != serverName) {
+      _seeded = serverName;
+      _controller.text = serverName;
+    }
+
+    final online = ref.watch(networkStatusProvider).valueOrNull;
+    final offline = online == NetworkStatus.offline;
+    final canSave = !_saving && !offline;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: R.radiusMd,
+        border: Border.all(color: c.lineSoft),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Görünen ad',
+            style: TextStyle(
+              color: c.ink,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  maxLength: _maxLength,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: canSave ? (_) => _save(user.id) : null,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    // Sayaç gizli: 40 karakter kimsenin çarptığı bir sınır
+                    // değil ve altında duran "0/40" gürültüden ibaret.
+                    counterText: '',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: canSave ? () => _save(user.id) : null,
+                child: Text(_saving ? 'Kaydediliyor…' : 'Kaydet'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            offline
+                ? 'Ad değiştirmek bağlantı gerektiriyor.'
+                : 'Grup arkadaşların bu adı görür.',
+            style: TextStyle(
+              color: offline ? c.warning : c.inkFaint,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

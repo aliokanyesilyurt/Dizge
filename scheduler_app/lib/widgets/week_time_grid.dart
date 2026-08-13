@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../core/time_grid.dart';
@@ -898,15 +899,21 @@ class _EventBlockState extends State<_EventBlock> {
     return KeyEventResult.ignored;
   }
 
-  /// Ekran okuyucunun duyduğu cümle: "Toplantı, Salı 14:00 – 15:30, tamamlandı".
+  /// Ekran okuyucunun duyduğu cümle: "Toplantı, Salı 14:00 – 15:30, Ali Okan,
+  /// tamamlandı".
   ///
   /// Blok içindeki parçalar `excludeSemantics` ile susturuluyor; yoksa okuyucu
   /// başlığı, saati ve ikonları ayrı ayrı, bağlamsız okurdu.
-  String get _semanticLabel {
+  ///
+  /// [ownerName] grup bağlamında dolu, kişiselde null (Y4.4f): rozet göze
+  /// görünüyorsa kulağa da görünmeli — tersi, gören kullanıcının bildiği bir
+  /// şeyi görmeyenden saklamak olurdu.
+  String _semanticLabelWith(String? ownerName) {
     final task = widget.task;
     final parts = <String>[
       task.title.isEmpty ? 'Başlıksız' : task.title,
       '${_weekdayNames[widget.day.weekday - 1]} ${task.timeString}',
+      ?ownerName,
       if (task.isRoutine) 'rutin',
       if (widget.done) 'tamamlandı',
       // Üstü çizili iki farklı sebeple olabiliyor; ekranda ikisi de aynı
@@ -1037,11 +1044,17 @@ class _EventBlockState extends State<_EventBlock> {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: Semantics(
-            button: true,
-            label: _semanticLabel,
-            excludeSemantics: true,
-            onTap: widget.onEdit,
+          // Sahip adı cümlenin içine `Consumer` üzerinden giriyor: bloğun geri
+          // kalanı bir provider'a bağlı değil ve öyle kalsın — burada uyanan
+          // tek şey etiket.
+          child: Consumer(
+            builder: (context, ref, child) => Semantics(
+              button: true,
+              label: _semanticLabelWith(ownerNameFor(ref, task.ownerId)),
+              excludeSemantics: true,
+              onTap: widget.onEdit,
+              child: child,
+            ),
             child: Focus(
               key: ValueKey('focus-${task.id}'),
               focusNode: _focusNode,
@@ -1315,6 +1328,21 @@ class _Preview extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+          // "Kimin işi" satırı (Y4.4f). Detay listesinin **üstünde**: saatten
+          // önce gelen soru, paylaşılan bir takvimde "bu benim mi" sorusu.
+          // Kişisel bağlamda kendini gizliyor.
+          if (task.ownerId != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: OwnerLine(
+                ownerId: task.ownerId,
+                style: TextStyle(
+                  color: c.inkDim,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           for (final (icon, text) in details)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
