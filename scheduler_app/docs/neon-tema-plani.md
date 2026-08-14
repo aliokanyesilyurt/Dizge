@@ -106,6 +106,11 @@ tutarlı-sönük bir takvimden kötüdür.
 Doğru çözüm ayrı bir dilim: yeni palet + eski renkleri en yakın neon karşılığına
 eşleyen tek seferlik göç. Bugünün işi değil, ama bugünden sonra sırada.
 
+> **Kapandı (N5a/N5b).** O dilim `neon-kategori-renkleri-plani.md` olarak indi.
+> Göçün "tek seferlik" olmadığı yol boyunca anlaşıldı: yerel anlık görüntüyü bir
+> kez çevirmek yetmiyor, sonraki artımlı çekim sunucudaki pastel satırı geri
+> yazıyor. Eşleme `colorFromHex`'e, yani okuma anına taşındı.
+
 ### T5 — 5 sabit renk paletle değiştirilir
 
 `#14161C`, dört ayrı dosyada "açık temada koyu mürekkep" olarak elle yazılmış —

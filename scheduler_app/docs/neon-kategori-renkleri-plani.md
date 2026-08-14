@@ -163,6 +163,47 @@ kırmızı durur.
 
 ---
 
+## 7b. Kapanış notu
+
+Dört dilim de indi (`86a4b5a`, `f1f737a`, `bed234a` + bu commit). Plandan
+sapılan üç yer:
+
+* **`inkOn` değişti — palet değil.** §3'ün "inkOn AA" sütunu planı yazarken
+  yanlış hesaplanmıştı: Flutter'ın `estimateBrightnessForColor`'ı eşiği
+  `L > 0.15` değil `(L+0.05)² > 0.15` (yani L ≈ 0.337) alıyor. Doğru eşikle
+  pembe 5.42 değil **3.34**'tü ve N5a'nın yeni testi bunu ilk koşuda düşürdü.
+  İlk tepki paleti aydınlatmaktı; ölçüm başka yeri gösterdi: aynı renkte koyu
+  mürekkep zaten 5:1'i geçiyordu, seçim yanlıştı. `inkOn` artık iki adayın
+  **ölçülen** kontrastına bakıyor ve §3'ün tablosu olduğu gibi tutuyor.
+
+  Bunun ortaya çıkardığı asıl şey, kusurun **eski palette de** olduğu: pembe
+  2.87, mor 3.56, kırmızı 2.99, bilinmeyen 3.01. Alışkanlık ekranındaki "bugün"
+  düğmesi ve pasta dilimi etiketi o dört renkte okunmuyordu. Yani neon göçü bir
+  gerileme getirmedi, var olan bir erişilebilirlik kusurunu görünür kıldı.
+
+  Kalan boşluk kayda geçti: L ≈ 0.18–0.21 bandında iki aday da 4.5'in altında
+  kalıyor (en kötüsü 4.23). Bugünkü palet o bandın dışında ve test her koşuda
+  ölçüyor.
+
+* **§5'in test kestirimi ölçekte yanlıştı.** ~20 pastel sabitin round-trip
+  testlerini kıracağı yazılmıştı; hiçbiri kırılmadı, çünkü o testlerin hiçbiri
+  renk üzerinden iddia kurmuyormuş — renk yalnızca fixture'dı. Süpürme yine de
+  yapıldı (sabitler yanıltıcı kalırdı) ama zorunluluk değil, temizlikti.
+  Karşılığında `persistence_test`'e gerçek bir iddia eklendi: v2 anlık
+  görüntüsünden okunan pastel yeşil, `AppStore`'a neon olarak varıyor.
+
+* **`supabase_gateway_test`'teki eski hex bilerek kaldı.** Süpürülecekler
+  listesindeydi; orada durması bir şey kanıtlıyor — ağ geçidi `color_hex` →
+  `colorHex` ad çevirisi yapıyor, **değeri** ellemiyor. Göç modelde, geçitte
+  değil.
+
+Planın öngörmediği bir iş de yol boyunca kapandı: `ana-ekran-plani` §14'ün
+"düzeltilmeyecek" diye taşıdığı iki madde zaten kapanmıştı (kontrast mantığı
+`inkOn`'da tek kaynağa inmiş, boş satır geri gelmiş) ve kayıt güncellenmemişti.
+Kayıt düzeltildi.
+
+---
+
 ## 8. Kapsam dışı
 
 Avatar rozet merdiveni (`theme.dart:618`, Y4.4c) — kimlik renkleri, kişinin

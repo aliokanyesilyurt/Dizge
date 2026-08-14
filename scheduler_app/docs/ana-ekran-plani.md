@@ -328,7 +328,14 @@ notlar, alışkanlıklar, raporlar, hesap ekranı, senkron/telemetri, veri model
 `shadcn_ui` sürüm yükseltmesi.
 
 Sonraki adımlarda görülüp **düzeltilmeyecek** olanlar (ayrı iş):
-- `bootstrap.dart:113` — boş satır kaybı (kozmetik regresyon)
-- `day_view_screen.dart:384`, `habits_screen.dart:199`, `day_pie_chart.dart:151` —
-  kontrast mantığı `AppPalette.event().ink` varken elle tekrarlanmış
+- ~~`bootstrap.dart:113` — boş satır kaybı (kozmetik regresyon)~~
+- ~~`day_view_screen.dart:384`, `habits_screen.dart:199`, `day_pie_chart.dart:151` —
+  kontrast mantığı `AppPalette.event().ink` varken elle tekrarlanmış~~
+
+> **Bu iki madde artık geçersiz (N5d'de düzeltildi).** İkisi de yol boyunca,
+> ayrı bir dilim açılmadan kapanmış ve kayıt güncellenmemiş: kontrast mantığı
+> `theme.dart`'taki `inkOn()`'da tek kaynağa indi (dört dosyadaki `#14161C`
+> tekrarı kalmadı), boş satır da geri geldi. Kaydın kendisi düzeltiliyor,
+> çünkü "açık" görünen bir madde ileride birinin aynı işi ikinci kez
+> yapmasına yol açar.
 
