@@ -1,8 +1,12 @@
-# Program & Takvim
+# Dizge
 
 Haftalık planlama ve zaman yönetimi uygulaması. Takvim, rutinler, alışkanlıklar
-ve bağlantılı notlar tek yerde; tamamen çevrimdışı çalışır, veriler cihazda
-şifreli durur.
+ve bağlantılı notlar tek yerde.
+
+**Önce çevrimdışı, sonra paylaşımlı.** Her yazma önce cihaza iner ve orada
+AES-256 ile şifreli durur; ağ varsa Supabase'e senkronlanır, yoksa outbox'ta
+bekler. Hesapsız da tam çalışır — giriş, veriyi cihazlar ve grup arkadaşları
+arasında paylaşmak isteyince gerekir.
 
 ---
 
@@ -23,7 +27,7 @@ Doğrulama:
 
 ```bash
 flutter analyze   # uyarı bile çıkmamalı
-flutter test      # 84 test
+flutter test      # 446 test
 ```
 
 ---
@@ -37,30 +41,48 @@ lib/
 ├─ main.dart              Uygulama girişi (MaterialApp, tema, yerelleştirme)
 ├─ bootstrap.dart         Açılış sırası: telemetri → şifreli depo → hidrasyon → senkron
 │
+├─ theme.dart             AppPalette (tek renk kaynağı), inkOn, kategori paleti
+│
 ├─ core/                  Altyapı. UI ve modelden bağımsız, saf.
 │  ├─ app_config.dart     Derleme zamanı yapılandırma (--dart-define)
+│  ├─ auth_service.dart   Oturum sözleşmesi (Noop + Supabase uygulaması var)
+│  ├─ group_context.dart  Etkin bağlam: kişisel mi, hangi grup mu
+│  ├─ profile_directory.dart  Ad/fotoğraf dizini (grup üyeleri için)
 │  ├─ telemetry.dart      Telemetri sözleşmesi + PostHog + rıza kapısı
 │  ├─ secure_key_store.dart  AES anahtarı (Keystore / Keychain / DPAPI)
 │  ├─ connectivity.dart   Çevrimiçi/çevrimdışı durumu
-│  └─ time_grid.dart      Izgara geometrisi + çakışma yerleşim algoritması
+│  ├─ time_grid.dart      Izgara geometrisi + çakışma yerleşim algoritması
+│  ├─ day_rescue.dart     "Günü kurtar" — sığmayan işi kenara alma
+│  └─ *_controller.dart   Tema kipi, ızgara yoğunluğu, enerji süzgeci, havuz
 │
 ├─ models/                Veri modelleri. JSON serileştirme burada.
-│  ├─ node.dart           Task + Note ortak sözleşmesi ([[bağlantı]] tabanı)
-│  ├─ task.dart           Görev, tekrar kuralı, çizim, TaskRepository
-│  └─ habit.dart          Alışkanlık, seri (streak), ısı haritası verisi
+│  ├─ node.dart           Task + Note ortak sözleşmesi, renk hex çevrimi + göçü
+│  ├─ task.dart           Görev, tekrar kuralı, çizim, kategori paleti
+│  ├─ habit.dart          Alışkanlık, seri (streak), ısı haritası verisi
+│  ├─ group.dart          Grup ve üyelik
+│  └─ profile.dart        Kullanıcı adı, fotoğraf, baş harf
 │
 ├─ data/                  Durum ve kalıcılık.
 │  ├─ app_store.dart      Merkezi reaktif store + Riverpod provider'ları
-│  ├─ local_store.dart    Şifreli Hive kutusu / bellek düşüşü
-│  ├─ persistence_providers.dart
+│  ├─ local_store.dart    Şifreli Hive kutusu / bellek düşüşü + şema göçü
+│  ├─ supabase_auth_service.dart  E-posta/parola + Google ile giriş
 │  └─ sync/               Offline-first senkron
 │     ├─ mutation.dart    Tek bir değişiklik kaydı (idempotency key'li)
 │     ├─ outbox.dart      Kalıcı gönderim kuyruğu (daraltmalı)
-│     ├─ remote_gateway.dart  Backend arayüzü — Supabase/Firebase buraya takılır
+│     ├─ remote_gateway.dart  Backend arayüzü (Noop + Supabase)
+│     ├─ supabase_api.dart    RLS'e dayanan ince istemci sarmalayıcı
+│     ├─ supabase_gateway.dart  Artımlı çekim, mezar taşları, realtime sinyali
+│     ├─ first_sync.dart  İlk girişte "birleştir mi, sunucuyu al mı" kapısı
 │     └─ sync_engine.dart Üstel geri çekilmeli boşaltma
 │
 ├─ screens/               Ekranlar (sunum katmanı)
+│  ├─ welcome_screen.dart / auth_gate.dart   Karşılama ve oturum kapısı
+│  ├─ week_view_screen.dart + week/          Ana ekran ve parçaları
+│  └─ …                   Gün, ay, yıl, notlar, alışkanlıklar, raporlar, hesap
 ├─ widgets/               Yeniden kullanılan bileşenler
+│  ├─ week_time_grid.dart Haftalık ızgaranın kendisi
+│  ├─ group_*.dart        Grup kur / davet et / katıl, bağlam değiştirici
+│  └─ user_avatar.dart, owner_avatar.dart   Kim yazdı rozeti
 └─ services/              Türetilmiş veri (üretkenlik raporu, bağlantı indeksi)
 ```
 
@@ -122,15 +144,22 @@ Sırlar kaynak koda gömülmez; `--dart-define` ile verilir. Verilmezse ilgili
 
 | Anahtar | Varsayılan | Açıklama |
 |---|---|---|
+| `SUPABASE_URL` | *(boş)* | Boşsa backend hiç kurulmaz, uygulama yerel çalışır |
+| `SUPABASE_PUBLISHABLE_KEY` | *(boş)* | Yayımlanabilir anahtar; koruma RLS'te, anahtarda değil |
 | `APP_ENV` | release'de `prod`, aksi `dev` | Olaylara ortam etiketi ekler |
 | `POSTHOG_API_KEY` | *(boş)* | Boşsa PostHog hiç başlatılmaz |
 | `POSTHOG_HOST` | `https://eu.i.posthog.com` | Veri ikametgâhı |
 
+Beşi tek dosyadan verilir. `env.example.json` kopyalanıp `env.json` yapılır
+(git'te değil) ve derlemeye şöyle girer:
+
 ```bash
-flutter build appbundle \
-  --dart-define=POSTHOG_API_KEY=phc_xxx \
-  --dart-define=APP_ENV=prod
+flutter run   --dart-define-from-file=env.json
+flutter build apk --release --dart-define-from-file=env.json
 ```
+
+Dosyayı unutmak sessiz bir kusur üretir: derleme başarılı olur, uygulama açılır,
+ama hiçbir hesaba bağlanamaz. `tools/surum_cikar.ps1` tam da bu yüzden var.
 
 ---
 
@@ -186,13 +215,42 @@ adı değişirse betik yeniden koşturulmalı.
 
 ---
 
-## Backend bağlama (Supabase / Firebase)
+## Backend — Supabase
 
-Uygulama kodunun hiçbir yeri backend paketini tanımaz. Tek yapılacak
-`RemoteGateway`'i uygulayıp `bootstrap()`'a geçirmek:
+Uygulama kodunun hiçbir yeri backend paketini tanımaz; her şey `RemoteGateway`
+ve `AuthService` arayüzlerinden geçer. Bugün ikisinin de iki uygulaması var:
+anahtar verilmediğinde `Noop*` (uygulama %100 yerel çalışır, outbox şişmez),
+verildiğinde `SupabaseGateway` / `SupabaseAuthService`.
+
+Anahtarlar `--dart-define-from-file=env.json` ile geliyor (bkz.
+[Yapılandırma](#yapılandırma)); `SUPABASE_URL` ve `SUPABASE_PUBLISHABLE_KEY`
+dolduğu anda `AppConfig.backendAvailable` true olur ve `SyncEngine` kendiliğinden
+başlar.
+
+Sunucu tarafı `supabase/migrations/` altında, sıra numaralı ve damgalı:
+
+| Göç | Ne getirdi |
+|---|---|
+| `01_…_initial_schema` | Hibrit tablolar, RLS, `apply_mutations` |
+| `02_…_realtime_publication` | Realtime yayını |
+| `03_…_groups` | Gruplar, üyelik, davet; özyinelemesiz politikalar |
+| `04_…_profiles` | Ad/fotoğraf, ortak-grup şartlı okuma, `updated_at` trigger'ı |
+
+Politikaların gerçekten tuttuğu `supabase/dogrulama-*.sql` betikleriyle
+sunucuda sınanıyor — RLS'i istemciden doğrulamak, kilidi kapının kendisine
+sorarak denemektir.
+
+Birkaç tasarım kararı, ayrıntısı `docs/` altındaki planlarda:
+
+- **Çekim artımlı**, imleç sunucu saati; silme mezar taşıyla gelir.
+- **Realtime bir sinyal**, veri yolu değil: "değişti" der, veriyi çekim getirir.
+- **Çakışmada son yazan kazanır**, hakem `updatedAt`.
+- **İlk girişte** yerelde veri varsa kapı sorar: birleştir mi, sunucuyu al mı.
+
+Başka bir backend takmak isteyen için arayüz hâlâ yerinde duruyor:
 
 ```dart
-class SupabaseGateway implements RemoteGateway {
+class BaskaGateway implements RemoteGateway {
   @override
   bool get isConfigured => true;
 
@@ -207,13 +265,10 @@ class SupabaseGateway implements RemoteGateway {
 }
 
 // main.dart
-final container = await bootstrap(gateway: SupabaseGateway(client));
+final container = await bootstrap(gateway: BaskaGateway(client));
 ```
 
-`isConfigured` true olur olmaz `SyncEngine` kendiliğinden başlar. `pull`'un
-döndürdüğü harita `AppStore.toJson()` ile aynı şemadadır.
-
-Şu an `NoopRemoteGateway` bağlı: uygulama %100 yerel çalışır, outbox şişmez.
+`pull`'un döndürdüğü harita `AppStore.toJson()` ile aynı şemadadır.
 
 ---
 
@@ -244,34 +299,75 @@ yaklaşınca ızgara kendiliğinden kayar, her adımda dokunsal geri bildirim ve
 kümeleri birbirinin genişliğini etkilemez — akşamki dörtlü çakışma sabahki tek
 işi daraltmaz.
 
+### Izgaranın çevresi
+
+Plan tutmadığında suçluluk üretmeyen çıkışlar, ana ekranın parçası:
+
+| Ne | Nerede | Ne işe yarar |
+|---|---|---|
+| **Kenarda Bekleyenler** | Sağdaki havuz paneli | Takvimden çekilen iş silinmez, kenarda bekler; sonra geri sürüklenir |
+| **Günü kurtar** | Başlık çubuğu | Sığmayan işleri havuza alır — günü "başarısız" ilan etmeden boşaltır |
+| **Bugün enerjim** | Başlık çubuğu | Efor eksenine göre süzer; yetmeyecek işler soluklaşır, silinmez |
+| **Günlük tikler** | Izgaranın üstündeki şerit | Alışkanlıklar takvimin içinde, ayrı ekrana gitmeden |
+
+---
+
+## Gruplar ve kimlik
+
+Bir grup, takvimi paylaşan insanlar demek. Etkin bağlam kişisel ya da bir grup
+(`core/group_context.dart`); kişisel bağlamda yazılan iş kimseye görünmez.
+
+- **Kurma ve katılma**: grup kurulur, davet kodu paylaşılır, kod ile katılınır.
+  Davet adrese yazılıysa başka bir hesapta reddedilir.
+- **Kim yazdı**: grup bağlamındaki her iş sahibinin rozetini taşır — fotoğrafı,
+  yoksa baş harfi. Kişisel bağlamda rozet **hiç** yok; tek kişilik bir takvimde
+  her bloğa aynı yüzü basmak gürültüden başka bir şey değil.
+- **Rozet rengi kimlikten türer, addan değil.** Biri adını değiştirince baş
+  harfi değişir, rengi değişmez: ad değişti, kişi değişmedi.
+- **Adlar ortak grup şartıyla okunur.** `profiles` tablosunda e-posta yok;
+  yalnız ad ve fotoğraf adresi var ve onları da ancak seninle bir grubu
+  paylaşan biri okuyabilir.
+
 ---
 
 ## Testler
 
-```
-test/
-├─ helpers.dart            Ortak ProviderScope kabuğu
-├─ time_grid_test.dart     Geometri + çakışma algoritması (saf Dart)
-├─ store_actions_test.dart Sürükleme/süre değiştirmenin modele etkisi
-├─ persistence_test.dart   Şifreli depo round-trip, outbox daraltma
-├─ week_grid_test.dart     Izgara jestleri (sürükle, resize, boş dokunuş)
-├─ quick_add_test.dart     Hızlı ekleme akışı
-├─ task_flow_test.dart     Uçtan uca görev/rutin akışları
-├─ data_layer_test.dart    JSON round-trip, [[bağlantı]] indeksi
-├─ features_test.dart      Alışkanlık serisi, üretkenlik raporu
-├─ features_widget_test.dart  Ekran çizim testleri
-└─ app_shell_test.dart     Kabuk ve gezinme
-```
+446 test, 39 dosya. Konuya göre:
 
-Testler provider'ları override etmediği için otomatik olarak güvenli koşar:
-telemetri no-op, depolama bellekte, senkron motoru kapalı.
+| Alan | Dosyalar |
+|---|---|
+| **Model ve veri** | `time_grid_test`, `data_layer_test`, `store_actions_test`, `persistence_test`, `energy_test`, `pool_test`, `day_rescue_test` |
+| **Senkron** | `supabase_gateway_test`, `incremental_sync_test`, `first_sync_test`, `backend_schema_test` |
+| **Oturum ve kimlik** | `auth_test`, `auth_gate_test`, `google_sign_in_test`, `display_name_test`, `profile_directory_test` |
+| **Gruplar** | `group_context_test`, `group_switcher_test`, `owner_avatar_test`, `owner_details_test`, `user_avatar_test` |
+| **Ana ekran** | `week_grid_test`, `week_header_bar_test`, `week_undo_test`, `daily_habit_strip_test`, `pool_panel_test`, `energy_filter_test`, `day_header_test` |
+| **Tema ve erişilebilirlik** | `theme_test`, `grid_tokens_test`, `category_colors_test`, `accessibility_test` |
+| **Akış ve kabuk** | `task_flow_test`, `quick_add_test`, `features_test`, `features_widget_test`, `app_shell_test`, `shell_navigation_test`, `telemetry_test` |
+
+`helpers.dart` ortak `ProviderScope` kabuğunu kurar. Testler provider'ları
+override etmediği için otomatik olarak güvenli koşar: telemetri no-op, depolama
+bellekte, senkron motoru kapalı, backend `Noop`.
+
+Renk ve kontrast testleri paleti **tek tek değil tarayarak** ölçüyor
+(`for (final color in kTaskColors)`): kurala uymayan bir renk ileride
+eklenirse test onu yakalar, gözden kaçmaz.
 
 ---
 
 ## Bilinen sınırlar
 
-- **Hesap/oturum** yer tutucu; backend eklenince açılacak.
 - **Bildirim/hatırlatma** henüz yok.
+- **Kendi fotoğrafını yükleme** yok; avatar Google hesabından gelir, yoksa baş
+  harf rozetine düşer. Fotoğraf ağdan geldiği için çevrimdışıyken de baş harf
+  görünür.
+- **Grup içi rol yok**: bir gruptaki herkes aynı yetkide. Grup üyelerini
+  listeleyen bir ekran da yok.
+- **Serbest renk seçici yok**; kategori rengi sekiz neon tondan seçilir. Eski
+  pastel kayıtlar okunurken karşılıklarına taşınır (bkz.
+  `docs/neon-kategori-renkleri-plani.md`).
+- **Telefon düzeni bir varsayım, karar değil**: 390 px'te yedi sütun korunuyor,
+  yalnız sayaç rozeti düşüyor. Telefon ciddiye alınacaksa ana ekran planına
+  dönmek gerekir.
 - Izgarada **sıkıştırarak yakınlaştırma (pinch)** yok; yoğunluk başlıktaki
   düğmeyle üç kademeli değişiyor. Sıkıştırma jesti dikey kaydırmayla aynı
   arenada yarışıyor ve güvenilir çalışmıyordu.
