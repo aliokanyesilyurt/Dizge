@@ -535,15 +535,32 @@ Set<DateTime> _readDays(Object? raw) =>
     <DateTime>{};
 
 /// Görev eklerken/düzenlerken seçilebilecek renk paleti.
+///
+/// Neon (N5a). Önceki sekizli Material'ın pastelleriydi ve koyu temanın
+/// camgöbeği/magenta jetonlarının yanında sönük duruyordu.
+///
+/// Seçim ölçütü üç madde, üçü de `category_colors_test.dart`'ta ölçülüyor:
+/// şerit koyu zeminden 3:1 ile ayrışsın, [inkOn] ile üstüne konan mürekkep
+/// AA'yı geçsin, `readableOn` yazıyı gövde mürekkebine çekerken koyu temada
+/// **hiç** adım atmasın — attığı her adım kategori renginin yazıda biraz daha
+/// az tanınması demek.
+///
+/// Tema jetonlarının birebir aynısı seçilmedi (`accent` `#22D3EE`, `warning`
+/// `#FDE047`, `danger` `#FF4D6D`, `nowLine` `#FF2BD6`): kırmızı bir kategori
+/// ile tehlike rengi ya da bir iş bloğu ile "şu an" çizgisi aynı sinyali
+/// taşımasın. Komşu tonlar alındı, aynıları değil.
+///
+/// Bu liste değişirse `kLegacyTaskColors` (node.dart) da değişmeli — eskiden
+/// yazılmış renkleri buraya taşıyan eşleme orada.
 const List<Color> kTaskColors = [
-  Color(0xFFFF6090), // pembe
-  Color(0xFF4FC3F7), // mavi
-  Color(0xFF81C784), // yeşil
-  Color(0xFFFFB74D), // turuncu
-  Color(0xFFBA68C8), // mor
-  Color(0xFF4DD0E1), // turkuaz
-  Color(0xFFFFF176), // sarı
-  Color(0xFFE57373), // kırmızı
+  Color(0xFFFF3D8B), // pembe
+  Color(0xFF38BDF8), // mavi
+  Color(0xFF34E39B), // yeşil
+  Color(0xFFFF9E3D), // turuncu
+  Color(0xFFA78BFA), // mor
+  Color(0xFF00E5C7), // turkuaz
+  Color(0xFFF2E14C), // sarı
+  Color(0xFFFF5C5C), // kırmızı
 ];
 
 /// Bir iş kategorisi: ad + renk. Hazır olanlar + kullanıcının eklediği özel olanlar.
@@ -557,13 +574,13 @@ class TaskCategory {
 class AppData {
   /// Hazır + özel kategoriler. Renk = işin TÜRÜ/anlamı.
   static List<TaskCategory> categories = [
-    const TaskCategory('Kalıcı iş', Color(0xFFE57373)),
-    const TaskCategory('Günlük rutin', Color(0xFF4FC3F7)),
-    const TaskCategory('Haftalık / ara sıra', Color(0xFFFF6090)),
-    const TaskCategory('Önemli / acil', Color(0xFFFFB74D)),
-    const TaskCategory('Hobi / keyfi', Color(0xFF81C784)),
-    const TaskCategory('Sosyal', Color(0xFFBA68C8)),
-    const TaskCategory('Diğer', Color(0xFFFFF176)),
+    const TaskCategory('Kalıcı iş', Color(0xFFFF5C5C)),
+    const TaskCategory('Günlük rutin', Color(0xFF38BDF8)),
+    const TaskCategory('Haftalık / ara sıra', Color(0xFFFF3D8B)),
+    const TaskCategory('Önemli / acil', Color(0xFFFF9E3D)),
+    const TaskCategory('Hobi / keyfi', Color(0xFF34E39B)),
+    const TaskCategory('Sosyal', Color(0xFFA78BFA)),
+    const TaskCategory('Diğer', Color(0xFFF2E14C)),
   ];
 }
 

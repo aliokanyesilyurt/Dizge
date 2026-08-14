@@ -597,7 +597,11 @@ Color inkOn(Color background) =>
 ///
 /// Rapor hizmeti bir `BuildContext` görmüyor (ve görmemeli), o yüzden bu değer
 /// paletten okunamıyor; adı olan bir sabit, gövdeye gömülmüş bir hex'ten iyi.
-const Color kUnknownCategoryColor = Color(0xFF529CCA);
+///
+/// N5a'da tonu neonlaştı (`#529CCA` → `#5AA9FF`) ama sabit kalmasının gerekçesi
+/// değişmedi. Mavi kategoriden (`#38BDF8`) bir tık mora çekik: "rengi
+/// bilinmeyen" dilim, mavi bir kategoriyle karışmasın.
+const Color kUnknownCategoryColor = Color(0xFF5AA9FF);
 
 /// Avatar rozetlerinin renk merdiveni (Y4.4c).
 ///
