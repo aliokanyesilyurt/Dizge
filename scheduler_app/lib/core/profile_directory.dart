@@ -50,8 +50,8 @@ class ProfileDirectoryController extends StateNotifier<ProfileDirectory> {
       if (raw == null || raw.isEmpty) return const {};
       return {
         for (final e in jsonDecode(raw) as List)
-          if (Profile.fromJson((e as Map).cast<String, dynamic>())
-              case final p when p.userId.isNotEmpty)
+          if (Profile.fromJson((e as Map).cast<String, dynamic>()) case final p
+              when p.userId.isNotEmpty)
             p.userId: p,
       };
     } catch (_) {
@@ -117,6 +117,5 @@ final profileDirectoryProvider =
 /// yeniden çizilir. Bütün haritayı izlemek, her tazelemede ekrandaki her
 /// avatarı uyandırırdı.
 final profileProvider = Provider.family<Profile?, String?>(
-  (ref, userId) =>
-      ref.watch(profileDirectoryProvider.select((d) => d[userId])),
+  (ref, userId) => ref.watch(profileDirectoryProvider.select((d) => d[userId])),
 );

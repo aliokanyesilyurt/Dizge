@@ -142,12 +142,7 @@ class _ProfileHeader extends ConsumerWidget {
         // Gradyanlı kutu ve jenerik ikon kalktı (Y4.4e): o kutu "bir hesap"
         // diyordu, bu daire "senin hesabın" diyor — grup arkadaşlarının
         // gördüğü rozetin ta kendisi, aynı renk ve aynı harflerle.
-        UserAvatar(
-          profile: me,
-          userId: user?.id,
-          size: 60,
-          showTooltip: false,
-        ),
+        UserAvatar(profile: me, userId: user?.id, size: 60, showTooltip: false),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
