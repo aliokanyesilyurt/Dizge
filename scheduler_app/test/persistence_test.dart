@@ -21,14 +21,14 @@ void main() {
       a.addTask(
         Task(
           title: 'Toplantı',
-          color: const Color(0xFF529CCA),
+          color: const Color(0xFF5AA9FF),
           date: DateTime(2026, 8, 3),
           startHour: 14,
           durationHours: 1.5,
         ),
       );
       a.addNote(Note(title: 'Notlar', body: 'içerik'));
-      a.addHabit(Habit(title: 'Su iç', color: const Color(0xFF81C784)));
+      a.addHabit(Habit(title: 'Su iç', color: const Color(0xFF34E39B)));
       // Debounce'u beklemeden zorla indir.
       await a.flush();
 
@@ -50,11 +50,11 @@ void main() {
 
       final a = AppStore();
       await a.attachPersistence(store);
-      a.addCategory(const TaskCategory('Tez', Color(0xFFBA68C8)));
+      a.addCategory(const TaskCategory('Tez', Color(0xFFA78BFA)));
       await a.flush();
 
       // Kategoriler statik olduğu için sıfırla, sonra yeniden yükle.
-      AppData.categories = [const TaskCategory('Diğer', Color(0xFFFFF176))];
+      AppData.categories = [const TaskCategory('Diğer', Color(0xFFF2E14C))];
       final b = AppStore();
       await b.attachPersistence(store);
 
@@ -67,7 +67,7 @@ void main() {
 
       final a = AppStore();
       await a.attachPersistence(store);
-      a.addHabit(Habit(title: 'Koş', color: const Color(0xFF81C784)));
+      a.addHabit(Habit(title: 'Koş', color: const Color(0xFF34E39B)));
       final stamped = a.habits.single.updatedAt;
       await a.flush();
 
@@ -85,7 +85,7 @@ void main() {
       await a.attachPersistence(store);
       final habit = Habit(
         title: 'Koş',
-        color: const Color(0xFF81C784),
+        color: const Color(0xFF34E39B),
         // Geçmişe damgala ki tazelenme ölçülebilsin.
         updatedAt: DateTime(2026, 1, 5),
       );
@@ -125,6 +125,12 @@ void main() {
       await a.attachPersistence(store);
 
       expect(a.habits.single.updatedAt, DateTime(2026, 1, 5));
+
+      // Aynı kayıt eski paletten de geliyor (`FF81C784` pastel yeşil): renk
+      // okunurken neon karşılığına taşınıyor. Göçün birim testi
+      // `category_colors_test.dart`'ta; buradaki iddia aynı çevrimin gerçek
+      // yükleme yolunda — anlık görüntü → AppStore — da işlediğini gösteriyor.
+      expect(a.habits.single.color, const Color(0xFF34E39B));
     });
 
     test('bozuk kayıt uygulamayı düşürmez, boş başlar', () async {
@@ -148,7 +154,7 @@ void main() {
       a.addTask(
         Task(
           title: 'X',
-          color: const Color(0xFF529CCA),
+          color: const Color(0xFF5AA9FF),
           date: DateTime(2026, 8, 3),
         ),
       );
@@ -172,7 +178,7 @@ void main() {
   group('grup alanları (Y4)', () {
     Task grupIsi() => Task(
       title: 'Grubun işi',
-      color: const Color(0xFF529CCA),
+      color: const Color(0xFF5AA9FF),
       date: DateTime(2026, 8, 12),
       groupId: 'grup-1',
       ownerId: 'ali',
@@ -190,7 +196,7 @@ void main() {
       // kaydın susması, "işi gruptan çıkardım"ın hiç gitmemesi olurdu.
       final json = Task(
         title: 'Kişisel',
-        color: const Color(0xFF529CCA),
+        color: const Color(0xFF5AA9FF),
         date: DateTime(2026, 8, 12),
       ).toJson();
 
@@ -207,7 +213,7 @@ void main() {
       final aliskanlik = Habit.fromJson(
         Habit(
           title: 'Su iç',
-          color: const Color(0xFF81C784),
+          color: const Color(0xFF34E39B),
           groupId: 'grup-1',
         ).toJson(),
       );

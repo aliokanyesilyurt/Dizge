@@ -68,7 +68,7 @@ Map<String, dynamic> _snapshotWithTask(String title) => {
   'nodes': [
     Task(
       title: title,
-      color: const Color(0xFF4FC3F7),
+      color: const Color(0xFF38BDF8),
       date: DateTime(2026, 8, 10),
     ).toJson(),
   ],
@@ -129,7 +129,7 @@ void main() {
       store.addTask(
         Task(
           title: 'Yerel iş',
-          color: const Color(0xFF4FC3F7),
+          color: const Color(0xFF38BDF8),
           date: DateTime(2026, 8, 10),
         ),
       );
@@ -162,7 +162,7 @@ void main() {
       store.addTask(
         Task(
           title: 'Yerel',
-          color: const Color(0xFF4FC3F7),
+          color: const Color(0xFF38BDF8),
           date: DateTime(2026, 8, 10),
         ),
       );
@@ -188,7 +188,7 @@ void main() {
       store.addTask(
         Task(
           title: 'Yerel iş',
-          color: const Color(0xFF4FC3F7),
+          color: const Color(0xFF38BDF8),
           date: DateTime(2026, 8, 10),
         ),
       );
@@ -205,7 +205,7 @@ void main() {
       store.addTask(
         Task(
           title: 'Yerel iş',
-          color: const Color(0xFF4FC3F7),
+          color: const Color(0xFF38BDF8),
           date: DateTime(2026, 8, 10),
         ),
       );
@@ -226,7 +226,7 @@ void main() {
       store.addTask(
         Task(
           title: 'Yerel iş',
-          color: const Color(0xFF4FC3F7),
+          color: const Color(0xFF38BDF8),
           date: DateTime(2026, 8, 10),
         ),
       );
@@ -249,7 +249,7 @@ void main() {
       store.addTask(
         Task(
           title: 'Yerel iş',
-          color: const Color(0xFF4FC3F7),
+          color: const Color(0xFF38BDF8),
           date: DateTime(2026, 8, 10),
         ),
       );
@@ -272,7 +272,7 @@ void main() {
       store.addTask(
         Task(
           title: 'Yerel iş',
-          color: const Color(0xFF4FC3F7),
+          color: const Color(0xFF38BDF8),
           date: DateTime(2026, 8, 10),
         ),
       );

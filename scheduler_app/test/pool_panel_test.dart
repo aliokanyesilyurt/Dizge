@@ -23,7 +23,7 @@ void main() {
 
   Task task(String title, {bool inPool = false}) => Task(
     title: title,
-    color: const Color(0xFF4FC3F7),
+    color: const Color(0xFF38BDF8),
     date: DateTime.now(),
     startHour: visibleHour(),
     durationHours: 1,
@@ -166,7 +166,7 @@ void main() {
         seed: (s) => s.addTask(
           Task(
             title: 'Koşu',
-            color: const Color(0xFF81C784),
+            color: const Color(0xFF34E39B),
             date: DateTime.now(),
             startHour: visibleHour(),
             repeat: const Repeat(RepeatType.daily),

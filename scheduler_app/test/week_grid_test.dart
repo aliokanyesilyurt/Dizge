@@ -28,7 +28,7 @@ void main() {
     Repeat repeat = const Repeat.once(),
   }) => Task(
     title: title,
-    color: const Color(0xFF4FC3F7),
+    color: const Color(0xFF38BDF8),
     date: date ?? monday,
     startHour: start,
     durationHours: duration,
@@ -121,7 +121,7 @@ void main() {
     // kanıtlar; saat gibi blokta da olan bir alan hiçbir şey ayırt etmezdi.
     final toplanti = Task(
       title: 'Toplantı',
-      color: const Color(0xFF4FC3F7),
+      color: const Color(0xFF38BDF8),
       date: monday,
       startHour: 1.0,
       durationHours: 2.0,

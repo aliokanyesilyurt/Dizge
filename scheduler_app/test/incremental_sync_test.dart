@@ -24,7 +24,7 @@ import 'package:scheduler_app/models/task.dart';
 Task _task(String title, {DateTime? updatedAt, String? id}) => Task(
   id: id,
   title: title,
-  color: const Color(0xFF4FC3F7),
+  color: const Color(0xFF38BDF8),
   date: DateTime(2026, 8, 10),
   startHour: 9,
   updatedAt: updatedAt,
@@ -185,7 +185,7 @@ void main() {
     test('notlar ve alışkanlıklar da birleşir', () {
       final store = AppStore();
       final note = Note(title: 'Uzaktan not', body: 'gövde');
-      final habit = Habit(title: 'Su iç', color: const Color(0xFF81C784));
+      final habit = Habit(title: 'Su iç', color: const Color(0xFF34E39B));
 
       store.mergeJson(
         _incoming(nodes: [note.toJson()], habits: [habit.toJson()]),

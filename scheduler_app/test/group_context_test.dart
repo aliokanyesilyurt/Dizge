@@ -127,7 +127,7 @@ class _FakeGateway implements RemoteGateway {
   }
 }
 
-const _mavi = Color(0xFF4FC3F7);
+const _mavi = Color(0xFF38BDF8);
 
 const _ekip = Group(id: 'g1', name: 'Ekip');
 const _ev = Group(id: 'g2', name: 'Ev');

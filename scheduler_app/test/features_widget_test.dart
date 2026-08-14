@@ -37,7 +37,7 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester, const HabitsScreen(), (store) {
-      final h = Habit(title: 'Sabah koşusu', color: const Color(0xFF81C784));
+      final h = Habit(title: 'Sabah koşusu', color: const Color(0xFF34E39B));
       h.setDone(DateTime.now(), true);
       store.addHabit(h);
     });
@@ -50,7 +50,7 @@ void main() {
       store.addTask(
         Task(
           title: 'İş görevi',
-          color: const Color(0xFF529CCA),
+          color: const Color(0xFF5AA9FF),
           date: DateTime.now(),
           categoryName: 'İş',
         )..setDone(DateTime.now(), true),
@@ -69,7 +69,7 @@ void main() {
         Task(
           title: 'Kod yaz',
           note: 'bkz [[ESP32 Pinout]]',
-          color: const Color(0xFF529CCA),
+          color: const Color(0xFF5AA9FF),
           date: DateTime.now(),
         ),
       );

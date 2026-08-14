@@ -12,7 +12,7 @@ void main() {
     final task = Task(
       title: 'Telemetri kodu',
       note: 'Pinout için [[ESP32 Pinout]] notuna bak',
-      color: const Color(0xFF4FC3F7),
+      color: const Color(0xFF38BDF8),
       date: DateTime(2026, 7, 20),
       startHour: 14.0,
       durationHours: 1.5,
@@ -42,7 +42,7 @@ void main() {
     final task = Task(
       title: 'Telemetri kodu',
       note: 'Pinout için [[ESP32 Pinout]] notuna bak',
-      color: const Color(0xFF4FC3F7),
+      color: const Color(0xFF38BDF8),
       date: DateTime(2026, 7, 20),
     );
 
@@ -63,7 +63,7 @@ void main() {
       Task(
         title: 'Kod',
         note: 'bkz [[ESP32 Pinout]]',
-        color: const Color(0xFF4FC3F7),
+        color: const Color(0xFF38BDF8),
         date: DateTime(2026, 7, 20),
       ),
     );
@@ -76,7 +76,7 @@ void main() {
     final task = Task(
       title: 'Kod',
       note: 'henüz olmayan [[Gizli Not]]',
-      color: const Color(0xFF4FC3F7),
+      color: const Color(0xFF38BDF8),
       date: DateTime(2026, 7, 20),
     );
     final index = LinkIndex.build([task]);

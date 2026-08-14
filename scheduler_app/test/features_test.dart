@@ -12,7 +12,7 @@ DateTime dayAgo(int n) {
 void main() {
   group('Habit streak', () {
     test('günlük: ardışık günler seriyi büyütür, bugün beklerse kırılmaz', () {
-      final h = Habit(title: 'Koşu', color: const Color(0xFF81C784));
+      final h = Habit(title: 'Koşu', color: const Color(0xFF34E39B));
       // Bugün hariç son 3 gün yapılmış (dün, önceki, ondan önceki).
       h.setDone(dayAgo(1), true);
       h.setDone(dayAgo(2), true);
@@ -24,7 +24,7 @@ void main() {
     });
 
     test('günlük: boşluk seriyi keser', () {
-      final h = Habit(title: 'Gitar', color: const Color(0xFF4FC3F7));
+      final h = Habit(title: 'Gitar', color: const Color(0xFF38BDF8));
       h.setDone(dayAgo(0), true);
       h.setDone(dayAgo(1), true);
       h.setDone(dayAgo(3), true); // 2 gün önce atlanmış
@@ -34,7 +34,7 @@ void main() {
     test('haftalık: hedefi tutan ardışık haftalar seri sayılır', () {
       final h = Habit(
         title: 'Spor',
-        color: const Color(0xFFFFB74D),
+        color: const Color(0xFFFF9E3D),
         cadence: HabitCadence.weekly,
         targetPerWeek: 3,
       );
@@ -54,7 +54,7 @@ void main() {
     test('JSON round-trip alışkanlığı korur', () {
       final h = Habit(
         title: 'Kod',
-        color: const Color(0xFFBA68C8),
+        color: const Color(0xFFA78BFA),
         cadence: HabitCadence.weekly,
         targetPerWeek: 5,
       );
@@ -73,7 +73,7 @@ void main() {
       final tasks = [
         Task(
           title: 'A',
-          color: const Color(0xFF529CCA),
+          color: const Color(0xFF5AA9FF),
           date: dayAgo(1),
           durationHours: 2,
           categoryName: 'İş',

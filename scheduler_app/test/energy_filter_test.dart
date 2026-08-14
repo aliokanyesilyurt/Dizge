@@ -19,7 +19,7 @@ void main() {
   group('eleme kuralı', () {
     Task withEnergy(Energy? energy) => Task(
       title: 'iş',
-      color: const Color(0xFF4FC3F7),
+      color: const Color(0xFF38BDF8),
       date: DateTime(2026, 8, 4),
       energy: energy,
     );
@@ -125,7 +125,7 @@ void main() {
 
     Task at(String title, Energy? energy) => Task(
       title: title,
-      color: const Color(0xFF4FC3F7),
+      color: const Color(0xFF38BDF8),
       date: DateTime.now(),
       startHour: visibleHour(),
       durationHours: 1,

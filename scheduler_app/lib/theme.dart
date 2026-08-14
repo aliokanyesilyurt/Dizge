@@ -582,16 +582,32 @@ class EventStyle {
 /// Doygun bir renk zemininin üstüne konacak mürekkep.
 ///
 /// Kategori renkleri kullanıcıdan geliyor: açık sarının üstünde beyaz yazı
-/// okunmaz, koyu morun üstünde siyah okunmaz. Karar rengin kendi parlaklığına
-/// bakarak veriliyor ve **temadan bağımsız** — zemin o rengin kendisi, sayfanın
-/// zemini değil. Bu yüzden `AppPalette`'in bir üyesi değil, serbest bir işlev.
+/// okunmaz, koyu morun üstünde siyah okunmaz. Karar **temadan bağımsız** —
+/// zemin o rengin kendisi, sayfanın zemini değil. Bu yüzden `AppPalette`'in
+/// bir üyesi değil, serbest bir işlev.
 ///
 /// Daha önce bu koşul dört ayrı dosyada elle yazılıydı; dördü de aynı `#14161C`
 /// sabitini taşıyordu ve palet değişince hiçbiri haber almıyordu.
-Color inkOn(Color background) =>
-    ThemeData.estimateBrightnessForColor(background) == Brightness.dark
-    ? const Color(0xFFFFFFFF)
-    : AppPalette.light.ink;
+///
+/// Seçim `ThemeData.estimateBrightnessForColor` ile yapılıyordu; N5b'de iki
+/// adayın **ölçülen** kontrastına bakmaya geçti. Sezgi bir vekildi ve orta
+/// parlaklıkta yanılıyordu: eşiği `(L+0.05)² > 0.15`, yani L≈0.337. Bunun
+/// hemen altındaki doygun renklerde (eski pembe `#FF6090` L=0.32, mor
+/// `#BA68C8` L=0.25, kırmızı `#E57373` L=0.30) beyaz mürekkep seçiliyor ve
+/// oran 2.9–3.6'ya düşüyordu — hâlbuki aynı renklerde koyu mürekkep 5:1'i
+/// geçiyor. Alışkanlık ekranındaki "bugün" düğmesi ve pasta dilimi etiketi
+/// bu renklerde okunmuyordu.
+///
+/// Kalan boşluk: L≈0.18–0.21 aralığında iki aday da 4.5'in altında kalır
+/// (en kötüsü 4.23). O bant paletin dışında; `category_colors_test.dart`
+/// sekizini de her koşuda ölçüyor.
+Color inkOn(Color background) {
+  const white = Color(0xFFFFFFFF);
+  final dark = AppPalette.light.ink;
+  return contrastRatio(white, background) >= contrastRatio(dark, background)
+      ? white
+      : dark;
+}
 
 /// Rengi bilinmeyen bir kategori grafikte hangi renkle çizilir.
 ///

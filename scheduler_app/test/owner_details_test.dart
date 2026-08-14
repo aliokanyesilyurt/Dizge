@@ -65,7 +65,9 @@ Future<void> _pump(WidgetTester tester, Widget child, {String? groupId}) =>
           localStoreProvider.overrideWithValue(_store(groupId: groupId)),
           remoteGatewayProvider.overrideWithValue(_FakeGateway()),
         ],
-        child: MaterialApp(home: Scaffold(body: Center(child: child))),
+        child: MaterialApp(
+          home: Scaffold(body: Center(child: child)),
+        ),
       ),
     );
 

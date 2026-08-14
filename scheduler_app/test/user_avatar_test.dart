@@ -49,7 +49,8 @@ void main() {
         expect(
           ratio,
           greaterThanOrEqualTo(4.5),
-          reason: 'Renk $color mürekkebiyle yalnız ${ratio.toStringAsFixed(2)}:1',
+          reason:
+              'Renk $color mürekkebiyle yalnız ${ratio.toStringAsFixed(2)}:1',
         );
       }
     });

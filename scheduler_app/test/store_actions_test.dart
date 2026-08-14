@@ -27,7 +27,7 @@ void main() {
   }) {
     final task = Task(
       title: 'İş',
-      color: const Color(0xFF4FC3F7),
+      color: const Color(0xFF38BDF8),
       date: date ?? monday,
       startHour: start,
       durationHours: duration,

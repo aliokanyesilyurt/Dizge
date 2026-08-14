@@ -161,7 +161,11 @@ void main() {
 
       expect(c.state['u-ali']?.displayName, 'Ali Okan');
       await c.refresh();
-      expect(c.state['u-ali']?.displayName, 'Ali Okan', reason: 'ağ hatası yutulur');
+      expect(
+        c.state['u-ali']?.displayName,
+        'Ali Okan',
+        reason: 'ağ hatası yutulur',
+      );
     });
 
     test('bozuk önbellek açılışı düşürmez', () {

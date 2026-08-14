@@ -14,7 +14,7 @@ void main() {
 
   Task sample({Energy? energy}) => Task(
     title: 'Refactor',
-    color: const Color(0xFF4FC3F7),
+    color: const Color(0xFF38BDF8),
     date: DateTime(2026, 8, 4),
     energy: energy,
   );
@@ -118,7 +118,7 @@ void main() {
       final day = DateTime(2026, 7, 20);
       final task = Task(
         title: 'Sunum',
-        color: const Color(0xFF4FC3F7),
+        color: const Color(0xFF38BDF8),
         date: day,
         energy: Energy.medium,
       );

@@ -16,7 +16,7 @@ void main() {
   DateTime today() => Task.dayKey(DateTime.now());
 
   Habit daily(String title) =>
-      Habit(title: title, color: const Color(0xFF81C784));
+      Habit(title: title, color: const Color(0xFF34E39B));
 
   /// Şeridin *içindeki* yazıyı arar. Çıplak `find.text('1')` gün başlığındaki
   /// ayın 1'ine de takılırdı; test hangi gün koştuğuna göre renk değiştirmemeli.
@@ -116,7 +116,7 @@ void main() {
     useScreenSize(tester, const Size(1400, 1000));
     final habit = Habit(
       title: 'Spor',
-      color: const Color(0xFFBA68C8),
+      color: const Color(0xFFA78BFA),
       cadence: HabitCadence.weekly,
       targetPerWeek: 3,
     );

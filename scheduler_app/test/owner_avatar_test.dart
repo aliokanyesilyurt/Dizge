@@ -73,7 +73,9 @@ Future<void> _pump(
         remoteGatewayProvider.overrideWithValue(_FakeGateway()),
       ],
       child: MaterialApp(
-        home: Scaffold(body: Center(child: OwnerAvatar(ownerId: ownerId))),
+        home: Scaffold(
+          body: Center(child: OwnerAvatar(ownerId: ownerId)),
+        ),
       ),
     ),
   );

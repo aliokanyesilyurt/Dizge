@@ -177,7 +177,7 @@ void main() {
     test('renkli parıltı tonunu korur, opaklığını paletten alır', () {
       // "Şu an" çizgisi magenta, sürüklenen blok kendi kategori rengiyle
       // parlıyor. Hepsi aynı camgöbeğiyle parlasaydı renk kimliği kaybolurdu.
-      const tint = Color(0xFF81C784);
+      const tint = Color(0xFF34E39B);
 
       final dark = AppPalette.dark.glowOf(tint).single.color;
       expect(dark.r, tint.r);
@@ -250,7 +250,7 @@ void main() {
     });
 
     test('tamamlanan blok soluklaşır ve ikincil yazıya döner', () {
-      const color = Color(0xFF4FC3F7);
+      const color = Color(0xFF38BDF8);
       final open = AppPalette.light.event(color);
       final done = AppPalette.light.event(color, done: true);
 

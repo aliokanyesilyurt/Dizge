@@ -19,7 +19,7 @@ void main() {
 
   Task todo({DateTime? date, bool inPool = false}) => Task(
     title: 'Fatura öde',
-    color: const Color(0xFF4FC3F7),
+    color: const Color(0xFF38BDF8),
     date: date ?? DateTime(2026, 8, 5),
     startHour: 10,
     inPool: inPool,
@@ -41,7 +41,7 @@ void main() {
       // şekilde açılırsa tekrarlar da çıkmamalı.
       final routine = Task(
         title: 'Koşu',
-        color: const Color(0xFF81C784),
+        color: const Color(0xFF34E39B),
         date: DateTime(2026, 8, 3),
         repeat: const Repeat(RepeatType.daily),
         inPool: true,
@@ -121,7 +121,7 @@ void main() {
       final store = AppStore();
       final routine = Task(
         title: 'Koşu',
-        color: const Color(0xFF81C784),
+        color: const Color(0xFF34E39B),
         date: DateTime(2026, 8, 3),
         repeat: const Repeat(RepeatType.daily),
       );
@@ -204,7 +204,7 @@ void main() {
 
       Task pooled() => Task(
         title: 'Kenardaki',
-        color: const Color(0xFF4FC3F7),
+        color: const Color(0xFF38BDF8),
         date: day,
         startHour: 10,
         inPool: true,
