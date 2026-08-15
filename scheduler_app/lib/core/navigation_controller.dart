@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Kenar çubuğunun açtığı bölümler.
 enum AppSection {
+  /// Elle yazılan gün yaprağı (A4). Yalnız kullanım modu izin verdiğinde
+  /// kenar çubuğunda görünür; bölümün kendisi her zaman var, çünkü mod
+  /// değiştiğinde kabuk yeniden kurulmuyor.
+  agenda,
   year,
   month,
   week,

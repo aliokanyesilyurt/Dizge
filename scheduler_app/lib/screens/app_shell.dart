@@ -10,11 +10,13 @@ import '../core/navigation_controller.dart';
 import '../core/profile_directory.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
+import '../core/usage_mode_controller.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/group_switcher.dart';
 import '../widgets/user_avatar.dart';
 import 'account_screen.dart';
+import 'agenda_screen.dart';
 import 'day_view_screen.dart';
 import 'habits_screen.dart';
 import 'monthly_view_screen.dart';
@@ -31,6 +33,11 @@ class _NavItem {
   final String label;
   const _NavItem(this.section, this.icon, this.label);
 }
+
+/// Ajanda, takvimin başında duruyor: gün yaprağı en dar zaman birimi ve
+/// kalemle yazan biri oraya en sık gidiyor. Kenar çubuğunda görünmesi
+/// kullanım moduna bağlı ([UsageMode.showsAgenda]).
+const _agendaItem = _NavItem(AppSection.agenda, Icons.draw_rounded, 'Ajanda');
 
 const _calendarItems = [
   _NavItem(AppSection.year, Icons.grid_view_rounded, 'Yıllık'),
@@ -97,6 +104,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Widget _contentFor(NavState nav) {
     switch (nav.section) {
+      case AppSection.agenda:
+        return AgendaScreen(initialDay: nav.day);
       case AppSection.year:
         return const YearViewScreen();
       case AppSection.month:
@@ -242,7 +251,7 @@ class _OfflineBanner extends ConsumerWidget {
   }
 }
 
-class _Sidebar extends StatelessWidget {
+class _Sidebar extends ConsumerWidget {
   final AppSection selected;
   final ValueChanged<AppSection> onSelect;
 
@@ -263,9 +272,12 @@ class _Sidebar extends StatelessWidget {
   static const _collapsedWidth = 74.0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final targetWidth = collapsed ? _collapsedWidth : _expandedWidth;
+    // Ajanda sekmesi klasik modda hiç çizilmez: klavyeyle çalışan biri için
+    // orada bir defter durması gürültüdür.
+    final showAgenda = ref.watch(usageModeProvider).showsAgenda;
 
     return AnimatedContainer(
       duration: Motion.base,
@@ -294,6 +306,13 @@ class _Sidebar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: S.md),
                     children: [
                       if (!collapsed) const _SectionLabel('Takvim'),
+                      if (showAgenda)
+                        _NavTile(
+                          item: _agendaItem,
+                          selected: selected == AppSection.agenda,
+                          collapsed: collapsed,
+                          onTap: () => onSelect(AppSection.agenda),
+                        ),
                       for (final item in _calendarItems)
                         _NavTile(
                           item: item,
