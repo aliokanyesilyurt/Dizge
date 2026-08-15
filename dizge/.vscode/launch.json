@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Sunucu anahtarlari kaynak koda gomulmez (bkz. lib/core/app_config.dart).
+      // env.json gitignore'da; yeni gelistirici onu env.example.json'dan kopyalar.
+      // Dosya yoksa uygulama yine acilir, sadece tamamen yerel calisir.
+      "name": "Dizge (Windows)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "windows",
+      "toolArgs": ["--dart-define-from-file=env.json"]
+    },
+    {
+      "name": "Dizge (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "toolArgs": ["--dart-define-from-file=env.json"]
+    },
+    {
+      "name": "Dizge (Edge)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "edge",
+      "toolArgs": ["--dart-define-from-file=env.json"]
+    },
+    {
+      // Anahtarsiz kosum: kapinin acik kaldigi gelistirme kipi (G2).
+      "name": "Dizge (yerel kip, anahtarsiz)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "windows"
+    }
+  ]
+}

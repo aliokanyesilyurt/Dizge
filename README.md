@@ -1,4 +1,4 @@
-# 📅 Zamanınızı Geri Alın, Kaosu Düzenleyin 
+# 📅 Dizge — Zamanınızı Geri Alın, Kaosu Düzenleyin 
 *Sıradan yapılacaklar listeleri hayatın hızına yetişemez. Gün içindeki ani sürprizler, bölünen odaklanma süreleri ve yönetilmesi gereken yoğun rutinler için yepyeni bir çözüm var.* 
 *Zamanınızı sadece listelemeyin; onu görselleştirin, yönetin ve kontrolü tamamen elinize alın. Zihninizi boşaltmak ve önceliklerinizi rayında tutmak için tasarlanmış yeni nesil planlayıcınız ile tanışın.*
 ## ✨ Neden Bu Uygulamayı Seveceksiniz? 
