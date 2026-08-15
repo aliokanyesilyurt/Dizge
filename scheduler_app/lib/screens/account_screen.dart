@@ -7,6 +7,7 @@ import '../core/connectivity.dart';
 import '../core/profile_directory.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
+import '../core/usage_mode_controller.dart';
 import '../data/app_store.dart';
 import '../data/local_store.dart';
 import '../data/persistence_providers.dart';
@@ -51,6 +52,8 @@ class AccountScreen extends ConsumerWidget {
                 // --- Görünüm ---
                 const _GroupLabel('Görünüm'),
                 const _ThemeCard(),
+                const SizedBox(height: S.md),
+                const _UsageModeCard(),
                 const SizedBox(height: S.xl),
 
                 // --- Veri ve gizlilik (çalışıyor) ---
@@ -549,6 +552,81 @@ class _ThemeCard extends ConsumerWidget {
                   ),
                 ),
                 if (o != _options.last) const SizedBox(width: S.sm),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Görev yazmanın hangi yoldan gideceği (A2).
+///
+/// Tema kartıyla aynı kalıpta ve onun hemen altında duruyor — ikisi de
+/// "uygulama bana nasıl görünsün/davransın" sorusunun yanıtı ve ikisi de bu
+/// cihaza özel.
+class _UsageModeCard extends ConsumerWidget {
+  const _UsageModeCard();
+
+  static const _icons = <UsageMode, IconData>{
+    UsageMode.klasik: Icons.keyboard_rounded,
+    UsageMode.ajanda: Icons.draw_rounded,
+    UsageMode.karma: Icons.auto_awesome_motion_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    final mode = ref.watch(usageModeProvider);
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.edit_note_rounded, size: I.md, color: c.inkDim),
+              const SizedBox(width: S.md),
+              Expanded(
+                child: Text(
+                  'Yazma biçimi',
+                  style: TextStyle(
+                    color: c.ink,
+                    fontSize: T.strong,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: S.xs),
+          Text(
+            'Hiçbir ekran kaybolmaz; değişen tek şey yeni bir iş eklerken '
+            'önce neyin açıldığı.',
+            style: TextStyle(
+              color: c.inkFaint,
+              fontSize: T.micro,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: S.md),
+          Row(
+            children: [
+              for (final option in UsageMode.values) ...[
+                Expanded(
+                  child: _ThemeOptionCard(
+                    icon: _icons[option]!,
+                    title: option.label,
+                    caption: option.description,
+                    selected: mode == option,
+                    onTap: () =>
+                        ref.read(usageModeProvider.notifier).set(option),
+                  ),
+                ),
+                if (option != UsageMode.values.last)
+                  const SizedBox(width: S.sm),
               ],
             ],
           ),
