@@ -1,6 +1,7 @@
 # Ajanda Modu Planı — Kalem, Kâğıt ve Yazının Tanınması
 
-**Durum:** onay bekliyor
+**Durum:** A1–A5 ve A8 indi (15 Ağustos) · A0, A6, A7 açık — **tanımasız
+ama uçtan uca çalışan bir ajanda var**
 **Tarih:** 15 Ağustos 2026
 **Önceki:** `gorunum-cilasi-plani.md` (ölçekler oturdu), `ana-ekran-plani.md`
 **Önkoşul:** A0'ın sonucu. Bu planın gövdesi, el yazısı tanımanın iki hedef
@@ -169,7 +170,7 @@ ML Kit paketiyle tek ekranlık deneme. Sonuç bu belgeye yazılır.
 dönen metin buraya kaydedilmiş; Türkçe karakterlerin (ı, ş, ğ, ü, ö, ç)
 durumu not edilmiş. Kod **atılır**, yalnız bulgu kalır.
 
-### A1 — Satır ayırma (motorsuz, saf Dart)
+### A1 — Satır ayırma (motorsuz, saf Dart) ✅ `6a483f7`
 
 `core/ink_lines.dart`: vuruş listesini satırlara kümeleyen işlev.
 
@@ -177,7 +178,7 @@ durumu not edilmiş. Kod **atılır**, yalnız bulgu kalır.
 bir satırdaki noktalı harfler (i, ı, j) kendi satırında kalır; boş sayfa boş
 liste döner.
 
-### A2 — Mod tercihi
+### A2 — Mod tercihi ✅ `40752d9 · d117014`
 
 `core/usage_mode_controller.dart`, `ThemeModeController` ile birebir aynı
 kalıpta. Hesap ekranına üç seçenekli bir alan.
@@ -185,7 +186,7 @@ kalıpta. Hesap ekranına üç seçenekli bir alan.
 **Bitti sayılır:** seçim yeniden başlatmaya dayanıyor; widget testi üç modda
 da kapıların doğru davrandığını gösteriyor.
 
-### A3 — `AgendaPage` modeli ve deposu
+### A3 — `AgendaPage` modeli ve deposu ✅ `4bb716c`
 
 Güne bağlı sayfa; `Sketch`'in yeniden kullanımı; `LocalStore` üzerinden
 kalıcılık; migration numarası sıradaki değeri alır.
@@ -193,7 +194,7 @@ kalıcılık; migration numarası sıradaki değeri alır.
 **Bitti sayılır:** sayfa yazılıp okunuyor, uygulama kapanıp açıldığında
 mürekkep yerinde; kalıcılık testi yeşil.
 
-### A4 — Ajanda yüzeyi
+### A4 — Ajanda yüzeyi ✅ `d0b9a4d`
 
 Çizgili kâğıt görünümü, kalem/silgi, geri al, sayfa gezinme (gün ileri/geri).
 `DrawingCanvas` genişletilir; ölçekler (`S`, `T`, `I`) ve palet olduğu gibi
@@ -202,7 +203,7 @@ kullanılır.
 **Bitti sayılır:** Windows derlemesinde elle bir sayfa yazılıp kapatılıyor,
 tekrar açıldığında aynı görünüyor.
 
-### A5 — Tanıma arayüzü ve `UnavailableRecognizer`
+### A5 — Tanıma arayüzü ve `UnavailableRecognizer` ✅ `7832d2e`
 
 Arayüz, veri tipleri ve "tanıma yok" hâli. **Hiçbir motor bağlanmadan.**
 
@@ -224,7 +225,7 @@ ML Kit paketi, model indirme akışı (ilk kullanımda indirilir, sonrası
 **Bitti sayılır:** sideload edilen APK'da aynı tur; model yokken uygulama
 çökmüyor, "model indiriliyor" diyor.
 
-### A8 — Onay şeridi ve görev oluşturma
+### A8 — Onay şeridi ve görev oluşturma ✅ `7832d2e`
 
 Adaylar → düzenlenebilir öneriler → `Task`. Mürekkebin sayfada kalması.
 
@@ -255,7 +256,37 @@ web (bu depoda zaten hedef değil), basınç ve eğim duyarlı fırça, sayfa
 
 ---
 
-## 11. Sıra
+## 11. Ara kapanış notu — A1–A5, A8 (15 Ağustos)
+
+Tanımasız gövde indi. Test sayısı 457'den **490**'a çıktı, `flutter analyze`
+temiz. Bugün uygulamada olan şey şu: kullanım modu seçiliyor, ajanda sekmesi
+açılıyor, güne bir yaprak düşüyor, kalemle yazılıyor, satırlar ayrılıyor,
+onay şeridi açılıyor ve başlıklar göreve dönüyor. Eksik olan tek şey
+**okuma** — o da A6/A7.
+
+**Plandan bilinçli sapma: `Sketch` yeniden kullanılmadı.** §Ad "`Sketch`
+yapısı yeniden kullanılır" diyordu. Kodu yazarken bunun sayfayı tek renge
+mahkûm ettiği görüldü: `Sketch` bir görevin eki — tek renk, tek kalınlık.
+Defter yaprağında kalem rengi değişir. Renk sayfaya değil **vuruşa** bağlandı
+(yeni `InkStroke`). `Sketch` olduğu gibi duruyor ve görev ekleri hâlâ onu
+kullanıyor.
+
+**A2'nin yarım kalan yarısı.** `opensAgendaFirst` ilk commit'te tanımlanıp
+hiç kullanılmamıştı — modun asıl sözü boşta kalmış. Yönlendirme
+`showQuickAdd`'in içine kondu: on çağrı yeri bu tek fonksiyona iniyor.
+
+**Testin yakaladığı hata.** Onay şeridinde düğmenin yazdığı sayı yalnız dolu
+başlıkları sayıyordu; kapatılan bir satır sayıdan düşmüyordu. Sayı artık
+görevleri gerçekten oluşturan kodun kuralından okunuyor.
+
+**Kalan riskin yeri değişmedi.** A0 hâlâ kapıda ve doğrulaması bende değil:
+Windows'un Türkçe el yazısı dil paketi ve ML Kit'in Türkçe modeli ancak
+gerçek bir kalemle sınanabilir. `UnavailableRecognizer` bu belirsizliğin
+maliyetini sıfırlıyor — tanıma hiç gelmese bile ajanda çalışır durumda.
+
+---
+
+## 12. Sıra
 
 A0 → A1 → A2 → A3 → A4 → A5 → A8 → A6 → A7.
 
