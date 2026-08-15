@@ -444,6 +444,72 @@ void main() {
     });
   });
 
+  group('ölçekler', () {
+    test('tipografi kademeleri artan ve hiçbiri 10\'un altında değil', () {
+      // Ölçeğin iki sözü var: kademeler birbirine karışmaz (artan sıra) ve
+      // hiçbiri okunamayacak kadar küçülmez. Eski kod 9 punto yazı
+      // kullanıyordu; alt sınır onun geri gelmesini engelliyor.
+      for (var i = 1; i < T.steps.length; i++) {
+        expect(
+          T.steps[i],
+          greaterThan(T.steps[i - 1]),
+          reason: '${T.steps[i]} kademesi bir öncekinden büyük değil',
+        );
+      }
+
+      expect(T.steps.first, greaterThanOrEqualTo(10.0));
+      // Yarım punto yok: her kademe tam sayı.
+      for (final step in T.steps) {
+        expect(step, step.roundToDouble(), reason: '$step yarım punto');
+      }
+    });
+
+    test('textTheme boyunu ölçekten alır, kendi sayısını uydurmaz', () {
+      // Bu testin varlık sebebi: `textTheme` ile `T` iki ayrı tipografi
+      // kaynağına ayrılırsa aynı rol iki ekranda iki ayrı boyla çizilir —
+      // ölçeğin çözdüğü sorun aynen geri gelir.
+      final tt = buildAppTheme().textTheme;
+
+      expect(tt.headlineSmall?.fontSize, T.headline);
+      expect(tt.displaySmall?.fontSize, T.display);
+
+      final sizes = [
+        tt.displaySmall,
+        tt.headlineSmall,
+        tt.titleLarge,
+        tt.titleMedium,
+        tt.titleSmall,
+        tt.bodyLarge,
+        tt.bodyMedium,
+        tt.bodySmall,
+        tt.labelLarge,
+        tt.labelMedium,
+        tt.labelSmall,
+      ].map((s) => s?.fontSize);
+
+      for (final size in sizes) {
+        expect(
+          T.steps,
+          contains(size),
+          reason: '$size ölçekte olmayan bir boy',
+        );
+      }
+    });
+
+    test('boşluk ölçeği artan ve dörtlü ritimde', () {
+      const steps = [S.hair, S.xs, S.sm, S.md, S.lg, S.xl, S.xxl];
+
+      for (var i = 1; i < steps.length; i++) {
+        expect(steps[i], greaterThan(steps[i - 1]));
+      }
+      // `hair` dışında her kademe 4'ün katı — ritmi bozan ara değer yok.
+      for (final step in steps.skip(1)) {
+        expect(step % 4, 0, reason: '$step dörtlü ritmin dışında');
+      }
+      expect(S.gutter % 4, 0);
+    });
+  });
+
   group('tipografi', () {
     test('gövde yazı tipi paketlenmiş aileden gelir', () {
       final theme = buildAppTheme(brightness: Brightness.light);

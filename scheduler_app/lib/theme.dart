@@ -711,6 +711,106 @@ abstract final class Motion {
   static const curve = Curves.easeOutCubic;
 }
 
+/// Boşluk ölçeği. `R` yarıçapı, `Motion` süreyi neyse, bu da boşluğu.
+///
+/// Neden ölçek: bu değerler bir zamanlar her dosyada elle yazılıydı ve 1'den
+/// 26'ya neredeyse her tam sayı kullanılıyordu. 11 ile 12 arasındaki fark
+/// kimseye bir şey anlatmıyor, ama yan yana gelen iki kartı görünür biçimde
+/// eşitsiz kılıyor. Dörtlü ritim bu eşitsizliği baştan imkânsız kılıyor.
+///
+/// Neden `ThemeExtension` değil: bu sayılar temaya göre değişmiyor. Bir kartın
+/// iç boşluğu açık temada da koyuda da aynı. Değişmez bir değeri temaya
+/// bağlamak, okuyana gereksiz bir soru sordurur.
+abstract final class S {
+  /// Çizgi/ayraç payı. Boşluk değil, kıl payı.
+  static const hair = 2.0;
+
+  /// İkon ile yazısı, çip içi dikey.
+  static const xs = 4.0;
+
+  /// Satır içi öğeler arası.
+  static const sm = 8.0;
+
+  /// Kart içi dikey ritim, liste satırları arası.
+  static const md = 12.0;
+
+  /// Kart iç boşluğu, bölümler arası.
+  static const lg = 16.0;
+
+  /// Bölüm blokları arası, sheet iç boşluğu.
+  static const xl = 24.0;
+
+  /// Büyük ayrım: başlık bloğu ile gövde arası.
+  static const xxl = 32.0;
+
+  /// Ekranın kenar boşluğu — başlık ve gövde **aynı** çizgide dursun diye tek
+  /// sabitten okunur.
+  ///
+  /// Daha önce `SectionHeader` soldan 24, altındaki listeler 14–20 arası
+  /// kendi seçtikleri bir değer kullanıyordu; sonuç, sekme değiştirince
+  /// içeriğin yatayda zıplamasıydı.
+  static const gutter = 20.0;
+
+  /// Kayan listelerin altında FAB'a bırakılan pay.
+  ///
+  /// Ölçeğin bir kademesi değil, bir **ölçü**: FAB'ın kendi boyu + nefes payı.
+  /// Üç ekranda elle `100` yazılıydı.
+  static const fabGap = 100.0;
+}
+
+/// Tipografi ölçeği. Sekiz kademe, her birinin tek bir işi var.
+///
+/// Bu ölçekten önce depoda **22 ayrı yazı boyu** vardı (9'dan 26'ya, yarım
+/// puntolar dahil) ve 182 satır içi `TextStyle`. Aynı rol iki ekranda iki ayrı
+/// boyla çiziliyordu.
+///
+/// [TextTheme] bu kademelerden **türetilir** ([_buildTextTheme]); böylece
+/// `textTheme.headlineSmall` ile [headline] aynı sayıyı verir ve iki ayrı
+/// tipografi kaynağı oluşmaz.
+abstract final class T {
+  /// **Yalnız yoğun ızgara için**: takvim bloğu, ay hücresi, ısı haritası.
+  ///
+  /// Neden ayrı bir kademe: `GridDensity.compact` modunda bir saatlik blok 38
+  /// piksele iner ve yazının oraya sığması gerekir. Bu boyları [micro]'ya
+  /// çıkarmak blokları taşırırdı. Ama eski 9 ve 9.5 da fazla küçüktü — ikisi
+  /// burada, 10'da buluşuyor.
+  static const dense = 10.0;
+
+  /// Rozet, sayaç, yardımcı etiket.
+  static const micro = 11.0;
+
+  /// Alt açıklama, ikincil satır.
+  static const caption = 12.0;
+
+  /// Gövde metni, liste satırı.
+  static const body = 13.0;
+
+  /// Kart başlığı, birincil satır.
+  static const strong = 14.0;
+
+  /// Panel başlığı, sheet başlığı.
+  static const title = 16.0;
+
+  /// Ekran başlığı (`SectionHeader`).
+  static const headline = 20.0;
+
+  /// Karşılama ekranı, boş durum rakamı.
+  static const display = 26.0;
+
+  /// Küçükten büyüğe tüm kademeler — testlerin ve göç denetimlerinin
+  /// dayandığı tek liste.
+  static const steps = <double>[
+    dense,
+    micro,
+    caption,
+    body,
+    strong,
+    title,
+    headline,
+    display,
+  ];
+}
+
 /// Izgara yoğunluğu: bir saatin kaç piksel yer kapladığı. Kullanıcı başlıktaki
 /// düğmeyle değiştirir; tercih oturum boyunca korunur.
 enum GridDensity {
@@ -748,78 +848,88 @@ const List<String> kFontFallback = [
   'sans-serif',
 ];
 
-/// Tipografi hiyerarşisi.
+/// Tipografi hiyerarşisi — boyları [T] ölçeğinden okur.
 ///
-/// Dört kademe var ve her kademenin tek bir işi var:
-///   * **display** — ekranın adı / tarih aralığı. Sıkı harf aralığı, ağır.
-///   * **title**   — kart ve bölüm başlıkları.
-///   * **body**    — okunacak metin.
-///   * **meta**    — saat, sayaç, etiket. Küçük, açık renk, hafif geniş aralık.
+/// Material'ın rol adları korunuyor (`headlineSmall`, `bodyMedium`…) çünkü
+/// Flutter'ın kendi bileşenleri onları arıyor. Ama **boy artık burada
+/// seçilmiyor**: her rol [T]'nin bir kademesine bağlı. Ağırlık, harf aralığı
+/// ve satır yüksekliği role özgü kalıyor — ölçeğin verdiği şey boy.
+///
+/// Roller kademelere şöyle oturuyor:
+///   * **displaySmall** → [T.display] — ekranın adı / tarih aralığı.
+///   * **headlineSmall** → [T.headline] — bölüm başlığı (`SectionHeader`).
+///   * **titleLarge / titleMedium / titleSmall** → [T.title] · [T.strong] ·
+///     [T.body] — panel, kart ve satır başlıkları.
+///   * **body\*** → [T.strong] · [T.caption] — okunacak metin.
+///   * **label\*** → [T.strong] · [T.micro] — saat, sayaç, etiket.
+///
+/// `bodyLarge` ile `bodyMedium`ın aynı kademeye düşmesi bilinçli: ikisinin
+/// arasındaki eski 1 punto fark hiçbir yerde bir hiyerarşi anlatmıyordu.
 TextTheme _buildTextTheme(AppPalette p) {
   return TextTheme(
     displaySmall: TextStyle(
       color: p.ink,
-      fontSize: 26,
+      fontSize: T.display,
       fontWeight: FontWeight.w700,
       letterSpacing: -0.6,
       height: 1.15,
     ),
     headlineSmall: TextStyle(
       color: p.ink,
-      fontSize: 21,
+      fontSize: T.headline,
       fontWeight: FontWeight.w700,
       letterSpacing: -0.4,
       height: 1.2,
     ),
     titleLarge: TextStyle(
       color: p.ink,
-      fontSize: 17,
+      fontSize: T.title,
       fontWeight: FontWeight.w700,
       letterSpacing: -0.2,
     ),
     titleMedium: TextStyle(
       color: p.ink,
-      fontSize: 15,
+      fontSize: T.strong,
       fontWeight: FontWeight.w600,
       letterSpacing: -0.1,
     ),
     titleSmall: TextStyle(
       color: p.ink,
-      fontSize: 13.5,
+      fontSize: T.body,
       fontWeight: FontWeight.w600,
     ),
     bodyLarge: TextStyle(
       color: p.ink,
-      fontSize: 15,
+      fontSize: T.strong,
       height: 1.45,
       fontWeight: FontWeight.w500,
     ),
     bodyMedium: TextStyle(
       color: p.ink,
-      fontSize: 14,
+      fontSize: T.strong,
       height: 1.45,
       fontWeight: FontWeight.w500,
     ),
     bodySmall: TextStyle(
       color: p.inkDim,
-      fontSize: 12.5,
+      fontSize: T.caption,
       height: 1.4,
       fontWeight: FontWeight.w500,
     ),
     labelLarge: const TextStyle(
-      fontSize: 14,
+      fontSize: T.strong,
       fontWeight: FontWeight.w600,
       letterSpacing: 0.1,
     ),
     labelMedium: TextStyle(
       color: p.inkFaint,
-      fontSize: 11.5,
+      fontSize: T.micro,
       fontWeight: FontWeight.w600,
       letterSpacing: 0.3,
     ),
     labelSmall: TextStyle(
       color: p.inkFaint,
-      fontSize: 10.5,
+      fontSize: T.micro,
       fontWeight: FontWeight.w600,
       letterSpacing: 0.6,
     ),
