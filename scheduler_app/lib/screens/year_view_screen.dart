@@ -41,7 +41,7 @@ class YearViewScreen extends ConsumerWidget {
             color: c.ink,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.5,
-            fontSize: 16,
+            fontSize: T.title,
           ),
         ),
       ),
@@ -136,7 +136,7 @@ class _MiniMonthState extends State<_MiniMonth> {
                 '$d',
                 style: TextStyle(
                   color: isToday ? c.onAccent : c.inkDim,
-                  fontSize: 9,
+                  fontSize: T.dense,
                   fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                   height: 1.1,
                 ),
@@ -187,7 +187,7 @@ class _MiniMonthState extends State<_MiniMonth> {
                     widget.monthName,
                     style: TextStyle(
                       color: isCurrentMonth ? c.accent : c.ink,
-                      fontSize: 12.5,
+                      fontSize: T.caption,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.1,
                     ),

@@ -140,7 +140,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     onSubmitted: (_) => _save(),
                     style: TextStyle(
                       color: c.ink,
-                      fontSize: 19,
+                      fontSize: T.headline,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,
                     ),
@@ -154,7 +154,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                       hintText: 'Ne yapacaksın?',
                       hintStyle: TextStyle(
                         color: c.inkFaint,
-                        fontSize: 19,
+                        fontSize: T.headline,
                         fontWeight: FontWeight.w500,
                         letterSpacing: -0.3,
                       ),
@@ -318,7 +318,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   ),
                   title: Text(
                     cat.name,
-                    style: TextStyle(color: c.ink, fontSize: 14),
+                    style: TextStyle(color: c.ink, fontSize: T.strong),
                   ),
                   trailing: cat.name == _category.name
                       ? Icon(Icons.check_rounded, size: 18, color: c.accent)
@@ -425,7 +425,7 @@ class _Pill extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: active ? tint : c.inkDim,
-                  fontSize: 13,
+                  fontSize: T.body,
                   fontWeight: FontWeight.w600,
                 ),
               ),

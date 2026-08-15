@@ -148,7 +148,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
                 const SizedBox(height: 2),
                 Text(
                   'kaydırarak ayları gez',
-                  style: TextStyle(color: c.inkFaint, fontSize: 11),
+                  style: TextStyle(color: c.inkFaint, fontSize: T.micro),
                 ),
               ],
             ),
@@ -175,7 +175,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: (d == 'CMT' || d == 'PAZ') ? c.inkFaint : c.inkDim,
-                    fontSize: 10,
+                    fontSize: T.dense,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.8,
                   ),
@@ -316,7 +316,7 @@ class _Cell extends StatelessWidget {
                     color: isToday
                         ? c.onAccent
                         : (isWeekend ? c.inkFaint : c.ink),
-                    fontSize: 11.5,
+                    fontSize: T.micro,
                     fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
                   ),
                 ),
@@ -364,7 +364,7 @@ class _Cell extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: done ? c.inkFaint : tag.text,
-                fontSize: 10,
+                fontSize: T.dense,
                 height: 1.2,
                 fontWeight: FontWeight.w500,
                 decoration: done ? TextDecoration.lineThrough : null,
@@ -421,7 +421,7 @@ class _RoutinesSheet extends ConsumerWidget {
                   '${routines.length}',
                   style: TextStyle(
                     color: c.inkDim,
-                    fontSize: 12,
+                    fontSize: T.caption,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -435,7 +435,11 @@ class _RoutinesSheet extends ConsumerWidget {
               child: Text(
                 'Henüz rutin yok. Bir iş eklerken türünü "Rutin" seçersen '
                 'burada listelenir.',
-                style: TextStyle(color: c.inkFaint, fontSize: 13, height: 1.5),
+                style: TextStyle(
+                  color: c.inkFaint,
+                  fontSize: T.body,
+                  height: 1.5,
+                ),
               ),
             )
           else
@@ -481,7 +485,7 @@ class _RoutinesSheet extends ConsumerWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: c.ink,
-                                      fontSize: 14,
+                                      fontSize: T.strong,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -496,7 +500,7 @@ class _RoutinesSheet extends ConsumerWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: c.inkFaint,
-                                      fontSize: 11.5,
+                                      fontSize: T.micro,
                                     ),
                                   ),
                                 ],

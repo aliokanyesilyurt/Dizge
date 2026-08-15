@@ -164,7 +164,7 @@ class ClockPiePainter extends CustomPainter {
             text: task.title,
             style: TextStyle(
               color: labelColor,
-              fontSize: 10.5,
+              fontSize: T.dense,
               fontWeight: FontWeight.w700,
               decoration: done ? TextDecoration.lineThrough : null,
             ),
@@ -247,7 +247,7 @@ class ClockPiePainter extends CustomPainter {
         text: i.toString(),
         style: TextStyle(
           color: palette.inkFaint,
-          fontSize: 10,
+          fontSize: T.dense,
           fontWeight: FontWeight.w600,
         ),
       );

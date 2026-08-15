@@ -54,7 +54,7 @@ class DailyHabitStrip extends StatelessWidget {
               'BUGÜN',
               style: TextStyle(
                 color: c.inkFaint,
-                fontSize: 9.5,
+                fontSize: T.dense,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
               ),
@@ -152,7 +152,7 @@ class _HabitChip extends StatelessWidget {
                       // İşaretsizken `inkDim`: `inkFaint` bu boyutta AA'nın
                       // altında kalıyor (D4'te saat sütununda ölçüldü).
                       color: done ? style.text : c.inkDim,
-                      fontSize: 12.5,
+                      fontSize: T.caption,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -227,7 +227,10 @@ class _StreakBadge extends StatelessWidget {
           ],
           Text(
             label,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              fontSize: T.dense,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

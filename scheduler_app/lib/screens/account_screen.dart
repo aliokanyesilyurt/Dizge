@@ -104,7 +104,7 @@ class AccountScreen extends ConsumerWidget {
                     'Sürüm 1.0.0  ·  ${AppConfig.environment}',
                     style: TextStyle(
                       color: c.inkFaint,
-                      fontSize: 11,
+                      fontSize: T.micro,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 0.2,
                     ),
@@ -166,7 +166,7 @@ class _ProfileHeader extends ConsumerWidget {
                 },
                 style: TextStyle(
                   color: c.inkFaint,
-                  fontSize: 12.5,
+                  fontSize: T.caption,
                   fontWeight: FontWeight.w500,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -273,7 +273,7 @@ class _DisplayNameFieldState extends ConsumerState<_DisplayNameField> {
             'Görünen ad',
             style: TextStyle(
               color: c.ink,
-              fontSize: 13.5,
+              fontSize: T.body,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -308,7 +308,7 @@ class _DisplayNameFieldState extends ConsumerState<_DisplayNameField> {
                 : 'Grup arkadaşların bu adı görür.',
             style: TextStyle(
               color: offline ? c.warning : c.inkFaint,
-              fontSize: 12,
+              fontSize: T.caption,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -513,7 +513,7 @@ class _ThemeCard extends ConsumerWidget {
                   'Tema',
                   style: TextStyle(
                     color: c.ink,
-                    fontSize: 14,
+                    fontSize: T.strong,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -525,7 +525,7 @@ class _ThemeCard extends ConsumerWidget {
             'Tercihin bu cihazda saklanır ve uygulama açılır açılmaz uygulanır.',
             style: TextStyle(
               color: c.inkFaint,
-              fontSize: 11.5,
+              fontSize: T.micro,
               height: 1.4,
               fontWeight: FontWeight.w500,
             ),
@@ -596,7 +596,7 @@ class _ThemeOptionCard extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: selected ? c.navActiveInk : c.ink,
-                  fontSize: 13,
+                  fontSize: T.body,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -605,7 +605,7 @@ class _ThemeOptionCard extends StatelessWidget {
                 caption,
                 style: TextStyle(
                   color: c.inkFaint,
-                  fontSize: 10.5,
+                  fontSize: T.micro,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -648,7 +648,7 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
                   'Anonim kullanım istatistikleri',
                   style: TextStyle(
                     color: c.ink,
-                    fontSize: 14,
+                    fontSize: T.strong,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -658,7 +658,7 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
                   'İş başlıkların, notların ve yerlerin asla gönderilmez.',
                   style: TextStyle(
                     color: c.inkFaint,
-                    fontSize: 11.5,
+                    fontSize: T.micro,
                     height: 1.4,
                     fontWeight: FontWeight.w500,
                   ),
@@ -673,7 +673,7 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
                     'tercihin yine de saklanıyor.',
                     style: TextStyle(
                       color: c.warning,
-                      fontSize: 11,
+                      fontSize: T.micro,
                       height: 1.35,
                       fontWeight: FontWeight.w600,
                     ),
@@ -762,7 +762,7 @@ class _DangerZone extends ConsumerWidget {
                   'Cihazdaki verileri sil',
                   style: TextStyle(
                     color: c.danger,
-                    fontSize: 14,
+                    fontSize: T.strong,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -835,7 +835,7 @@ class _StatusTile extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: c.ink,
-                    fontSize: 14,
+                    fontSize: T.strong,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -844,7 +844,7 @@ class _StatusTile extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     color: c.inkFaint,
-                    fontSize: 11.5,
+                    fontSize: T.micro,
                     height: 1.4,
                     fontWeight: FontWeight.w500,
                   ),
@@ -879,7 +879,7 @@ class _Notice extends StatelessWidget {
               'O zamana kadar uygulama tamamen cihazda, çevrimdışı çalışır.',
               style: TextStyle(
                 color: c.isDark ? c.inkDim : c.navActiveInk,
-                fontSize: 12.5,
+                fontSize: T.caption,
                 height: 1.45,
                 fontWeight: FontWeight.w500,
               ),
@@ -946,7 +946,7 @@ class _ActionTile extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: c.ink,
-                        fontSize: 14,
+                        fontSize: T.strong,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -955,7 +955,7 @@ class _ActionTile extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         color: c.inkFaint,
-                        fontSize: 12,
+                        fontSize: T.caption,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1001,7 +1001,7 @@ class _Tile extends StatelessWidget {
                     title,
                     style: TextStyle(
                       color: c.ink,
-                      fontSize: 14,
+                      fontSize: T.strong,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1010,7 +1010,7 @@ class _Tile extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       color: c.inkFaint,
-                      fontSize: 12,
+                      fontSize: T.caption,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

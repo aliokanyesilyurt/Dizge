@@ -334,7 +334,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                   've $rest tane daha',
                   style: TextStyle(
                     color: context.colors.inkFaint,
-                    fontSize: 12,
+                    fontSize: T.caption,
                   ),
                 ),
               ),
@@ -725,7 +725,7 @@ class _DayHeaderRow extends StatelessWidget {
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   color: c.inkFaint,
-                  fontSize: 9.5,
+                  fontSize: T.dense,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.2,
                 ),
@@ -818,7 +818,7 @@ class _DayHeaderCell extends StatelessWidget {
                     // hangi sütunun hangi güne ait olduğunu söyleyen tek yazı;
                     // sessiz kalmalı ama okunmalı — `inkDim` ikisini de verir.
                     color: isToday ? c.accent : c.inkDim,
-                    fontSize: 11,
+                    fontSize: T.micro,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
@@ -845,7 +845,7 @@ class _DayHeaderCell extends StatelessWidget {
                         maxLines: 1,
                         style: TextStyle(
                           color: isToday ? c.onAccent : c.ink,
-                          fontSize: 20,
+                          fontSize: T.headline,
                           fontWeight: isToday
                               ? FontWeight.w600
                               : FontWeight.w500,
@@ -863,7 +863,7 @@ class _DayHeaderCell extends StatelessWidget {
                         child: Text(
                           '$taskCount',
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: T.dense,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -949,7 +949,7 @@ class _UntimedRow extends StatelessWidget {
                   'Saatsiz',
                   style: TextStyle(
                     color: c.inkFaint,
-                    fontSize: 9.5,
+                    fontSize: T.dense,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.2,
                   ),
@@ -1037,7 +1037,7 @@ class _UntimedChip extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: style.text,
-                      fontSize: 11,
+                      fontSize: T.micro,
                       fontWeight: FontWeight.w600,
                       decoration: (done || skipped)
                           ? TextDecoration.lineThrough

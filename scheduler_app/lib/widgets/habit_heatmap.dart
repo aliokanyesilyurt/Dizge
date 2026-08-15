@@ -50,7 +50,7 @@ class HabitHeatmap extends StatelessWidget {
                             _weekdayLabels[r],
                             style: TextStyle(
                               color: c.inkFaint,
-                              fontSize: 9,
+                              fontSize: T.dense,
                               fontWeight: FontWeight.w500,
                             ),
                           )
@@ -143,7 +143,7 @@ class _Legend extends StatelessWidget {
       ),
     );
 
-    final label = TextStyle(color: c.inkFaint, fontSize: 10);
+    final label = TextStyle(color: c.inkFaint, fontSize: T.dense);
 
     return Row(
       children: [

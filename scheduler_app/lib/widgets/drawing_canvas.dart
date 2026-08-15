@@ -101,7 +101,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           children: [
             Text(
               'Kalemle yaz',
-              style: TextStyle(color: c.inkDim, fontSize: 13),
+              style: TextStyle(color: c.inkDim, fontSize: T.body),
             ),
             const Spacer(),
             IconButton(

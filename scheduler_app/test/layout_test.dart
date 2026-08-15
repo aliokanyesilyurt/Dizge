@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scheduler_app/models/task.dart';
@@ -56,6 +58,62 @@ void main() {
       expect(headerPadding.right, S.gutter);
       expect(listPadding.left, headerPadding.left);
       expect(listPadding.right, headerPadding.right);
+    });
+  });
+
+  group('tipografi göçü', () {
+    /// `lib/` altındaki her Dart dosyası, yoluyla birlikte.
+    Iterable<({String path, String source})> libSources() sync* {
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        yield (
+          path: entity.path.replaceAll(r'\', '/'),
+          source: entity.readAsStringSync(),
+        );
+      }
+    }
+
+    test('hiçbir yerde elle yazılmış yazı boyu kalmadı', () {
+      // Ölçeğin tek gerçek koruması bu: bir dosyada `fontSize: 13.5` yazmak
+      // serbest kaldığı sürece ölçek bir öneriden ibaret olur.
+      final offenders = <String>[];
+
+      for (final file in libSources()) {
+        for (final match in RegExp(
+          r'fontSize: [0-9]',
+        ).allMatches(file.source)) {
+          offenders.add('${file.path} (${match.group(0)}…)');
+        }
+      }
+
+      expect(offenders, isEmpty, reason: 'ölçek dışı yazı boyu');
+    });
+
+    test('T.dense yalnız yoğun yüzeylerde kullanılır', () {
+      // `dense` ölçeğin en küçük kademesi ve bir **istisna**: metnin sabit
+      // boyutlu bir hücreye sığmak zorunda olduğu takvim/grafik yüzeyleri.
+      // Sıradan bir ekranda kullanılırsa okunabilirlik sessizce düşer.
+      const allowed = {
+        'lib/widgets/week_time_grid.dart',
+        'lib/widgets/habit_heatmap.dart',
+        'lib/widgets/day_pie_chart.dart',
+        'lib/widgets/report_charts.dart',
+        'lib/screens/monthly_view_screen.dart',
+        'lib/screens/year_view_screen.dart',
+        'lib/screens/week/daily_habit_strip.dart',
+        'lib/screens/week/pool_panel.dart',
+        'lib/screens/week_view_screen.dart',
+        // Kademenin tanımlandığı yer.
+        'lib/theme.dart',
+      };
+
+      final offenders = [
+        for (final file in libSources())
+          if (file.source.contains('T.dense') && !allowed.contains(file.path))
+            file.path,
+      ];
+
+      expect(offenders, isEmpty, reason: 'yoğun kademe yoğun olmayan yüzeyde');
     });
   });
 

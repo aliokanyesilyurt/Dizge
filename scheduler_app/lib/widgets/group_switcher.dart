@@ -124,7 +124,7 @@ class GroupSwitcher extends ConsumerWidget {
                       softWrap: false,
                       style: TextStyle(
                         color: ink,
-                        fontSize: 13,
+                        fontSize: T.body,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.1,
                       ),
@@ -173,7 +173,7 @@ class GroupSwitcher extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: active ? c.navActiveInk : c.ink,
-                fontSize: 13,
+                fontSize: T.body,
                 fontWeight: active ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
@@ -205,7 +205,7 @@ class GroupSwitcher extends ConsumerWidget {
             label,
             style: TextStyle(
               color: c.inkDim,
-              fontSize: 12.5,
+              fontSize: T.caption,
               fontWeight: FontWeight.w500,
             ),
           ),

@@ -254,7 +254,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: c.ink,
-                        fontSize: 24,
+                        fontSize: T.display,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.6,
                         height: 1.2,
@@ -266,7 +266,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: c.inkFaint,
-                        fontSize: 13,
+                        fontSize: T.body,
                         fontWeight: FontWeight.w500,
                         height: 1.45,
                       ),
@@ -328,7 +328,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: c.inkDim,
-                          fontSize: 12.5,
+                          fontSize: T.caption,
                           fontWeight: FontWeight.w500,
                           height: 1.35,
                         ),
@@ -351,7 +351,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                               _error!,
                               style: TextStyle(
                                 color: c.danger,
-                                fontSize: 12.5,
+                                fontSize: T.caption,
                                 fontWeight: FontWeight.w600,
                                 height: 1.35,
                               ),
@@ -393,7 +393,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                               'ya da',
                               style: TextStyle(
                                 color: c.inkFaint,
-                                fontSize: 11.5,
+                                fontSize: T.micro,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -436,7 +436,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: c.inkFaint,
-                            fontSize: 11.5,
+                            fontSize: T.micro,
                             fontWeight: FontWeight.w500,
                             height: 1.4,
                           ),
@@ -485,7 +485,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: c.inkFaint,
-                        fontSize: 11.5,
+                        fontSize: T.micro,
                         fontWeight: FontWeight.w500,
                         height: 1.4,
                       ),

@@ -175,7 +175,7 @@ class WeekHeaderBar extends StatelessWidget {
                       text: offsetLabel,
                       style: TextStyle(
                         color: isCurrentWeek ? c.accent : c.inkFaint,
-                        fontSize: 12,
+                        fontSize: T.caption,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.1,
                       ),

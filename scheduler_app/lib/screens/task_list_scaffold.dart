@@ -117,7 +117,7 @@ class EmptyState extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: c.inkDim,
-                  fontSize: 14.5,
+                  fontSize: T.strong,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.1,
                 ),
@@ -129,7 +129,7 @@ class EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: c.inkFaint,
-                fontSize: 13,
+                fontSize: T.body,
                 height: 1.55,
                 fontWeight: FontWeight.w500,
               ),
@@ -206,7 +206,7 @@ class _RowState extends State<_Row> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: c.ink,
-                        fontSize: 14.5,
+                        fontSize: T.strong,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.1,
                       ),
@@ -223,7 +223,7 @@ class _RowState extends State<_Row> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: c.inkFaint,
-                            fontSize: 12,
+                            fontSize: T.caption,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -236,7 +236,7 @@ class _RowState extends State<_Row> {
                 widget.trailing,
                 style: TextStyle(
                   color: c.inkDim,
-                  fontSize: 12,
+                  fontSize: T.caption,
                   fontWeight: FontWeight.w500,
                 ),
               ),

@@ -34,7 +34,7 @@ class CompletionRing extends StatelessWidget {
                 centerLabel ?? '%${(value * 100).round()}',
                 style: TextStyle(
                   color: c.ink,
-                  fontSize: 26,
+                  fontSize: T.display,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.8,
                 ),
@@ -44,7 +44,7 @@ class CompletionRing extends StatelessWidget {
                   caption!,
                   style: TextStyle(
                     color: c.inkFaint,
-                    fontSize: 11,
+                    fontSize: T.micro,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -121,7 +121,7 @@ class HBarChart extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Text(
           emptyText,
-          style: TextStyle(color: c.inkFaint, fontSize: 12.5, height: 1.4),
+          style: TextStyle(color: c.inkFaint, fontSize: T.caption, height: 1.4),
         ),
       );
     }
@@ -142,7 +142,7 @@ class HBarChart extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: c.inkDim,
-                      fontSize: 12.5,
+                      fontSize: T.caption,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -182,7 +182,7 @@ class HBarChart extends StatelessWidget {
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       color: c.inkDim,
-                      fontSize: 12,
+                      fontSize: T.caption,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -230,7 +230,7 @@ class VBarChart extends StatelessWidget {
                       values[i] < 0 ? '–' : '%${(values[i] * 100).round()}',
                       style: TextStyle(
                         color: c.inkFaint,
-                        fontSize: 9.5,
+                        fontSize: T.dense,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -262,7 +262,7 @@ class VBarChart extends StatelessWidget {
                       labels[i],
                       style: TextStyle(
                         color: i == highlightIndex ? c.secondary : c.inkFaint,
-                        fontSize: 10,
+                        fontSize: T.dense,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

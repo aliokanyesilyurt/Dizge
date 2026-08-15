@@ -96,7 +96,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                   : '${_weekdays[d.weekday - 1]}  ·  $done/${tasks.length} tamam',
               style: TextStyle(
                 color: c.inkFaint,
-                fontSize: 12,
+                fontSize: T.caption,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -197,7 +197,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                 '$count',
                 style: TextStyle(
                   color: c.inkFaint,
-                  fontSize: 10.5,
+                  fontSize: T.micro,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -283,19 +283,22 @@ class _TaskCard extends StatelessWidget {
                             style: TextStyle(
                               color: done ? c.inkFaint : c.ink,
                               fontWeight: FontWeight.w700,
-                              fontSize: 14,
+                              fontSize: T.strong,
                               letterSpacing: -0.2,
                             ),
                           ),
                           Text(
                             task.durationString,
-                            style: TextStyle(color: c.inkFaint, fontSize: 11),
+                            style: TextStyle(
+                              color: c.inkFaint,
+                              fontSize: T.micro,
+                            ),
                           ),
                         ],
                       )
                     : Text(
                         'Saatsiz',
-                        style: TextStyle(color: c.inkFaint, fontSize: 11),
+                        style: TextStyle(color: c.inkFaint, fontSize: T.micro),
                       ),
               ),
               const SizedBox(width: 10),
@@ -316,7 +319,7 @@ class _TaskCard extends StatelessWidget {
                             style: TextStyle(
                               color: done ? c.inkDim : c.ink,
                               fontWeight: FontWeight.w600,
-                              fontSize: 14.5,
+                              fontSize: T.strong,
                               letterSpacing: -0.1,
                               decoration: done
                                   ? TextDecoration.lineThrough
@@ -352,7 +355,10 @@ class _TaskCard extends StatelessWidget {
                               task.place,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: c.inkDim, fontSize: 11),
+                              style: TextStyle(
+                                color: c.inkDim,
+                                fontSize: T.micro,
+                              ),
                             ),
                           ),
                         ],
@@ -367,7 +373,7 @@ class _TaskCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: c.inkDim,
-                            fontSize: 12,
+                            fontSize: T.caption,
                             height: 1.35,
                           ),
                         ),
@@ -457,7 +463,7 @@ class _MiniTag extends StatelessWidget {
         text,
         style: TextStyle(
           color: style.text,
-          fontSize: 10.5,
+          fontSize: T.micro,
           fontWeight: FontWeight.w600,
         ),
       ),

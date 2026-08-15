@@ -123,7 +123,7 @@ class PoolRail extends StatelessWidget {
                       child: Text(
                         '$count',
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: T.dense,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -142,7 +142,7 @@ class PoolRail extends StatelessWidget {
                           overflow: TextOverflow.clip,
                           style: TextStyle(
                             color: c.inkFaint,
-                            fontSize: 9.5,
+                            fontSize: T.dense,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
                           ),
@@ -181,7 +181,7 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: c.ink,
-                fontSize: 13,
+                fontSize: T.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.1,
               ),
@@ -194,7 +194,7 @@ class _Header extends StatelessWidget {
               child: Text(
                 '$count',
                 style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: T.dense,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -238,7 +238,7 @@ class _EmptyPool extends StatelessWidget {
             'Burası boş',
             style: TextStyle(
               color: c.inkDim,
-              fontSize: 12.5,
+              fontSize: T.caption,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -246,7 +246,11 @@ class _EmptyPool extends StatelessWidget {
           Text(
             'Bugün olmayacak bir işi buraya bırak; silmeden kenarda bekler.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: c.inkFaint, fontSize: 11.5, height: 1.35),
+            style: TextStyle(
+              color: c.inkFaint,
+              fontSize: T.micro,
+              height: 1.35,
+            ),
           ),
         ],
       ),
@@ -308,7 +312,7 @@ class _PoolCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: style.ink,
-                            fontSize: 12.5,
+                            fontSize: T.caption,
                             height: 1.25,
                             fontWeight: FontWeight.w600,
                           ),
@@ -318,7 +322,7 @@ class _PoolCard extends StatelessWidget {
                           _waitLabel(waited),
                           style: TextStyle(
                             color: style.ink.withValues(alpha: 0.75),
-                            fontSize: 10.5,
+                            fontSize: T.dense,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -411,7 +415,7 @@ class _DragFeedback extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: style.ink,
-              fontSize: 12,
+              fontSize: T.caption,
               fontWeight: FontWeight.w600,
             ),
           ),

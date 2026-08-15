@@ -111,7 +111,7 @@ class _HabitCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: c.ink,
-                        fontSize: 15.5,
+                        fontSize: T.strong,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.2,
                       ),
@@ -122,7 +122,7 @@ class _HabitCard extends ConsumerWidget {
                           : 'Haftada ${habit.targetPerWeek}',
                       style: TextStyle(
                         color: c.inkFaint,
-                        fontSize: 11.5,
+                        fontSize: T.micro,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -238,7 +238,7 @@ class _TodayButton extends StatelessWidget {
                 'Bugün',
                 style: TextStyle(
                   color: done ? onColor : c.inkDim,
-                  fontSize: 12.5,
+                  fontSize: T.caption,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -274,7 +274,7 @@ class _Stat extends StatelessWidget {
           value,
           style: TextStyle(
             color: color,
-            fontSize: 19,
+            fontSize: T.headline,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
           ),
@@ -284,7 +284,7 @@ class _Stat extends StatelessWidget {
           label,
           style: TextStyle(
             color: c.inkFaint,
-            fontSize: 11.5,
+            fontSize: T.micro,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -383,7 +383,10 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Text('Hedef', style: TextStyle(color: c.inkDim, fontSize: 13)),
+                Text(
+                  'Hedef',
+                  style: TextStyle(color: c.inkDim, fontSize: T.body),
+                ),
                 Expanded(
                   child: Slider(
                     value: _target.toDouble(),
@@ -398,7 +401,7 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
                   '$_target/hafta',
                   style: TextStyle(
                     color: c.ink,
-                    fontSize: 13,
+                    fontSize: T.body,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

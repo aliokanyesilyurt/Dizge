@@ -265,7 +265,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       ownerId: widget.existing?.ownerId,
       style: TextStyle(
         color: c.inkFaint,
-        fontSize: 12.5,
+        fontSize: T.caption,
         fontWeight: FontWeight.w500,
       ),
     ),
@@ -301,7 +301,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             textCapitalization: TextCapitalization.sentences,
             style: TextStyle(
               color: c.ink,
-              fontSize: 21,
+              fontSize: T.headline,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.4,
             ),
@@ -315,7 +315,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               hintText: 'Başlıksız',
               hintStyle: TextStyle(
                 color: c.inkFaint,
-                fontSize: 21,
+                fontSize: T.headline,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.4,
               ),
@@ -430,7 +430,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                       child: Text(
                         Repeat.weekdayShort[i],
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: T.caption,
                           fontWeight: FontWeight.w600,
                           color: sel ? c.navActiveInk : c.inkDim,
                         ),
@@ -453,7 +453,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                       : 'Bitiş: ${_fmtDate(_until!)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: c.inkDim, fontSize: 13),
+                  style: TextStyle(color: c.inkDim, fontSize: T.body),
                 ),
               ),
               TextButton(
@@ -576,7 +576,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             _start == null
                 ? 'Saatsiz işler günün listesinde en altta durur.'
                 : 'Bitiş: ${Task.formatTime((_start! + _duration).clamp(0.0, 24.0))}  ·  süre ${Task.formatDuration(_duration)}',
-            style: TextStyle(color: c.inkFaint, fontSize: 12),
+            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
           ),
         ],
       ),
@@ -611,7 +611,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             children: [
               Text(
                 'İnce ayar',
-                style: TextStyle(color: c.inkFaint, fontSize: 12),
+                style: TextStyle(color: c.inkFaint, fontSize: T.caption),
               ),
               Expanded(
                 child: Slider(
@@ -664,7 +664,10 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 children: [
                   Icon(Icons.add_rounded, size: 14, color: c.inkDim),
                   const SizedBox(width: 5),
-                  Text('Özel', style: TextStyle(color: c.inkDim, fontSize: 13)),
+                  Text(
+                    'Özel',
+                    style: TextStyle(color: c.inkDim, fontSize: T.body),
+                  ),
                 ],
               ),
             ),
@@ -727,7 +730,11 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             child: Text(
               'Randevu, ders, uçuş gibi kımıldatılamayan işler. '
               '"Günü kurtar" bunlara dokunmaz.',
-              style: TextStyle(color: c.inkDim, fontSize: 12, height: 1.35),
+              style: TextStyle(
+                color: c.inkDim,
+                fontSize: T.caption,
+                height: 1.35,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -750,7 +757,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       child: TextField(
         controller: _place,
         textCapitalization: TextCapitalization.sentences,
-        style: TextStyle(color: c.ink, fontSize: 15),
+        style: TextStyle(color: c.ink, fontSize: T.strong),
         onChanged: (_) => setState(() {}),
         decoration: const InputDecoration(hintText: 'Ev, ofis, spor salonu…'),
       ),
@@ -781,7 +788,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               minLines: 2,
               maxLines: 5,
               textCapitalization: TextCapitalization.sentences,
-              style: TextStyle(color: c.ink, fontSize: 15),
+              style: TextStyle(color: c.ink, fontSize: T.strong),
               onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(hintText: 'Bir şeyler yaz…'),
             ),
@@ -805,7 +812,11 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               _summary(),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: c.inkFaint, fontSize: 12, height: 1.35),
+              style: TextStyle(
+                color: c.inkFaint,
+                fontSize: T.caption,
+                height: 1.35,
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -986,7 +997,7 @@ class _PropertyRow extends StatelessWidget {
                       width: 76,
                       child: Text(
                         label,
-                        style: TextStyle(color: c.inkDim, fontSize: 13.5),
+                        style: TextStyle(color: c.inkDim, fontSize: T.body),
                       ),
                     ),
                     Expanded(
@@ -1003,7 +1014,7 @@ class _PropertyRow extends StatelessWidget {
                                 color: (value == 'Boş')
                                     ? c.inkFaint
                                     : (valueColor ?? c.ink),
-                                fontSize: 14,
+                                fontSize: T.strong,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1085,7 +1096,7 @@ class _BigChoice extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: selected ? c.navActiveInk : c.ink,
-                  fontSize: 14,
+                  fontSize: T.strong,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1094,7 +1105,7 @@ class _BigChoice extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   color: c.inkFaint,
-                  fontSize: 11.5,
+                  fontSize: T.micro,
                   height: 1.25,
                 ),
               ),
@@ -1137,7 +1148,7 @@ class _ChoiceChipTile extends StatelessWidget {
             text,
             style: TextStyle(
               color: selected ? c.navActiveInk : c.inkDim,
-              fontSize: 13,
+              fontSize: T.body,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
@@ -1173,7 +1184,7 @@ class _Tag extends StatelessWidget {
         text,
         style: TextStyle(
           color: style.text,
-          fontSize: 13,
+          fontSize: T.body,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -1214,7 +1225,7 @@ class _SegToggle extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: active ? c.ink : c.inkFaint,
-                    fontSize: 13,
+                    fontSize: T.body,
                     fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),

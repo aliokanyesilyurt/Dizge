@@ -168,7 +168,7 @@ class _NoteRowState extends State<_NoteRow> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: c.ink,
-                        fontSize: 14.5,
+                        fontSize: T.strong,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.1,
                       ),
@@ -182,7 +182,7 @@ class _NoteRowState extends State<_NoteRow> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: c.inkFaint,
-                            fontSize: 12,
+                            fontSize: T.caption,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -208,7 +208,7 @@ class _NoteRowState extends State<_NoteRow> {
                         '${widget.backlinkCount}',
                         style: TextStyle(
                           color: c.inkDim,
-                          fontSize: 11.5,
+                          fontSize: T.micro,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -362,7 +362,7 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                         controller: _titleCtrl,
                         style: TextStyle(
                           color: c.ink,
-                          fontSize: 26,
+                          fontSize: T.display,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.6,
                         ),
@@ -375,7 +375,7 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                           hintText: 'Başlık',
                           hintStyle: TextStyle(
                             color: c.inkFaint,
-                            fontSize: 26,
+                            fontSize: T.display,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.6,
                           ),
@@ -391,7 +391,7 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                         minLines: 6,
                         style: TextStyle(
                           color: c.ink,
-                          fontSize: 15,
+                          fontSize: T.strong,
                           height: 1.6,
                           fontWeight: FontWeight.w500,
                         ),
@@ -439,7 +439,7 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                           'notun açıklamasında [[${widget.note.title}]] yaz.',
                           style: TextStyle(
                             color: c.inkFaint,
-                            fontSize: 12.5,
+                            fontSize: T.caption,
                             height: 1.5,
                           ),
                         )
@@ -486,7 +486,7 @@ class _PanelLabel extends StatelessWidget {
           text,
           style: TextStyle(
             color: c.inkFaint,
-            fontSize: 11.5,
+            fontSize: T.micro,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,
           ),
@@ -541,7 +541,7 @@ class _LinkChip extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: color,
-                  fontSize: 12.5,
+                  fontSize: T.caption,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -591,7 +591,7 @@ class _BacklinkRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: c.ink,
-                    fontSize: 13.5,
+                    fontSize: T.body,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -600,7 +600,7 @@ class _BacklinkRow extends StatelessWidget {
                 isTask ? 'Görev' : 'Not',
                 style: TextStyle(
                   color: c.inkFaint,
-                  fontSize: 11,
+                  fontSize: T.micro,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -685,7 +685,7 @@ class _LinkPickerState extends State<_LinkPicker> {
                       leading: Icon(Icons.add_rounded, color: c.accent),
                       title: Text(
                         '"${_query.text.trim()}" notunu oluştur ve bağla',
-                        style: TextStyle(color: c.ink, fontSize: 14),
+                        style: TextStyle(color: c.ink, fontSize: T.strong),
                       ),
                       onTap: () => Navigator.pop(context, _query.text.trim()),
                     ),
@@ -703,7 +703,7 @@ class _LinkPickerState extends State<_LinkPicker> {
                         n.title.isEmpty ? 'Başlıksız' : n.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: c.ink, fontSize: 14),
+                        style: TextStyle(color: c.ink, fontSize: T.strong),
                       ),
                       onTap: () => Navigator.pop(context, n.title),
                     ),

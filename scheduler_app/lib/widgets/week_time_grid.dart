@@ -707,7 +707,7 @@ class _HourGutter extends StatelessWidget {
                 // saat sütunu dekorasyon değil, saati oradan okuyorsun.
                 // `inkDim` hâlâ ikincil ama AA'yı iki temada da geçiyor.
                 color: c.inkDim,
-                fontSize: 10.5,
+                fontSize: T.dense,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.2,
               ),
@@ -945,7 +945,7 @@ class _EventBlockState extends State<_EventBlock> {
 
     final titleStyle = TextStyle(
       color: style.ink,
-      fontSize: 11.5,
+      fontSize: T.micro,
       height: 1.2,
       fontWeight: FontWeight.w600,
       decoration: (done || widget.skipped) ? TextDecoration.lineThrough : null,
@@ -953,7 +953,7 @@ class _EventBlockState extends State<_EventBlock> {
     );
     final timeStyle = TextStyle(
       color: style.ink.withValues(alpha: 0.82),
-      fontSize: 10.5,
+      fontSize: T.dense,
       height: 1.2,
       fontWeight: FontWeight.w500,
     );
@@ -1314,7 +1314,7 @@ class _Preview extends StatelessWidget {
                   task.title.isEmpty ? 'Başlıksız' : task.title,
                   style: TextStyle(
                     color: c.ink,
-                    fontSize: 14,
+                    fontSize: T.strong,
                     fontWeight: FontWeight.w600,
                     height: 1.25,
                     decoration: (done || skipped)
@@ -1338,7 +1338,7 @@ class _Preview extends StatelessWidget {
                 ownerId: task.ownerId,
                 style: TextStyle(
                   color: c.inkDim,
-                  fontSize: 12.5,
+                  fontSize: T.caption,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1358,7 +1358,7 @@ class _Preview extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: c.inkDim,
-                        fontSize: 12,
+                        fontSize: T.caption,
                         height: 1.3,
                       ),
                     ),
@@ -1474,7 +1474,7 @@ class _DragPreview extends StatelessWidget {
                         label,
                         style: TextStyle(
                           color: style.ink,
-                          fontSize: 11,
+                          fontSize: T.micro,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.2,
                         ),
@@ -1487,7 +1487,7 @@ class _DragPreview extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: style.ink.withValues(alpha: 0.9),
-                            fontSize: 11.5,
+                            fontSize: T.micro,
                             height: 1.15,
                             fontWeight: FontWeight.w600,
                           ),

@@ -224,7 +224,7 @@ class _OfflineBanner extends ConsumerWidget {
                     'Çevrimdışı — değişiklikler cihazda saklanıyor',
                     style: TextStyle(
                       color: c.inkFaint,
-                      fontSize: 11.5,
+                      fontSize: T.micro,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -386,7 +386,7 @@ class _Brand extends StatelessWidget {
               softWrap: false,
               style: TextStyle(
                 color: c.ink,
-                fontSize: 17,
+                fontSize: T.title,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.4,
               ),
@@ -475,7 +475,7 @@ class _NavTileState extends State<_NavTile> {
                         softWrap: false,
                         style: TextStyle(
                           color: ink,
-                          fontSize: 13.5,
+                          fontSize: T.body,
                           fontWeight: selected
                               ? FontWeight.w600
                               : FontWeight.w500,
@@ -682,7 +682,7 @@ class _ProfileTile extends ConsumerWidget {
                           softWrap: false,
                           style: TextStyle(
                             color: c.ink,
-                            fontSize: 13,
+                            fontSize: T.body,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -692,7 +692,7 @@ class _ProfileTile extends ConsumerWidget {
                           softWrap: false,
                           style: TextStyle(
                             color: c.inkFaint,
-                            fontSize: 11,
+                            fontSize: T.micro,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

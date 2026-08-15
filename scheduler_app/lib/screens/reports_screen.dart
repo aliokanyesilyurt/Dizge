@@ -194,7 +194,7 @@ class _Metric extends StatelessWidget {
           value,
           style: TextStyle(
             color: color,
-            fontSize: 23,
+            fontSize: T.display,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.8,
           ),
@@ -207,7 +207,7 @@ class _Metric extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: c.inkDim,
-              fontSize: 12.5,
+              fontSize: T.caption,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -246,7 +246,7 @@ class _Card extends StatelessWidget {
                 subtitle!,
                 style: TextStyle(
                   color: c.inkFaint,
-                  fontSize: 11.5,
+                  fontSize: T.micro,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -288,7 +288,7 @@ class _RangePicker extends StatelessWidget {
               label,
               style: TextStyle(
                 color: sel ? c.navActiveInk : c.inkFaint,
-                fontSize: 12.5,
+                fontSize: T.caption,
                 fontWeight: FontWeight.w600,
               ),
             ),

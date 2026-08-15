@@ -54,7 +54,7 @@ enum _Mode { create, accept }
 
 /// Diyalogların açıklama metni — tek yerde, üç diyalogda aynı ton.
 TextStyle _faint(BuildContext context) =>
-    TextStyle(color: context.colors.inkFaint, fontSize: 12, height: 1.4);
+    TextStyle(color: context.colors.inkFaint, fontSize: T.caption, height: 1.4);
 
 /// Tek alanlı iki diyalog (kur / kabul et) aynı iskeleti paylaşıyor: metin
 /// alanı, çevrimdışı uyarısı, hata satırı, bekleme durumu.
@@ -342,7 +342,7 @@ class _TokenBox extends StatelessWidget {
                   'Panoya kopyalandı',
                   style: TextStyle(
                     color: c.accent,
-                    fontSize: 11.5,
+                    fontSize: T.micro,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -353,7 +353,7 @@ class _TokenBox extends StatelessWidget {
               token,
               style: TextStyle(
                 color: c.inkDim,
-                fontSize: 11,
+                fontSize: T.micro,
                 fontFamily: 'monospace',
               ),
             ),
@@ -404,7 +404,7 @@ class _ErrorNote extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: TextStyle(color: c.danger, fontSize: 11.5),
+              style: TextStyle(color: c.danger, fontSize: T.micro),
             ),
           ),
         ],
