@@ -1,6 +1,6 @@
 # Görünüm Cilası Planı — Ritim: Tipografi · Boşluk · Hizalama
 
-**Durum:** onay bekliyor
+**Durum:** C1–C3 indi (15 Ağustos) · C4–C6 onay bekliyor
 **Tarih:** 15 Ağustos 2026
 **Önceki:** `neon-tema-plani.md` (renk ve derinlik bitti),
 `neon-kategori-renkleri-plani.md` (kategori paleti bitti),
@@ -45,13 +45,20 @@ bir şey anlatmıyor ama yan yana gelen iki kartı görünür biçimde eşitsiz 
 | Rutinler / Yapılacaklar | 24 | 20 | **4 px** |
 | Raporlar | 24 | 20 | **4 px** |
 | Notlar | 24 | 20 | **4 px** |
-| Gün | 24 | 16 | **8 px** |
-| Ay | 24 | 14 | **10 px** |
+| Gün\* | 24 (grafik) | 16 (liste) | **8 px** |
+| Ay\* | 16 (gün adları) | 14 (ızgara) | **2 px** |
 | Hesap | 24 | 24 | 0 ✅ |
 
-`SectionHeader` her ekranda `fromLTRB(24, 22, 18, 18)` ile çiziliyor, altındaki
-liste ise kendi boşluğunu seçiyor. Sonuç: **başlık ile kartlar hiçbir ekranda
-aynı çizgide değil** ve sekme değiştirince içerik yatayda zıplıyor.
+\* Gün ve Ay `SectionHeader` kullanmıyor — kendi başlıkları var (Gün'de bir
+`AppBar`, Ay'da bir gezinme satırı). Onlardaki kayma **kendi içlerinde**:
+Gün'de saat grafiği ile altındaki liste ayraçta buluşurken iki farklı kenardan
+başlıyor; Ay'da "Pzt Sal Çar" etiketleri altlarındaki sütunlarla iki piksel
+kayık.
+
+Kalan dört ekranda `SectionHeader` `fromLTRB(24, 22, 18, 18)` ile çiziliyor,
+altındaki liste ise kendi boşluğunu seçiyor. Sonuç: **başlık ile kartlar
+hiçbir ekranda aynı çizgide değil** ve sekme değiştirince içerik yatayda
+zıplıyor.
 
 **Kritik bulgu — bu iş de çoğunlukla bir değer değişimi.** `R` ve `Motion` bu
 depoda zaten var ve çalışıyor; eksik olan iki kardeş ölçek. Ekran mimarisine,
@@ -154,7 +161,7 @@ sarmalı.
 
 ## 4. Dilimler
 
-### C1 — Ölçekler temaya girer, hiçbir çağrı yeri değişmez
+### C1 — Ölçekler temaya girer, hiçbir çağrı yeri değişmez ✅ `e474a98`
 
 `theme.dart`'a `S` ve `T` eklenir; `textTheme` `T`'den türetilir. Ekran
 dosyalarına **dokunulmaz**.
@@ -164,7 +171,7 @@ dosyalarına **dokunulmaz**.
 ve geçer: (a) `T` kademeleri artan sırada ve hiçbiri 10'un altında değil,
 (b) `textTheme.headlineSmall.fontSize == T.headline`.
 
-### C2 — Hizalama: başlık ile gövde aynı çizgiye gelir
+### C2 — Hizalama: başlık ile gövde aynı çizgiye gelir ✅ `d598c3a`
 
 `SectionHeader` yatay boşluğunu `S.gutter`'dan okur. Onu kullanan yedi ekranın
 liste/gövde boşluğu da aynı sabite bağlanır. Ay ve Gün ekranlarının ızgara
@@ -174,7 +181,7 @@ gövdeleri C1d'ye göre muaf; yalnız başlıkları hizalanır.
 kenarında elle yazılmış boşluk göstermiyor; Windows derlemesinde yedi sekme
 sırayla gezildiğinde başlık yatayda **hiç zıplamıyor** (elle görsel doğrulama).
 
-### C3 — Geniş pencerede okuma genişliği
+### C3 — Geniş pencerede okuma genişliği ✅ `0fb2735`
 
 `ContentColumn` widget'ı (`lib/widgets/content_column.dart`) yazılır ve C1e'nin
 dört ekranına geçirilir.
@@ -246,7 +253,38 @@ anlaşılmaz.
 
 ---
 
-## 7. Sıra
+## 7. Ara kapanış notu — C1–C3 (15 Ağustos)
+
+Üç dilim indi, test sayısı 446'dan 453'e çıktı, `flutter analyze` temiz.
+
+**Planın düzeltildiği yer.** §2'nin ilk hâli Gün ve Ay ekranlarının da
+`SectionHeader` kullandığını varsayıyordu; kullanmıyorlar. Oradaki kayma
+başlık-gövde değil, **gövde-gövde** kaymasıymış. Tablo düzeltildi ve C2 o
+ekranlarda kendi içlerindeki hizalamayı kapattı — Ay'daki iki piksel, plan
+yazılırken hiç fark edilmemiş bir bulguydu.
+
+**Ölçekte verilen iki karar.** `textTheme`'in `bodyLarge` ve `bodyMedium`
+rolleri aynı kademeye (14) düştü: aralarındaki eski 1 punto fark hiçbir yerde
+bir hiyerarşi anlatmıyordu. `headlineSmall` 21'den 20'ye indi — ekran
+başlıkları bir punto küçüldü, ölçeğin dışında kalan tek sayıydı.
+
+**Planda olmayıp eklenen.** `S.fabGap`: üç ekranda listenin altına elle `100`
+yazılıydı ve bu bir ölçek kademesi değil, FAB'ın boyuna bağlı bir **ölçü**.
+Ölçeğe kademe olarak sokmak yerine adı konmuş bir sabit oldu.
+
+**Test tarafı.** Yeni `test/layout_test.dart`: başlık ile listenin kenarları
+eşit; 1600 piksellik pencerede sütun 720'de duruyor; 600'de sınır devreye
+girmiyor; başlık listeyle aynı sol kenarda kalıyor. Depoda golden test
+olmadığı için ölçü kaymaları gözle görülene kadar sessiz kalıyordu — bu dört
+kural o sessizliği kapatıyor.
+
+**Kalan.** C4 (182 satır içi `TextStyle`'ın göçü) ve C5 (boşluk göçü) hâlâ
+açık; ölçekler kurulu ama çağrı yerleri eski sayılarını kullanmaya devam
+ediyor. C6 ancak ikisi bittikten sonra anlamlı.
+
+---
+
+## 8. Sıra
 
 C1 → C2 → C3 → C4 → C5 → C6.
 
