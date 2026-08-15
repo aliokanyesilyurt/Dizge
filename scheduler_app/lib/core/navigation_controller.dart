@@ -72,6 +72,11 @@ class NavigationController extends StateNotifier<NavState> {
 
   /// Ay görünümünden bir güne girer.
   void openDay(DateTime day) => state = NavState(AppSection.hour, day: day);
+
+  /// Bir günün ajanda yaprağını açar (A2 — ajanda modunda görev yazma kapısı
+  /// buraya iniyor).
+  void openAgenda(DateTime day) =>
+      state = NavState(AppSection.agenda, day: day);
 }
 
 final navigationProvider =

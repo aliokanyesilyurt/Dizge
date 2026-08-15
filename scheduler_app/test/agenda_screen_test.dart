@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:scheduler_app/core/navigation_controller.dart';
 import 'package:scheduler_app/core/usage_mode_controller.dart';
 import 'package:scheduler_app/data/app_store.dart';
 import 'package:scheduler_app/data/local_store.dart';
@@ -8,6 +11,7 @@ import 'package:scheduler_app/models/task.dart';
 import 'package:scheduler_app/screens/agenda_screen.dart';
 import 'package:scheduler_app/screens/app_shell.dart';
 import 'package:scheduler_app/widgets/ink_canvas.dart';
+import 'package:scheduler_app/widgets/quick_add_sheet.dart';
 
 import 'helpers.dart';
 
@@ -127,6 +131,61 @@ void main() {
 
       await pumpShell(tester, UsageMode.karma);
       expect(find.text('Ajanda'), findsOneWidget);
+    });
+  });
+
+  group('görev yazma kapısı', () {
+    Future<ProviderContainer> pumpGate(
+      WidgetTester tester,
+      UsageMode mode,
+    ) async {
+      final store = InMemoryStore();
+      await store.writeString(kUsageModeKey, UsageModeController.encode(mode));
+
+      return pumpApp(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => showQuickAdd(context, date: DateTime.now()),
+                child: const Text('Ekle'),
+              ),
+            ),
+          ),
+        ),
+        overrides: [localStoreProvider.overrideWithValue(store)],
+      );
+    }
+
+    testWidgets('ajanda modunda klavye yerine yaprak açılır', (tester) async {
+      final container = await pumpGate(tester, UsageMode.ajanda);
+
+      await tester.tap(find.text('Ekle'));
+      await tester.pumpAndSettle();
+
+      // Sheet açılmadı; gezinme ajandaya döndü.
+      expect(find.byType(QuickAddSheet), findsNothing);
+      expect(container.read(navigationProvider).section, AppSection.agenda);
+    });
+
+    testWidgets('karma ve klasik modda klavye açılır', (tester) async {
+      for (final mode in [UsageMode.karma, UsageMode.klasik]) {
+        final container = await pumpGate(tester, mode);
+
+        await tester.tap(find.text('Ekle'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(QuickAddSheet), findsOneWidget, reason: '$mode');
+        expect(
+          container.read(navigationProvider).section,
+          isNot(AppSection.agenda),
+          reason: '$mode',
+        );
+
+        await tester.tapAt(const Offset(10, 10));
+        await tester.pumpAndSettle();
+      }
     });
   });
 }

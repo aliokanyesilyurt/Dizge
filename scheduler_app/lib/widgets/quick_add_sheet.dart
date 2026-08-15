@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/navigation_controller.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
+import '../core/usage_mode_controller.dart';
 import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
@@ -21,6 +23,18 @@ Future<bool?> showQuickAdd(
   required DateTime date,
   double? startHour,
 }) {
+  // Ajanda modunda görev yazmanın kapısı klavye değil, kalem: sheet hiç
+  // açılmaz, o günün yaprağına gidilir (A2).
+  //
+  // Yönlendirmenin burada olması bilinçli — on çağrı yeri bu tek fonksiyona
+  // iniyor. Her ekranın kendi koşulunu yazması, on birinci çağrı yerinde
+  // unutulacak bir kural demekti.
+  final container = ProviderScope.containerOf(context, listen: false);
+  if (container.read(usageModeProvider).opensAgendaFirst) {
+    container.read(navigationProvider.notifier).openAgenda(date);
+    return Future.value(false);
+  }
+
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
