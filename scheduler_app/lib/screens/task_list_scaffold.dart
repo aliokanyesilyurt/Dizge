@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../theme.dart';
+import '../widgets/content_column.dart';
 import '../widgets/owner_avatar.dart';
 import 'section_header.dart';
 
@@ -36,29 +37,31 @@ class TaskListScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SectionHeader(title: title, subtitle: subtitle),
-            Expanded(
-              child: tasks.isEmpty
-                  ? EmptyState(icon: emptyIcon, text: emptyText)
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
-                        S.gutter,
-                        S.xs,
-                        S.gutter,
-                        S.fabGap,
+        child: ContentColumn(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SectionHeader(title: title, subtitle: subtitle),
+              Expanded(
+                child: tasks.isEmpty
+                    ? EmptyState(icon: emptyIcon, text: emptyText)
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(
+                          S.gutter,
+                          S.xs,
+                          S.gutter,
+                          S.fabGap,
+                        ),
+                        itemCount: tasks.length,
+                        itemBuilder: (_, i) => _Row(
+                          task: tasks[i],
+                          trailing: trailingTextFor(tasks[i]),
+                          onTap: () => onTap(tasks[i]),
+                        ),
                       ),
-                      itemCount: tasks.length,
-                      itemBuilder: (_, i) => _Row(
-                        task: tasks[i],
-                        trailing: trailingTextFor(tasks[i]),
-                        onTap: () => onTap(tasks[i]),
-                      ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(

@@ -4,6 +4,7 @@ import 'package:scheduler_app/models/task.dart';
 import 'package:scheduler_app/screens/section_header.dart';
 import 'package:scheduler_app/screens/task_list_scaffold.dart';
 import 'package:scheduler_app/theme.dart';
+import 'package:scheduler_app/widgets/content_column.dart';
 
 import 'helpers.dart';
 
@@ -55,6 +56,41 @@ void main() {
       expect(headerPadding.right, S.gutter);
       expect(listPadding.left, headerPadding.left);
       expect(listPadding.right, headerPadding.right);
+    });
+  });
+
+  group('okuma genişliği', () {
+    testWidgets('geniş pencerede içerik sütunda durur', (tester) async {
+      // 1600 piksellik bir pencerede satır, gözün sonundan başına dönemeyeceği
+      // kadar uzuyordu: solda renk vuruşu, sağda tarih, arada 1400 piksel boş.
+      useScreenSize(tester, const Size(1600, 900));
+      await pumpApp(tester, scaffoldWith([sampleTask()]));
+
+      expect(
+        tester.getSize(find.byType(ListView)).width,
+        ContentColumn.maxWidth,
+      );
+    });
+
+    testWidgets('dar pencerede sınır devreye girmez', (tester) async {
+      // Sınırın üst sınır olduğunun kanıtı: 600'de içerik daralmıyor, pencere
+      // ne veriyorsa onu alıyor.
+      useScreenSize(tester, const Size(600, 900));
+      await pumpApp(tester, scaffoldWith([sampleTask()]));
+
+      expect(tester.getSize(find.byType(ListView)).width, 600);
+    });
+
+    testWidgets('başlık da aynı sütunda kalır', (tester) async {
+      // Yalnız liste sınırlansaydı başlık tam genişlikte kalır ve hizalama
+      // geri bozulurdu — sarmal ikisini birden içine alıyor.
+      useScreenSize(tester, const Size(1600, 900));
+      await pumpApp(tester, scaffoldWith([sampleTask()]));
+
+      expect(
+        tester.getTopLeft(find.byType(SectionHeader)).dx,
+        tester.getTopLeft(find.byType(ListView)).dx,
+      );
     });
   });
 }

@@ -5,6 +5,7 @@ import '../data/app_store.dart';
 import '../models/habit.dart';
 import '../models/task.dart' show kTaskColors;
 import '../theme.dart';
+import '../widgets/content_column.dart';
 import '../widgets/habit_heatmap.dart';
 import 'section_header.dart';
 import 'task_list_scaffold.dart' show EmptyState;
@@ -28,34 +29,36 @@ class HabitsScreen extends ConsumerWidget {
         child: const Icon(Icons.add_rounded, size: 24),
       ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SectionHeader(
-              title: 'Alışkanlıklar',
-              subtitle: habits.isEmpty
-                  ? 'Zinciri kurmaya başla'
-                  : '${habits.length} alışkanlık · $activeStreaks aktif seri',
-            ),
-            Expanded(
-              child: habits.isEmpty
-                  ? const EmptyState(
-                      icon: Icons.local_fire_department_rounded,
-                      title: 'Henüz alışkanlık yok.',
-                      text: 'Spor, gitar, kod… küçük başla, zinciri kırma.',
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
-                        S.gutter,
-                        S.xs,
-                        S.gutter,
-                        S.fabGap,
+        child: ContentColumn(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SectionHeader(
+                title: 'Alışkanlıklar',
+                subtitle: habits.isEmpty
+                    ? 'Zinciri kurmaya başla'
+                    : '${habits.length} alışkanlık · $activeStreaks aktif seri',
+              ),
+              Expanded(
+                child: habits.isEmpty
+                    ? const EmptyState(
+                        icon: Icons.local_fire_department_rounded,
+                        title: 'Henüz alışkanlık yok.',
+                        text: 'Spor, gitar, kod… küçük başla, zinciri kırma.',
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(
+                          S.gutter,
+                          S.xs,
+                          S.gutter,
+                          S.fabGap,
+                        ),
+                        itemCount: habits.length,
+                        itemBuilder: (_, i) => _HabitCard(habit: habits[i]),
                       ),
-                      itemCount: habits.length,
-                      itemBuilder: (_, i) => _HabitCard(habit: habits[i]),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

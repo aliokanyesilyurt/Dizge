@@ -5,6 +5,7 @@ import '../data/app_store.dart';
 import '../models/task.dart';
 import '../services/productivity_report.dart';
 import '../theme.dart';
+import '../widgets/content_column.dart';
 import '../widgets/report_charts.dart';
 import 'section_header.dart';
 import 'task_list_scaffold.dart' show EmptyState;
@@ -31,72 +32,74 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SectionHeader(
-              title: 'Raporlar',
-              subtitle: 'Son $_days günün üretkenlik özeti',
-              trailing: _RangePicker(
-                days: _days,
-                onChanged: (d) => setState(() => _days = d),
+        child: ContentColumn(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SectionHeader(
+                title: 'Raporlar',
+                subtitle: 'Son $_days günün üretkenlik özeti',
+                trailing: _RangePicker(
+                  days: _days,
+                  onChanged: (d) => setState(() => _days = d),
+                ),
               ),
-            ),
-            Expanded(
-              child: report.planned == 0
-                  ? const EmptyState(
-                      icon: Icons.insights_rounded,
-                      title: 'Rapor için yeterli veri yok.',
-                      text:
-                          'Birkaç görev ekleyip tamamlayınca grafikler dolar.',
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(
-                        S.gutter,
-                        S.xs,
-                        S.gutter,
-                        S.xxl,
+              Expanded(
+                child: report.planned == 0
+                    ? const EmptyState(
+                        icon: Icons.insights_rounded,
+                        title: 'Rapor için yeterli veri yok.',
+                        text:
+                            'Birkaç görev ekleyip tamamlayınca grafikler dolar.',
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          S.gutter,
+                          S.xs,
+                          S.gutter,
+                          S.xxl,
+                        ),
+                        children: [
+                          _OverviewCard(report: report),
+                          const SizedBox(height: 14),
+                          _Card(
+                            title: 'Kategoriye göre zaman',
+                            child: HBarChart(
+                              rows: [
+                                for (final b in report.byCategory.take(6))
+                                  HBarRow(
+                                    b.label,
+                                    b.color,
+                                    b.hours,
+                                    Task.formatDuration(b.hours),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _Card(
+                            title: 'Etikete göre zaman',
+                            child: HBarChart(
+                              rows: [
+                                for (final b in report.byTag.take(6))
+                                  HBarRow(
+                                    '#${b.label}',
+                                    c.accent,
+                                    b.hours,
+                                    Task.formatDuration(b.hours),
+                                  ),
+                              ],
+                              emptyText:
+                                  'Görevlere etiket ekleyince burada dağılım çıkar.',
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _WeekdayCard(report: report),
+                        ],
                       ),
-                      children: [
-                        _OverviewCard(report: report),
-                        const SizedBox(height: 14),
-                        _Card(
-                          title: 'Kategoriye göre zaman',
-                          child: HBarChart(
-                            rows: [
-                              for (final b in report.byCategory.take(6))
-                                HBarRow(
-                                  b.label,
-                                  b.color,
-                                  b.hours,
-                                  Task.formatDuration(b.hours),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _Card(
-                          title: 'Etikete göre zaman',
-                          child: HBarChart(
-                            rows: [
-                              for (final b in report.byTag.take(6))
-                                HBarRow(
-                                  '#${b.label}',
-                                  c.accent,
-                                  b.hours,
-                                  Task.formatDuration(b.hours),
-                                ),
-                            ],
-                            emptyText:
-                                'Görevlere etiket ekleyince burada dağılım çıkar.',
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _WeekdayCard(report: report),
-                      ],
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
