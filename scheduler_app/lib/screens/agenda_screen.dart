@@ -5,6 +5,7 @@ import '../data/app_store.dart';
 import '../models/agenda_page.dart';
 import '../models/task.dart';
 import '../theme.dart';
+import '../widgets/agenda_review_sheet.dart';
 import '../widgets/ink_canvas.dart';
 import 'section_header.dart';
 
@@ -119,6 +120,19 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
     }
   }
 
+  Future<void> _review(AgendaPage page) async {
+    final created = await showAgendaReview(context, page: page);
+    if (!mounted || created == null || created == 0) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          created == 1 ? '1 görev oluşturuldu' : '$created görev oluşturuldu',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -128,6 +142,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
 
     return Scaffold(
       backgroundColor: c.bg,
+      floatingActionButton: page.strokes.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _review(page),
+              icon: const Icon(Icons.playlist_add_check_rounded, size: I.lg),
+              label: const Text('Görevlere çevir'),
+            ),
       body: SafeArea(
         child: Column(
           children: [

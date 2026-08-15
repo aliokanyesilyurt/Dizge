@@ -4,6 +4,7 @@ import 'package:scheduler_app/core/usage_mode_controller.dart';
 import 'package:scheduler_app/data/app_store.dart';
 import 'package:scheduler_app/data/local_store.dart';
 import 'package:scheduler_app/data/persistence_providers.dart';
+import 'package:scheduler_app/models/task.dart';
 import 'package:scheduler_app/screens/agenda_screen.dart';
 import 'package:scheduler_app/screens/app_shell.dart';
 import 'package:scheduler_app/widgets/ink_canvas.dart';
@@ -12,6 +13,10 @@ import 'helpers.dart';
 
 /// A4 — ajanda yüzeyi.
 void main() {
+  // Görevlerin tek gerçek kaynağı hâlâ statik `TaskRepository`; testler
+  // arasında sızmasın diye deponun yerleşik kalıbı burada da uygulanıyor.
+  setUp(TaskRepository.all.clear);
+
   /// Tuvalin ortasında kısa bir çizgi çizer — bir vuruş.
   Future<void> write(WidgetTester tester, {Offset from = Offset.zero}) async {
     final canvas = find.byType(InkCanvas);
