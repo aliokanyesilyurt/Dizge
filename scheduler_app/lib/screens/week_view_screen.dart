@@ -313,7 +313,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                       task.isRoutine
                           ? Icons.repeat_rounded
                           : Icons.inbox_rounded,
-                      size: 14,
+                      size: I.xs,
                       color: context.colors.inkFaint,
                     ),
                     const SizedBox(width: S.sm),
@@ -1026,7 +1026,7 @@ class _UntimedChip extends StatelessWidget {
                   done
                       ? Icons.check_circle_rounded
                       : (skipped ? Icons.redo_rounded : Icons.circle_outlined),
-                  size: 11,
+                  size: I.xs,
                   color: style.text.withValues(alpha: 0.85),
                 ),
                 const SizedBox(width: S.xs),

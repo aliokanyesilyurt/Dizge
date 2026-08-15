@@ -278,7 +278,7 @@ class _ManageGroupDialogState extends ConsumerState<_ManageGroupDialog> {
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
                   onPressed: (_busy || offline) ? null : _invite,
-                  icon: const Icon(Icons.link_rounded, size: 17),
+                  icon: const Icon(Icons.link_rounded, size: I.sm),
                   label: const Text('Davet kodu üret'),
                 ),
               ),
@@ -291,7 +291,7 @@ class _ManageGroupDialogState extends ConsumerState<_ManageGroupDialog> {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: (_busy || offline) ? null : _leave,
-                icon: Icon(Icons.logout_rounded, size: 17, color: c.danger),
+                icon: Icon(Icons.logout_rounded, size: I.sm, color: c.danger),
                 label: Text('Gruptan çık', style: TextStyle(color: c.danger)),
               ),
             ),
@@ -336,7 +336,7 @@ class _TokenBox extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.check_rounded, size: 15, color: c.accent),
+                Icon(Icons.check_rounded, size: I.sm, color: c.accent),
                 const SizedBox(width: S.xs),
                 Text(
                   'Panoya kopyalandı',
@@ -372,7 +372,11 @@ class _OfflineNote extends StatelessWidget {
     padding: const EdgeInsets.only(top: S.md),
     child: Row(
       children: [
-        Icon(Icons.cloud_off_rounded, size: 14, color: context.colors.inkFaint),
+        Icon(
+          Icons.cloud_off_rounded,
+          size: I.xs,
+          color: context.colors.inkFaint,
+        ),
         const SizedBox(width: S.sm),
         Expanded(
           child: Text(
@@ -399,7 +403,7 @@ class _ErrorNote extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.error_outline_rounded, size: 14, color: c.danger),
+          Icon(Icons.error_outline_rounded, size: I.xs, color: c.danger),
           const SizedBox(width: S.sm),
           Expanded(
             child: Text(

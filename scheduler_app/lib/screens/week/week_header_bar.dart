@@ -221,7 +221,7 @@ class WeekHeaderBar extends StatelessWidget {
           ShadButton(
             size: ShadButtonSize.sm,
             onPressed: onCreate,
-            leading: const Icon(Icons.add_rounded, size: 16),
+            leading: const Icon(Icons.add_rounded, size: I.sm),
             child: tight ? null : const Text('Yeni'),
           ),
         ],
@@ -260,7 +260,7 @@ class _RescueButton extends StatelessWidget {
       child: ShadButton.outline(
         size: ShadButtonSize.sm,
         onPressed: enabled ? onPressed : null,
-        leading: const Icon(Icons.cleaning_services_rounded, size: 15),
+        leading: const Icon(Icons.cleaning_services_rounded, size: I.sm),
         child: iconOnly ? null : const Text('Günü kurtar'),
       ),
     );
@@ -292,7 +292,7 @@ class _IconButton extends StatelessWidget {
         height: 36,
         padding: EdgeInsets.zero,
         onPressed: onPressed,
-        child: Icon(icon, size: 20, semanticLabel: label),
+        child: Icon(icon, size: I.md, semanticLabel: label),
       ),
     );
   }
@@ -342,7 +342,7 @@ class _EnergySelect extends StatelessWidget {
               selected == null
                   ? Icons.battery_full_rounded
                   : Icons.bolt_rounded,
-              size: 16,
+              size: I.sm,
             ),
             if (!iconOnly) ...[
               const SizedBox(width: S.sm),
@@ -398,7 +398,7 @@ class _DensitySelect extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(_iconFor(density), size: 16),
+                  Icon(_iconFor(density), size: I.sm),
                   const SizedBox(width: S.sm),
                   Text(density.label),
                 ],
@@ -408,7 +408,7 @@ class _DensitySelect extends StatelessWidget {
         selectedOptionBuilder: (context, selected) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(_iconFor(selected), size: 16),
+            Icon(_iconFor(selected), size: I.sm),
             if (!iconOnly) ...[
               const SizedBox(width: S.sm),
               Text(selected.label),

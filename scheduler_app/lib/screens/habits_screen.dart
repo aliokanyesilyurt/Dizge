@@ -26,7 +26,7 @@ class HabitsScreen extends ConsumerWidget {
       backgroundColor: c.bg,
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddHabit(context, store),
-        child: const Icon(Icons.add_rounded, size: 24),
+        child: const Icon(Icons.add_rounded, size: I.lg),
       ),
       body: SafeArea(
         child: ContentColumn(
@@ -140,7 +140,7 @@ class _HabitCard extends ConsumerWidget {
                 onPressed: () => _confirmDelete(context, store, habit),
                 icon: Icon(
                   Icons.more_horiz_rounded,
-                  size: 18,
+                  size: I.md,
                   color: c.inkFaint,
                 ),
               ),
@@ -230,7 +230,7 @@ class _TodayButton extends StatelessWidget {
             children: [
               Icon(
                 done ? Icons.check_rounded : Icons.add_rounded,
-                size: 15,
+                size: I.sm,
                 color: done ? onColor : c.inkDim,
               ),
               const SizedBox(width: S.xs),
@@ -268,7 +268,7 @@ class _Stat extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(icon, size: 18, color: color),
+        Icon(icon, size: I.md, color: color),
         const SizedBox(width: S.sm),
         Text(
           value,

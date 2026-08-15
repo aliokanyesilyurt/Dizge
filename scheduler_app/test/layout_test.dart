@@ -89,6 +89,19 @@ void main() {
       expect(offenders, isEmpty, reason: 'ölçek dışı yazı boyu');
     });
 
+    test('simge boyları ölçekten okunur', () {
+      // İkon, avatar ve marka işareti aynı şey: yazının yanında duran kare bir
+      // kutu. On altı ayrı boy vardı ve aralarındaki fark hiçbir yerde bir
+      // anlam taşımıyordu — yalnız iki ikonu yan yana koyunca eşitsizlik
+      // görülüyordu.
+      final offenders = [
+        for (final file in libSources())
+          if (RegExp(r'(?<![\w.])size: [0-9]').hasMatch(file.source)) file.path,
+      ];
+
+      expect(offenders, isEmpty, reason: 'ölçek dışı simge boyu');
+    });
+
     test('T.dense yalnız yoğun yüzeylerde kullanılır', () {
       // `dense` ölçeğin en küçük kademesi ve bir **istisna**: metnin sabit
       // boyutlu bir hücreye sığmak zorunda olduğu takvim/grafik yüzeyleri.

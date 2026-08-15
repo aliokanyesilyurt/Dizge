@@ -1,6 +1,6 @@
 # Görünüm Cilası Planı — Ritim: Tipografi · Boşluk · Hizalama
 
-**Durum:** C1–C3 indi (15 Ağustos) · C4–C6 onay bekliyor
+**Durum:** ✅ **tamamlandı** — altı dilimin altısı indi (15 Ağustos)
 **Tarih:** 15 Ağustos 2026
 **Önceki:** `neon-tema-plani.md` (renk ve derinlik bitti),
 `neon-kategori-renkleri-plani.md` (kategori paleti bitti),
@@ -192,7 +192,7 @@ piksellik pencerede hiçbir şey değişmemiş görünüyor (sınır devreye gir
 Bir widget testi: dar ve geniş iki genişlikte kart genişliği ölçülür, geniş
 olanda 720'yi aşmadığı doğrulanır.
 
-### C4 — Tipografi ölçeğe geçer
+### C4 — Tipografi ölçeğe geçer ✅ `d72fe4f`
 
 182 satır içi `TextStyle`'ın `fontSize`'ları `T` kademelerine bağlanır. Ekran
 ekran gidilir, her dosya kendi commit'i olmaz — dilim tek commit, ama sıra
@@ -204,7 +204,7 @@ ekran gidilir, her dosya kendi commit'i olmaz — dilim tek commit, ama sıra
 `monthly_view_screen.dart`, `year_view_screen.dart` ve `habit_heatmap.dart`
 içinde geçer (bu kural bir teste yazılır). `flutter test` yeşil.
 
-### C5 — Boşluklar ölçeğe geçer
+### C5 — Boşluklar ölçeğe geçer ✅ `cb425ee`
 
 `SizedBox` ve `EdgeInsets` değerleri `S` kademelerine yuvarlanır (C1c).
 
@@ -212,7 +212,7 @@ içinde geçer (bu kural bir teste yazılır). `flutter test` yeşil.
 kademelerini döndürür. Windows derlemesinde tüm ekranlar elle gezilir — hiçbir
 yerde taşma (`RenderFlex overflow`) ve hiçbir yerde yapışmış iki öğe yok.
 
-### C6 — Mikro cila
+### C6 — Mikro cila ✅
 
 Ölçekler oturduktan sonra görülebilen küçük işler, tek tek:
 
@@ -253,7 +253,41 @@ anlaşılmaz.
 
 ---
 
-## 7. Ara kapanış notu — C1–C3 (15 Ağustos)
+## 7. Kapanış notu — C4–C6 (15 Ağustos)
+
+Altı dilimin altısı indi. Test sayısı 446'dan **457**'ye çıktı,
+`flutter analyze` temiz, Windows sürümü derleniyor.
+
+**Sonuç, tek cümlede:** artık `lib/` altında elle yazılmış tek bir yazı boyu,
+tek bir ara verici, tek bir kenar boşluğu ve tek bir simge boyu yok.
+
+**Planda olmayıp çıkan iş: `I` — simge kutusu ölçeği.** C6 "boş durum
+dairesini ve ikonunu ölçeğe oturt" diye yazılmıştı. Oraya gelindiğinde asıl
+sorunun daha büyük olduğu görüldü: ikon, avatar ve marka işareti — hepsi
+yazının yanında duran kare kutular — **on altı ayrı boyda** çiziliyordu
+(11'den 60'a). Boş durumun dairesini düzeltip bu tabloyu bırakmak, C4 ve
+C5'in kapattığı deliği başka bir yerden açık tutmak olurdu. `R`/`S`/`T` ile
+aynı dilde bir dördüncü ölçek eklendi: `I` (xs/sm/md/lg/xl/hero).
+
+**C6'nın planda yazılı üç maddesi kendiliğinden kapandı.** Kart iç boşluğu
+(15, 18 ve `all(18)` bir aradaydı) C5'in yuvarlamasıyla tek değere indi;
+`SectionHeader`'ın alt satırı (12.5) C4'te `T.caption`'a geçti; FAB payı C1'de
+`S.fabGap` olarak adlandırıldı. Geriye yalnız boş durum dairesi kalmıştı —
+o da `I.hero` (62 → 56) oldu, içindeki ikon `I.lg`.
+
+**C5'te bilinçli bırakılan iki şey.** Çocuklu `SizedBox` ölçeğe sokulmadı:
+`SizedBox(width: 3, child: ColoredBox(...))` bir renk şeridinin kalınlığıdır,
+boşluk değil. Ve `0` serbest bırakıldı — sıfır bir kademe değil, boşluğun
+yokluğu.
+
+**Bu dilimlerin bedeli.** Golden test olmadığı için C4/C5/C6'nın görsel
+sonucu **testlerle değil, gözle** doğrulanır. Testler yalnız "ölçek dışına
+çıkılmadı"yı garanti ediyor; "daha güzel durdu mu" sorusunun yanıtı derlenmiş
+exe'de.
+
+---
+
+## 8. Ara kapanış notu — C1–C3 (15 Ağustos)
 
 Üç dilim indi, test sayısı 446'dan 453'e çıktı, `flutter analyze` temiz.
 
@@ -284,7 +318,7 @@ ediyor. C6 ancak ikisi bittikten sonra anlamlı.
 
 ---
 
-## 8. Sıra
+## 9. Sıra
 
 C1 → C2 → C3 → C4 → C5 → C6.
 

@@ -170,7 +170,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openEditor,
-        icon: const Icon(Icons.add_rounded, size: 20),
+        icon: const Icon(Icons.add_rounded, size: I.md),
         label: const Text('Yeni iş'),
       ),
     );
@@ -183,7 +183,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
         padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.sm),
         child: Row(
           children: [
-            Icon(icon, size: 14, color: c.inkFaint),
+            Icon(icon, size: I.xs, color: c.inkFaint),
             const SizedBox(width: S.sm),
             Text(title, style: Theme.of(context).textTheme.labelSmall),
             const SizedBox(width: S.sm),
@@ -335,7 +335,7 @@ class _TaskCard extends StatelessWidget {
                           const SizedBox(width: S.xs),
                           Icon(
                             Icons.repeat_rounded,
-                            size: 13,
+                            size: I.xs,
                             color: c.inkFaint,
                           ),
                         ],
@@ -349,7 +349,7 @@ class _TaskCard extends StatelessWidget {
                           const SizedBox(width: S.sm),
                           Icon(
                             Icons.place_rounded,
-                            size: 11,
+                            size: I.xs,
                             color: c.inkFaint,
                           ),
                           const SizedBox(width: S.hair),
@@ -393,7 +393,7 @@ class _TaskCard extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 icon: Icon(
                   Icons.more_horiz_rounded,
-                  size: 18,
+                  size: I.md,
                   color: c.inkFaint,
                 ),
                 onPressed: onEdit,
@@ -440,7 +440,7 @@ class _Check extends StatelessWidget {
               border: Border.all(color: done ? color : c.inkFaint, width: 1.5),
             ),
             child: done
-                ? Icon(Icons.check_rounded, size: 14, color: inkOn(color))
+                ? Icon(Icons.check_rounded, size: I.xs, color: inkOn(color))
                 : null,
           ),
         ),

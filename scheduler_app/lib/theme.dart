@@ -811,6 +811,33 @@ abstract final class T {
   ];
 }
 
+/// Simge kutusu ölçeği: ikonlar, avatarlar, marka işareti.
+///
+/// Hepsi aynı şey — kenarı kenarına eşit, yazının yanında duran kare bir
+/// kutu — ve hepsi aynı hastalığa yakalanmıştı: 11'den 60'a **on altı ayrı
+/// boy**. En sık kullanılan üçü 18, 16 ve 14'tü ve aralarındaki fark hiçbir
+/// yerde bir anlam taşımıyordu; yalnız iki ikonu yan yana koyunca eşitsiz
+/// görünüyorlardı.
+abstract final class I {
+  /// Yoğun çip, satır içi küçük işaret.
+  static const xs = 14.0;
+
+  /// Gövde yazısının yanındaki ikon, küçük avatar.
+  static const sm = 16.0;
+
+  /// Varsayılan arayüz ikonu — düğmeler, liste satırları, gezinme.
+  static const md = 18.0;
+
+  /// Öne çıkan eylem: FAB, birincil düğme.
+  static const lg = 24.0;
+
+  /// Boş durum ikonu.
+  static const xl = 32.0;
+
+  /// Marka işareti, boş durum dairesi — sayfada tek başına duran simge.
+  static const hero = 56.0;
+}
+
 /// Izgara yoğunluğu: bir saatin kaç piksel yer kapladığı. Kullanıcı başlıktaki
 /// düğmeyle değiştirir; tercih oturum boyunca korunur.
 enum GridDensity {
@@ -969,14 +996,14 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
     fontFamily: kFontFamily,
     fontFamilyFallback: kFontFallback,
     textTheme: _buildTextTheme(p),
-    iconTheme: IconThemeData(color: p.inkDim, size: 20),
+    iconTheme: IconThemeData(color: p.inkDim, size: I.md),
     dividerTheme: DividerThemeData(color: p.lineSoft, thickness: 1, space: 1),
     appBarTheme: AppBarTheme(
       backgroundColor: p.bg,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       elevation: 0,
-      iconTheme: IconThemeData(color: p.inkDim, size: 20),
+      iconTheme: IconThemeData(color: p.inkDim, size: I.md),
       titleTextStyle: TextStyle(
         color: p.ink,
         fontFamily: kFontFamily,

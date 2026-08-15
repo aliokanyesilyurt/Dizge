@@ -247,7 +247,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Center(child: BrandMark(size: 56)),
+                    const Center(child: BrandMark(size: I.hero)),
                     const SizedBox(height: S.xl),
                     Text(
                       _title,
@@ -342,7 +342,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         children: [
                           Icon(
                             Icons.error_outline_rounded,
-                            size: 16,
+                            size: I.sm,
                             color: c.danger,
                           ),
                           const SizedBox(width: S.sm),

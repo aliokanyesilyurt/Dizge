@@ -142,7 +142,12 @@ class _ProfileHeader extends ConsumerWidget {
         // Gradyanlı kutu ve jenerik ikon kalktı (Y4.4e): o kutu "bir hesap"
         // diyordu, bu daire "senin hesabın" diyor — grup arkadaşlarının
         // gördüğü rozetin ta kendisi, aynı renk ve aynı harflerle.
-        UserAvatar(profile: me, userId: user?.id, size: 60, showTooltip: false),
+        UserAvatar(
+          profile: me,
+          userId: user?.id,
+          size: I.hero,
+          showTooltip: false,
+        ),
         const SizedBox(width: S.lg),
         Expanded(
           child: Column(
@@ -506,7 +511,7 @@ class _ThemeCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.palette_rounded, size: 18, color: c.inkDim),
+              Icon(Icons.palette_rounded, size: I.md, color: c.inkDim),
               const SizedBox(width: S.md),
               Expanded(
                 child: Text(
@@ -590,7 +595,11 @@ class _ThemeOptionCard extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(icon, size: 20, color: selected ? c.navActiveInk : c.inkDim),
+              Icon(
+                icon,
+                size: I.md,
+                color: selected ? c.navActiveInk : c.inkDim,
+              ),
               const SizedBox(height: S.sm),
               Text(
                 title,
@@ -638,7 +647,7 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
     return _Card(
       child: Row(
         children: [
-          Icon(Icons.insights_rounded, size: 18, color: c.inkDim),
+          Icon(Icons.insights_rounded, size: I.md, color: c.inkDim),
           const SizedBox(width: S.md),
           Expanded(
             child: Column(
@@ -755,7 +764,7 @@ class _DangerZone extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              Icon(Icons.delete_forever_rounded, size: 18, color: c.danger),
+              Icon(Icons.delete_forever_rounded, size: I.md, color: c.danger),
               const SizedBox(width: S.md),
               Expanded(
                 child: Text(
@@ -769,7 +778,7 @@ class _DangerZone extends ConsumerWidget {
               ),
               Icon(
                 Icons.chevron_right_rounded,
-                size: 18,
+                size: I.md,
                 color: c.danger.withValues(alpha: 0.7),
               ),
             ],
@@ -825,7 +834,7 @@ class _StatusTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: iconColor ?? c.inkDim),
+          Icon(icon, size: I.md, color: iconColor ?? c.inkDim),
           const SizedBox(width: S.md),
           Expanded(
             child: Column(
@@ -871,7 +880,7 @@ class _Notice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_rounded, size: 17, color: c.navActiveInk),
+          Icon(Icons.info_rounded, size: I.sm, color: c.navActiveInk),
           const SizedBox(width: S.md),
           Expanded(
             child: Text(
@@ -936,7 +945,7 @@ class _ActionTile extends StatelessWidget {
         child: _Card(
           child: Row(
             children: [
-              Icon(icon, size: 18, color: iconColor ?? c.accent),
+              Icon(icon, size: I.md, color: iconColor ?? c.accent),
               const SizedBox(width: S.md),
               Expanded(
                 child: Column(
@@ -962,7 +971,7 @@ class _ActionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, size: 18, color: c.inkFaint),
+              Icon(Icons.chevron_right_rounded, size: I.md, color: c.inkFaint),
             ],
           ),
         ),
@@ -991,7 +1000,7 @@ class _Tile extends StatelessWidget {
       child: _Card(
         child: Row(
           children: [
-            Icon(icon, size: 18, color: c.inkDim),
+            Icon(icon, size: I.md, color: c.inkDim),
             const SizedBox(width: S.md),
             Expanded(
               child: Column(
@@ -1017,7 +1026,7 @@ class _Tile extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.lock_rounded, size: 14, color: c.inkFaint),
+            Icon(Icons.lock_rounded, size: I.xs, color: c.inkFaint),
           ],
         ),
       ),

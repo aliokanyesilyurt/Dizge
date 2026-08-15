@@ -224,7 +224,7 @@ class _OfflineBanner extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.cloud_off_rounded, size: 13, color: c.inkFaint),
+                  Icon(Icons.cloud_off_rounded, size: I.xs, color: c.inkFaint),
                   const SizedBox(width: S.sm),
                   Text(
                     'Çevrimdışı — değişiklikler cihazda saklanıyor',
@@ -469,10 +469,12 @@ class _NavTileState extends State<_NavTile> {
             boxShadow: selected ? c.glow : null,
           ),
           child: collapsed
-              ? Center(child: Icon(widget.item.icon, size: 19, color: ink))
+              ? Center(
+                  child: Icon(widget.item.icon, size: I.md, color: ink),
+                )
               : Row(
                   children: [
-                    Icon(widget.item.icon, size: 19, color: ink),
+                    Icon(widget.item.icon, size: I.md, color: ink),
                     const SizedBox(width: S.md),
                     Expanded(
                       child: Text(
@@ -591,7 +593,7 @@ class _ThemeSegment extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              size: 15,
+              size: I.sm,
               color: selected ? c.navActiveInk : c.inkFaint,
             ),
           ),
@@ -623,7 +625,7 @@ class _ThemeToggleButton extends ConsumerWidget {
         child: Icon(
           c.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
           key: ValueKey(c.isDark),
-          size: 19,
+          size: I.md,
           color: c.inkDim,
         ),
       ),
@@ -655,7 +657,7 @@ class _ProfileTile extends ConsumerWidget {
     final avatar = UserAvatar(
       profile: me,
       userId: userId,
-      size: 32,
+      size: I.xl,
       showTooltip: false,
     );
 
@@ -705,7 +707,7 @@ class _ProfileTile extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  Icon(Icons.tune_rounded, size: 16, color: c.inkFaint),
+                  Icon(Icons.tune_rounded, size: I.sm, color: c.inkFaint),
                 ],
               ),
       ),

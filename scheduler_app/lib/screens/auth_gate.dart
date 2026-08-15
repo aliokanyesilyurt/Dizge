@@ -193,7 +193,7 @@ class _Splash extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const BrandMark(size: 56),
+            const BrandMark(size: I.hero),
             const SizedBox(height: S.xl),
             SizedBox(
               width: 18,

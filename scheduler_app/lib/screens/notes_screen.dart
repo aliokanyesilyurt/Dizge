@@ -65,7 +65,7 @@ class _NoteList extends ConsumerWidget {
           store.addNote(note);
           onOpen(note.id);
         },
-        child: const Icon(Icons.add_rounded, size: 24),
+        child: const Icon(Icons.add_rounded, size: I.lg),
       ),
       body: SafeArea(
         child: Column(
@@ -147,13 +147,13 @@ class _NoteRowState extends State<_NoteRow> {
           ),
           child: Row(
             children: [
-              Icon(Icons.description_rounded, size: 18, color: c.inkDim),
+              Icon(Icons.description_rounded, size: I.md, color: c.inkDim),
               const SizedBox(width: S.md),
               // Sahiplik rozeti (Y4.4d); kişisel bağlamda gizli. Not ikonunun
               // **yerine** geçmiyor, yanına geliyor: ikon "bu bir not" diyor,
               // rozet "bu notu kim yazdı" — ikisi farklı soru.
               if (widget.note.ownerId != null) ...[
-                OwnerAvatar(ownerId: widget.note.ownerId, size: 16),
+                OwnerAvatar(ownerId: widget.note.ownerId, size: I.sm),
                 const SizedBox(width: S.sm),
               ],
               Expanded(
@@ -202,7 +202,7 @@ class _NoteRowState extends State<_NoteRow> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.link_rounded, size: 13, color: c.inkDim),
+                      Icon(Icons.link_rounded, size: I.xs, color: c.inkDim),
                       const SizedBox(width: S.xs),
                       Text(
                         '${widget.backlinkCount}',
@@ -337,14 +337,14 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                     tooltip: 'Geri',
                     icon: Icon(
                       Icons.arrow_back_rounded,
-                      size: 20,
+                      size: I.md,
                       color: c.inkDim,
                     ),
                   ),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: _openLinkPicker,
-                    icon: const Icon(Icons.add_link_rounded, size: 18),
+                    icon: const Icon(Icons.add_link_rounded, size: I.md),
                     label: const Text('Bağla'),
                   ),
                 ],
@@ -478,7 +478,7 @@ class _PanelLabel extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(icon, size: 13, color: c.inkFaint),
+        Icon(icon, size: I.xs, color: c.inkFaint),
         const SizedBox(width: S.sm),
         // Karışık büyük/küçük harf olduğu için `labelSmall`ın geniş harf
         // aralığı yerine daha sıkı bir ölçü.
@@ -533,7 +533,7 @@ class _LinkChip extends StatelessWidget {
                     : (isNote
                           ? Icons.description_rounded
                           : Icons.check_circle_rounded),
-                size: 13,
+                size: I.xs,
                 color: color,
               ),
               const SizedBox(width: S.xs),
@@ -580,7 +580,7 @@ class _BacklinkRow extends StatelessWidget {
             children: [
               Icon(
                 isTask ? Icons.check_circle_rounded : Icons.description_rounded,
-                size: 16,
+                size: I.sm,
                 color: isTask ? c.secondary : c.accent,
               ),
               const SizedBox(width: S.md),
@@ -667,7 +667,7 @@ class _LinkPickerState extends State<_LinkPicker> {
                 decoration: InputDecoration(
                   prefixIcon: Icon(
                     Icons.search_rounded,
-                    size: 18,
+                    size: I.md,
                     color: c.inkFaint,
                   ),
                   hintText: 'Not/görev ara ya da yeni not adı yaz…',
@@ -696,7 +696,7 @@ class _LinkPickerState extends State<_LinkPicker> {
                         n.kind == NodeKind.task
                             ? Icons.check_circle_rounded
                             : Icons.description_rounded,
-                        size: 18,
+                        size: I.md,
                         color: n.kind == NodeKind.task ? c.secondary : c.accent,
                       ),
                       title: Text(

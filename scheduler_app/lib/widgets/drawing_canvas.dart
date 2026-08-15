@@ -107,7 +107,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
             IconButton(
               tooltip: 'Geri al',
               visualDensity: VisualDensity.compact,
-              icon: Icon(Icons.undo_rounded, size: 20, color: c.inkDim),
+              icon: Icon(Icons.undo_rounded, size: I.md, color: c.inkDim),
               onPressed: _undo,
             ),
             IconButton(
@@ -115,7 +115,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
               visualDensity: VisualDensity.compact,
               icon: Icon(
                 Icons.delete_outline_rounded,
-                size: 20,
+                size: I.md,
                 color: c.inkDim,
               ),
               onPressed: _clear,

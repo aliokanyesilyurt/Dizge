@@ -66,7 +66,7 @@ class TaskListScaffold extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: onAdd,
-        child: const Icon(Icons.add_rounded, size: 24),
+        child: const Icon(Icons.add_rounded, size: I.lg),
       ),
     );
   }
@@ -100,15 +100,18 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 62,
-              height: 62,
+              // Sayfada tek başına duran simge: daire [I.hero], içindeki ikon
+              // [I.lg]. İkisi de ölçekten okunur ki boş durum, dolu hâlin
+              // ritminden kopmasın.
+              width: I.hero,
+              height: I.hero,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: c.surface,
                 shape: BoxShape.circle,
                 border: Border.all(color: c.lineSoft),
               ),
-              child: Icon(icon, size: 26, color: c.inkFaint),
+              child: Icon(icon, size: I.lg, color: c.inkFaint),
             ),
             const SizedBox(height: S.lg),
             if (title != null) ...[
@@ -193,7 +196,7 @@ class _RowState extends State<_Row> {
               // yer var ve göz zaten soldan tarıyor, "kimin işi" sorusu
               // başlığı okumadan yanıtlanıyor. Kişisel bağlamda gizli.
               if (t.ownerId != null) ...[
-                OwnerAvatar(ownerId: t.ownerId, size: 16),
+                OwnerAvatar(ownerId: t.ownerId, size: I.sm),
                 const SizedBox(width: S.sm),
               ],
               Expanded(

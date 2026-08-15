@@ -75,7 +75,7 @@ class OwnerLine extends ConsumerWidget {
         UserAvatar(
           profile: ref.watch(profileProvider(ownerId)),
           userId: ownerId,
-          size: 16,
+          size: I.sm,
           showTooltip: false,
         ),
         const SizedBox(width: S.xs),

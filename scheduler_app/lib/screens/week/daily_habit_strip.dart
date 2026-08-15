@@ -138,7 +138,7 @@ class _HabitChip extends StatelessWidget {
               children: [
                 Icon(
                   done ? Icons.check_rounded : Icons.circle_outlined,
-                  size: 14,
+                  size: I.xs,
                   color: done ? style.text : habit.color,
                 ),
                 const SizedBox(width: S.xs),
@@ -220,7 +220,7 @@ class _StreakBadge extends StatelessWidget {
             // kendini anlatıyor, ikinci bir sembol gürültü olurdu.
             Icon(
               Icons.local_fire_department_rounded,
-              size: 11,
+              size: I.xs,
               color: c.warning,
             ),
             const SizedBox(width: S.hair),

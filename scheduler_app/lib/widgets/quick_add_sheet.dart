@@ -213,7 +213,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
               children: [
                 TextButton.icon(
                   onPressed: _openFullEditor,
-                  icon: const Icon(Icons.tune_rounded, size: 17),
+                  icon: const Icon(Icons.tune_rounded, size: I.sm),
                   label: const Text('Ayrıntılar'),
                 ),
                 const Spacer(),
@@ -321,7 +321,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     style: TextStyle(color: c.ink, fontSize: T.strong),
                   ),
                   trailing: cat.name == _category.name
-                      ? Icon(Icons.check_rounded, size: 18, color: c.accent)
+                      ? Icon(Icons.check_rounded, size: I.md, color: c.accent)
                       : null,
                   onTap: () => Navigator.pop(ctx, cat),
                 ),
@@ -419,7 +419,7 @@ class _Pill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: tint),
+              Icon(icon, size: I.xs, color: tint),
               const SizedBox(width: S.sm),
               Text(
                 label,

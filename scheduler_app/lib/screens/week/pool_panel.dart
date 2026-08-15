@@ -117,7 +117,7 @@ class PoolRail extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: S.md),
               child: Column(
                 children: [
-                  Icon(Icons.inbox_rounded, size: 18, color: c.inkDim),
+                  Icon(Icons.inbox_rounded, size: I.md, color: c.inkDim),
                   const SizedBox(height: S.sm),
                   if (count > 0)
                     ShadBadge(
@@ -217,7 +217,7 @@ class _Header extends StatelessWidget {
               onPressed: onCollapse,
               child: const Icon(
                 Icons.chevron_right_rounded,
-                size: 18,
+                size: I.md,
                 semanticLabel: 'Paneli daralt',
               ),
             ),
@@ -240,7 +240,7 @@ class _EmptyPool extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox_rounded, size: 22, color: c.inkFaint),
+          Icon(Icons.inbox_rounded, size: I.lg, color: c.inkFaint),
           const SizedBox(height: S.sm),
           Text(
             'Burası boş',
@@ -352,12 +352,12 @@ class _PoolCard extends StatelessWidget {
       child: ShadContextMenuRegion(
         items: [
           ShadContextMenuItem(
-            leading: const Icon(Icons.event_available_outlined, size: 16),
+            leading: const Icon(Icons.event_available_outlined, size: I.sm),
             onPressed: onRestore,
             child: const Text('Takvime geri koy'),
           ),
           ShadContextMenuItem(
-            leading: const Icon(Icons.edit_outlined, size: 16),
+            leading: const Icon(Icons.edit_outlined, size: I.sm),
             onPressed: onTap,
             child: const Text('Düzenle'),
           ),

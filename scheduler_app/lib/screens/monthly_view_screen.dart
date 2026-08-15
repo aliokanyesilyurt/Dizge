@@ -122,7 +122,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
           date: _selectedDay ?? Task.dayKey(DateTime.now()),
         ),
         tooltip: 'Hızlı ekle',
-        child: const Icon(Icons.add_rounded, size: 24),
+        child: const Icon(Icons.add_rounded, size: I.lg),
       ),
     );
   }
@@ -133,7 +133,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.grid_view_rounded, color: c.inkDim, size: 19),
+            icon: Icon(Icons.grid_view_rounded, color: c.inkDim, size: I.md),
             tooltip: '12 ay',
             onPressed: () =>
                 ref.read(navigationProvider.notifier).go(AppSection.year),
@@ -154,7 +154,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.repeat_rounded, color: c.inkDim, size: 19),
+            icon: Icon(Icons.repeat_rounded, color: c.inkDim, size: I.md),
             tooltip: 'Rutinler',
             onPressed: _openRoutines,
           ),
@@ -381,7 +381,7 @@ class _Cell extends StatelessWidget {
               // Nokta ve yazı üstten hizalı; rozet de onlarla aynı çizgide
               // dursun diye 1px iniyor.
               padding: const EdgeInsets.only(top: S.hair),
-              child: OwnerAvatar(ownerId: task.ownerId, size: 12),
+              child: OwnerAvatar(ownerId: task.ownerId, size: I.xs),
             ),
           ],
         ],
@@ -407,7 +407,7 @@ class _RoutinesSheet extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.repeat_rounded, size: 18, color: c.inkDim),
+              Icon(Icons.repeat_rounded, size: I.md, color: c.inkDim),
               const SizedBox(width: S.sm),
               Text('Rutinler', style: Theme.of(context).textTheme.titleLarge),
               const Spacer(),
@@ -511,7 +511,7 @@ class _RoutinesSheet extends ConsumerWidget {
                             ),
                             Icon(
                               Icons.chevron_right_rounded,
-                              size: 18,
+                              size: I.md,
                               color: c.inkFaint,
                             ),
                           ],

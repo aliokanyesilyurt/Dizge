@@ -112,10 +112,12 @@ class GroupSwitcher extends ConsumerWidget {
           borderRadius: R.radiusPill,
         ),
         child: collapsed
-            ? Center(child: Icon(icon, size: 18, color: ink))
+            ? Center(
+                child: Icon(icon, size: I.md, color: ink),
+              )
             : Row(
                 children: [
-                  Icon(icon, size: 18, color: ink),
+                  Icon(icon, size: I.md, color: ink),
                   const SizedBox(width: S.sm),
                   Expanded(
                     child: Text(
@@ -130,7 +132,11 @@ class GroupSwitcher extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  Icon(Icons.unfold_more_rounded, size: 15, color: c.inkFaint),
+                  Icon(
+                    Icons.unfold_more_rounded,
+                    size: I.sm,
+                    color: c.inkFaint,
+                  ),
                 ],
               ),
       ),
@@ -163,7 +169,7 @@ class GroupSwitcher extends ConsumerWidget {
         children: [
           Icon(
             id.isEmpty ? Icons.person_outline_rounded : Icons.groups_rounded,
-            size: 17,
+            size: I.sm,
             color: active ? c.navActiveInk : c.inkFaint,
           ),
           const SizedBox(width: S.sm),
@@ -179,7 +185,7 @@ class GroupSwitcher extends ConsumerWidget {
             ),
           ),
           if (active)
-            Icon(Icons.check_rounded, size: 15, color: c.navActiveInk),
+            Icon(Icons.check_rounded, size: I.sm, color: c.navActiveInk),
         ],
       ),
     );
@@ -199,7 +205,7 @@ class GroupSwitcher extends ConsumerWidget {
       height: 40,
       child: Row(
         children: [
-          Icon(icon, size: 16, color: c.inkFaint),
+          Icon(icon, size: I.sm, color: c.inkFaint),
           const SizedBox(width: S.sm),
           Text(
             label,

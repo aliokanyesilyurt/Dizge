@@ -325,7 +325,11 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
         if (widget.existing != null)
           IconButton(
             tooltip: 'Sil',
-            icon: Icon(Icons.delete_outline_rounded, size: 20, color: c.inkDim),
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              size: I.md,
+              color: c.inkDim,
+            ),
             onPressed: _delete,
           ),
       ],
@@ -444,7 +448,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
           const SizedBox(height: S.md),
           Row(
             children: [
-              Icon(Icons.event_busy_rounded, size: 15, color: c.inkFaint),
+              Icon(Icons.event_busy_rounded, size: I.sm, color: c.inkFaint),
               const SizedBox(width: S.sm),
               Expanded(
                 child: Text(
@@ -665,7 +669,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.add_rounded, size: 14, color: c.inkDim),
+                  Icon(Icons.add_rounded, size: I.xs, color: c.inkDim),
                   const SizedBox(width: S.xs),
                   Text(
                     'Özel',
@@ -886,7 +890,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                         child: sel
                             ? Icon(
                                 Icons.check_rounded,
-                                size: 16,
+                                size: I.sm,
                                 color: inkOn(color),
                               )
                             : null,
@@ -994,7 +998,7 @@ class _PropertyRow extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(icon, size: 17, color: c.inkDim),
+                    Icon(icon, size: I.sm, color: c.inkDim),
                     const SizedBox(width: S.md),
                     SizedBox(
                       width: 76,
@@ -1028,7 +1032,7 @@ class _PropertyRow extends StatelessWidget {
                       curve: Motion.curve,
                       child: Icon(
                         Icons.chevron_right_rounded,
-                        size: 18,
+                        size: I.md,
                         color: c.inkFaint,
                       ),
                     ),
@@ -1093,7 +1097,11 @@ class _BigChoice extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 18, color: selected ? c.navActiveInk : c.inkDim),
+              Icon(
+                icon,
+                size: I.md,
+                color: selected ? c.navActiveInk : c.inkDim,
+              ),
               const SizedBox(height: S.sm),
               Text(
                 title,
@@ -1225,7 +1233,7 @@ class _SegToggle extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 14, color: active ? c.ink : c.inkFaint),
+                Icon(icon, size: I.xs, color: active ? c.ink : c.inkFaint),
                 const SizedBox(width: S.xs),
                 Text(
                   label,

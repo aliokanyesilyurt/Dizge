@@ -1108,12 +1108,12 @@ class _EventBlockState extends State<_EventBlock> {
                     longPressEnabled: false,
                     items: [
                       ShadContextMenuItem(
-                        leading: const Icon(Icons.edit_outlined, size: 16),
+                        leading: const Icon(Icons.edit_outlined, size: I.sm),
                         onPressed: widget.onEdit,
                         child: const Text('Düzenle'),
                       ),
                       ShadContextMenuItem(
-                        leading: const Icon(Icons.copy_outlined, size: 16),
+                        leading: const Icon(Icons.copy_outlined, size: I.sm),
                         onPressed: widget.onDuplicate,
                         child: const Text('Kopyala'),
                       ),
@@ -1121,7 +1121,7 @@ class _EventBlockState extends State<_EventBlock> {
                       // ama hiçbir gün görünmeyen iş" tanımsız (plan K2).
                       if (widget.onMoveToPool != null)
                         ShadContextMenuItem(
-                          leading: const Icon(Icons.inbox_rounded, size: 16),
+                          leading: const Icon(Icons.inbox_rounded, size: I.sm),
                           onPressed: widget.onMoveToPool,
                           child: const Text('Kenara al'),
                         ),
@@ -1132,7 +1132,7 @@ class _EventBlockState extends State<_EventBlock> {
                             widget.skipped
                                 ? Icons.undo_rounded
                                 : Icons.redo_rounded,
-                            size: 16,
+                            size: I.sm,
                           ),
                           onPressed: widget.onToggleSkip,
                           child: Text(
@@ -1140,7 +1140,7 @@ class _EventBlockState extends State<_EventBlock> {
                           ),
                         ),
                       ShadContextMenuItem(
-                        leading: const Icon(Icons.delete_outline, size: 16),
+                        leading: const Icon(Icons.delete_outline, size: I.sm),
                         onPressed: widget.onDelete,
                         child: const Text('Sil'),
                       ),
@@ -1327,7 +1327,7 @@ class _Preview extends StatelessWidget {
                 ),
               ),
               if (done)
-                Icon(Icons.check_circle_outline, size: 16, color: c.inkDim),
+                Icon(Icons.check_circle_outline, size: I.sm, color: c.inkDim),
             ],
           ),
           const SizedBox(height: S.sm),
@@ -1352,7 +1352,7 @@ class _Preview extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, size: 13, color: c.inkFaint),
+                  Icon(icon, size: I.xs, color: c.inkFaint),
                   const SizedBox(width: S.xs),
                   Expanded(
                     child: Text(
@@ -1380,7 +1380,7 @@ class _Preview extends StatelessWidget {
                 ShadButton.ghost(
                   size: ShadButtonSize.sm,
                   onPressed: onMoveToPool,
-                  leading: const Icon(Icons.inbox_rounded, size: 15),
+                  leading: const Icon(Icons.inbox_rounded, size: I.sm),
                   child: const Text('Kenara al'),
                 ),
                 const SizedBox(width: S.xs),
@@ -1394,7 +1394,7 @@ class _Preview extends StatelessWidget {
                   onPressed: onToggleSkip,
                   leading: Icon(
                     skipped ? Icons.undo_rounded : Icons.redo_rounded,
-                    size: 15,
+                    size: I.sm,
                   ),
                   child: Text(skipped ? 'Atlamayı kaldır' : 'Bugün atla'),
                 ),
