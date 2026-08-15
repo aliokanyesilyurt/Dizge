@@ -51,7 +51,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           'Birkaç görev ekleyip tamamlayınca grafikler dolar.',
                     )
                   : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
+                      padding: const EdgeInsets.fromLTRB(
+                        S.gutter,
+                        S.xs,
+                        S.gutter,
+                        S.xxl,
+                      ),
                       children: [
                         _OverviewCard(report: report),
                         const SizedBox(height: 14),

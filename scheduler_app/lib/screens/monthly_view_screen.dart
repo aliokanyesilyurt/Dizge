@@ -97,7 +97,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
                 _weekHeader(c),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    padding: const EdgeInsets.fromLTRB(S.lg, 0, S.lg, S.lg),
                     child: _Grid(
                       weeks: weeks,
                       leading: leading,
@@ -165,7 +165,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
 
   Widget _weekHeader(AppPalette c) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+      padding: const EdgeInsets.fromLTRB(S.lg, S.sm, S.lg, S.sm),
       child: Row(
         children: _weekDays
             .map(

@@ -44,7 +44,12 @@ class TaskListScaffold extends StatelessWidget {
               child: tasks.isEmpty
                   ? EmptyState(icon: emptyIcon, text: emptyText)
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                      padding: const EdgeInsets.fromLTRB(
+                        S.gutter,
+                        S.xs,
+                        S.gutter,
+                        S.fabGap,
+                      ),
                       itemCount: tasks.length,
                       itemBuilder: (_, i) => _Row(
                         task: tasks[i],

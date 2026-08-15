@@ -45,7 +45,12 @@ class HabitsScreen extends ConsumerWidget {
                       text: 'Spor, gitar, kod… küçük başla, zinciri kırma.',
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                      padding: const EdgeInsets.fromLTRB(
+                        S.gutter,
+                        S.xs,
+                        S.gutter,
+                        S.fabGap,
+                      ),
                       itemCount: habits.length,
                       itemBuilder: (_, i) => _HabitCard(habit: habits[i]),
                     ),

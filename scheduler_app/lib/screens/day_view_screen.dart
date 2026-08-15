@@ -108,7 +108,12 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
           Expanded(
             flex: 5,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
+              padding: const EdgeInsets.fromLTRB(
+                S.gutter,
+                S.xs,
+                S.gutter,
+                S.lg,
+              ),
               child: Center(
                 child: AspectRatio(
                   aspectRatio: 1,
@@ -132,7 +137,12 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                     text: 'Saatin bir dilimine dokun ya da yeni bir iş ekle.',
                   )
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                    padding: const EdgeInsets.fromLTRB(
+                      S.gutter,
+                      S.md,
+                      S.gutter,
+                      S.fabGap,
+                    ),
                     children: [
                       if (singles.isNotEmpty) ...[
                         _sectionHeader(

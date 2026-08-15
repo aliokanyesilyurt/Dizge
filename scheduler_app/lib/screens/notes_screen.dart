@@ -85,7 +85,12 @@ class _NoteList extends ConsumerWidget {
                       text: 'Bir görevden [[Not Adı]] yazınca köprü kurulur.',
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                      padding: const EdgeInsets.fromLTRB(
+                        S.gutter,
+                        S.xs,
+                        S.gutter,
+                        S.fabGap,
+                      ),
                       itemCount: notes.length,
                       itemBuilder: (_, i) => _NoteRow(
                         note: notes[i],
