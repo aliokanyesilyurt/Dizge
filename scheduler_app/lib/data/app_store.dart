@@ -8,6 +8,7 @@ import '../core/day_rescue.dart';
 import '../core/group_context.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
+import '../models/agenda_page.dart';
 import '../models/habit.dart';
 import '../models/node.dart';
 import '../models/task.dart';
@@ -40,6 +41,13 @@ class AppStore extends ChangeNotifier {
 
   final List<Note> _notes = [];
   final List<Habit> _habits = [];
+
+  /// Ajanda yaprakları, gün anahtarına göre (A3).
+  ///
+  /// Liste değil harita: bir güne bir sayfa düşüyor ve erişim hep "bugünün
+  /// sayfası" biçiminde oluyor. Listede tutmak her açılışta doğrusal arama
+  /// demekti.
+  final Map<String, AgendaPage> _agendaPages = {};
 
   // --- Kalıcılık bağlantısı --------------------------------------------------
 
@@ -139,6 +147,17 @@ class AppStore extends ChangeNotifier {
   List<Task> get tasks => TaskRepository.all;
   List<Note> get notes => List.unmodifiable(_notes);
   List<Habit> get habits => List.unmodifiable(_habits);
+
+  /// Verilen günün ajanda yaprağı. Hiç yazılmamışsa **boş bir sayfa** döner,
+  /// `null` değil: çağıran her yerde "sayfa var mı" diye sormak zorunda
+  /// kalmasın; boş defter de bir defterdir.
+  AgendaPage agendaPage(DateTime day) =>
+      _agendaPages[AgendaPage.keyOf(day)] ?? AgendaPage(day: day);
+
+  /// Yazılmış (boş olmayan) sayfaların gün anahtarları — sayfa gezinmesinde
+  /// "hangi günlerde yazı var" işaretini koymak için.
+  Iterable<String> get writtenAgendaDays =>
+      _agendaPages.entries.where((e) => !e.value.isEmpty).map((e) => e.key);
 
   /// LinkIndex ve arama için tüm node'lar (görev + not).
   List<Node> get nodes => [...TaskRepository.all, ..._notes];
@@ -532,6 +551,26 @@ class AppStore extends ChangeNotifier {
     _touched();
   }
 
+  // --- Ajanda sayfası mutasyonları ------------------------------------------
+
+  /// Bir günün yaprağını yazar.
+  ///
+  /// `_record` **çağrılmıyor** ve bu bilinçli: ajanda sayfalarının senkronu
+  /// plan §9'da kapsam dışı. Mutasyon kuyruğuna girselerdi sunucuda karşılığı
+  /// olmayan bir varlık için kuyruk şişer, senkron motoru da her denemede
+  /// bilinmeyen bir tür görürdü.
+  ///
+  /// Boş sayfa **silinir**, boş kayıt olarak tutulmaz: dokunulup vazgeçilmiş
+  /// her gün için anlık görüntüde bir satır bırakmanın kimseye faydası yok.
+  void saveAgendaPage(AgendaPage page) {
+    if (page.isEmpty) {
+      _agendaPages.remove(page.key);
+    } else {
+      _agendaPages[page.key] = page;
+    }
+    _touched();
+  }
+
   // --- Alışkanlık mutasyonları ----------------------------------------------
 
   void addHabit(Habit habit) {
@@ -631,6 +670,7 @@ class AppStore extends ChangeNotifier {
       for (final n in _notes) n.toJson(),
     ],
     'habits': [for (final h in _habits) h.toJson()],
+    'agendaPages': [for (final p in _agendaPages.values) p.toJson()],
     'categories': [
       for (final c in AppData.categories)
         {'name': c.name, 'colorHex': colorToHex(c.color)},
@@ -728,6 +768,7 @@ class AppStore extends ChangeNotifier {
     TaskRepository.all.clear();
     _notes.clear();
     _habits.clear();
+    _agendaPages.clear();
     for (final raw in (j['nodes'] as List? ?? const [])) {
       final m = (raw as Map).cast<String, dynamic>();
       if (m['kind'] == 'note') {
@@ -738,6 +779,13 @@ class AppStore extends ChangeNotifier {
     }
     for (final raw in (j['habits'] as List? ?? const [])) {
       _habits.add(Habit.fromJson((raw as Map).cast<String, dynamic>()));
+    }
+    // Eski anlık görüntülerde bu alan hiç yok; `?? const []` onları da
+    // okunabilir kılıyor — ajanda öncesi bir kayıt açıldığında sayfalar
+    // boş başlar, uygulama patlamaz.
+    for (final raw in (j['agendaPages'] as List? ?? const [])) {
+      final page = AgendaPage.fromJson((raw as Map).cast<String, dynamic>());
+      _agendaPages[page.key] = page;
     }
 
     final categories = j['categories'] as List?;
@@ -855,6 +903,14 @@ final routinesProvider = Provider<List<Task>>((ref) {
       .where((t) => t.isRoutine && t.groupId == active)
       .toList()
     ..sort(Task.compare);
+});
+
+/// Bir günün ajanda yaprağı (A3).
+///
+/// Yazılmamış gün için boş sayfa döner; ekran "sayfa var mı" diye sormaz.
+/// Grup bağlamına göre süzülmüyor — ajanda şimdilik kişisel (plan §9).
+final agendaPageProvider = Provider.family<AgendaPage, DateTime>((ref, day) {
+  return ref.watch(appStoreProvider).agendaPage(day);
 });
 
 /// Bir node'a gelen bağlantılar (backlink paneli).
