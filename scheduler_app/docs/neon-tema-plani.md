@@ -1,6 +1,12 @@
 # Neon Tema Planı — Mürekkep Siyahı · Cyan/Magenta
 
-**Durum:** onay bekliyor
+**Durum:** ✅ **tamamlandı** — beş dilimin beşi indi. N1+N2 `d11c4e3`
+(mürekkep siyahı zemin, neon camgöbeği/magenta, `glow` token'ı), N3 `262dbaa`
+(derinlik gölgeden kenara), N4 `d142c6d` (parıltının üç yeri), N5 ise
+`#14161C`'nin dört kopyasını `lib/theme.dart`'ta tek koşula indirerek kapandı —
+`Color(0x` artık yalnız `lib/theme.dart` ve `lib/models/` altında.
+§T4'ün ertelediği kategori renkleri ayrı planda bitti:
+`neon-kategori-renkleri-plani.md`.
 **Tarih:** 10 Ağustos 2026
 **Kararlar (10 Ağustos):** neon palet **cyan + magenta**; zemin **neredeyse saf
 siyah** (#050507).
