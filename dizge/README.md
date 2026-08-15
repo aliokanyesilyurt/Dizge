@@ -27,7 +27,7 @@ Doğrulama:
 
 ```bash
 flutter analyze   # uyarı bile çıkmamalı
-flutter test      # 490 test
+flutter test      # 508 test
 ```
 
 ---
@@ -312,6 +312,48 @@ Plan tutmadığında suçluluk üretmeyen çıkışlar, ana ekranın parçası:
 
 ---
 
+## Ajanda modu ve el yazısı
+
+Kullanım modu üç değerli (`klasik` · `ajanda` · `karma`, varsayılan `karma`) ve
+hesap ekranından seçiliyor. Ajanda modunda görev yazma kapıları önce güne ait
+bir **yaprak** açıyor: çizgili kâğıt, kalem, silgi, geri al.
+
+Yapraktan göreve giden yol:
+
+```
+yazı → satırlara ayır → tanı → onay şeridi → görev
+```
+
+- **Satırlara ayırma bizim işimiz** (`core/ink_lines.dart`, saf Dart). Sayfanın
+  tamamı tek yığın olarak motora gitseydi geriye beş görev değil tek bir uzun
+  cümle dönerdi.
+- **Tanıma asla sessizce görev oluşturmaz.** Okunan metin düzenlenebilir bir
+  öneri olarak onay şeridine düşer; kullanıcı düzeltir, kapatır ya da vazgeçer.
+  **Mürekkep her hâlükârda sayfada kalır** — ajanda önce bir defterdir.
+- Okuma sürerken şerit **beklemez**: satırlar ilk karede açılır, okunan metin
+  geldiğinde yalnız **boş kalan** alanlara düşer, kullanıcının yazdığının
+  üstüne geçmez.
+
+### İki motor, tek arayüz
+
+Windows'u ve Android'i birden kapsayan tek bir yol yok, o yüzden ayrışma
+kabul edildi ama `core/handwriting_recognizer.dart` arayüzünün altına
+hapsedildi — uygulamanın geri kalanı hangi motorun konuştuğunu bilmez.
+
+| Platform | Motor | Nerede |
+|---|---|---|
+| Windows | WinRT `InkAnalyzer` | `core/windows_ink_recognizer.dart` + `windows/runner/ink_recognizer.cpp` |
+| Android | ML Kit Digital Ink | `core/mlkit_recognizer.dart` |
+| Diğer | `UnavailableRecognizer` | Aynı dosyada |
+
+Motorun hâli üç değerli: `ready` · `preparing` · `unavailable`. Ortadaki hâl
+Android için var — Türkçe model ilk kullanımda iniyor (~20 MB), sonrası
+tamamen çevrimdışı. Onay şeridi bunu "kapalı" diye göstermiyor, "indiriliyor"
+diyor. `unavailable` bir hata değil **birinci sınıf bir durum**: dil paketi
+olmayan bir makinede de ajanda çalışır, yalnız başlıkları kullanıcı yazar.
+
+Mürekkep hiçbir zaman sunucuya gitmiyor; iki motor da cihazda çalışıyor.
+
 ## Gruplar ve kimlik
 
 Bir grup, takvimi paylaşan insanlar demek. Etkin bağlam kişisel ya da bir grup
@@ -332,7 +374,7 @@ Bir grup, takvimi paylaşan insanlar demek. Etkin bağlam kişisel ya da bir gru
 
 ## Testler
 
-490 test, 45 dosya. Konuya göre:
+508 test, 48 dosya. Konuya göre:
 
 | Alan | Dosyalar |
 |---|---|
@@ -344,7 +386,7 @@ Bir grup, takvimi paylaşan insanlar demek. Etkin bağlam kişisel ya da bir gru
 | **Tema ve erişilebilirlik** | `theme_test`, `grid_tokens_test`, `category_colors_test`, `accessibility_test` |
 | **Akış ve kabuk** | `task_flow_test`, `quick_add_test`, `features_test`, `features_widget_test`, `app_shell_test`, `shell_navigation_test`, `telemetry_test` |
 | **Düzen ve ölçekler** | `layout_test`, `usage_mode_test` |
-| **Ajanda** | `ink_lines_test`, `agenda_page_test`, `agenda_screen_test`, `agenda_review_test` |
+| **Ajanda ve el yazısı** | `ink_lines_test`, `agenda_page_test`, `agenda_screen_test`, `agenda_review_test`, `windows_ink_test`, `mlkit_ink_test` |
 
 `helpers.dart` ortak `ProviderScope` kabuğunu kurar. Testler provider'ları
 override etmediği için otomatik olarak güvenli koşar: telemetri no-op, depolama
@@ -373,4 +415,11 @@ eklenirse test onu yakalar, gözden kaçmaz.
 - Izgarada **sıkıştırarak yakınlaştırma (pinch)** yok; yoğunluk başlıktaki
   düğmeyle üç kademeli değişiyor. Sıkıştırma jesti dikey kaydırmayla aynı
   arenada yarışıyor ve güvenilir çalışmıyordu.
+- **APK 80,8 MB.** ML Kit'in tanıma kitaplığı üç ABI için birden paketleniyor
+  (tek APK bilinçli bir tercih, bkz. Sürüm çıkarma). `--split-per-abi` ya da
+  yalnız `arm64-v8a` bunu üçte birine indirir; henüz yapılmadı.
+- **El yazısı tanımanın doğruluğu gerçek donanımda ölçülmedi.** Sözleşme
+  tarafı test altında (kanaldan ne gidiyor, ne dönüyor, hata hâlinde ne oluyor)
+  ama Windows'un Türkçe dil paketi ve ML Kit'in Türkçe modeli ancak elde
+  kalemle sınanır. Tanıma tutmasa da ajanda çalışır.
 - Senkron çakışması **son yazan kazanır**; alan bazlı birleştirme yok.

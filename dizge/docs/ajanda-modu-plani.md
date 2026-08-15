@@ -1,7 +1,7 @@
 # Ajanda Modu Planı — Kalem, Kâğıt ve Yazının Tanınması
 
-**Durum:** A1–A5 ve A8 indi (15 Ağustos) · A0, A6, A7 açık — **tanımasız
-ama uçtan uca çalışan bir ajanda var**
+**Durum:** Dokuz dilimin dokuzu indi (16 Ağustos) — **ajanda modu tamam**;
+A0 bir dilim olarak değil, uygulamanın kendi içinde yanıtlandı (§13)
 **Tarih:** 15 Ağustos 2026
 **Önceki:** `gorunum-cilasi-plani.md` (ölçekler oturdu), `ana-ekran-plani.md`
 **Önkoşul:** A0'ın sonucu. Bu planın gövdesi, el yazısı tanımanın iki hedef
@@ -210,14 +210,14 @@ Arayüz, veri tipleri ve "tanıma yok" hâli. **Hiçbir motor bağlanmadan.**
 **Bitti sayılır:** ajanda modu uçtan uca çalışıyor; onay şeridi "tanıma bu
 cihazda kapalı" diyor ve kullanıcı başlığı yazarak görev oluşturabiliyor.
 
-### A6 — Windows motoru
+### A6 — Windows motoru ✅ `8603d61`
 
 `InkAnalyzer` kanalı, `windows/runner` içinde.
 
 **Bitti sayılır:** derlenmiş exe'de elle yazılan üç satır, üç aday olarak onay
 şeridine düşüyor.
 
-### A7 — Android motoru
+### A7 — Android motoru ✅ `169aa59`
 
 ML Kit paketi, model indirme akışı (ilk kullanımda indirilir, sonrası
 çevrimdışı).
@@ -294,3 +294,54 @@ A0 kapıda duruyor: sonucu planın gövdesini değiştirebilir. A8'in motorlarda
 **önce** gelmesi bilinçli — onay şeridi `UnavailableRecognizer` ile de
 çalışabilmeli, yoksa motorlar olmadan hiçbir şey denenemez. A6 ve A7 en sonda:
 ikisi de düşse elde çalışan bir ajanda kalır.
+
+---
+
+## 13. Kapanış notu — A6, A7 ve A0'ın yanıtı (16 Ağustos)
+
+Tanıma bağlandı: Windows'ta `InkAnalyzer`, Android'de ML Kit. Test sayısı
+490'dan **508**'e çıktı, `flutter analyze` temiz, yayın APK'sı derleniyor.
+
+**A0 bir dilim olarak koşulmadı — sorusu uygulamaya taşındı.** Plan "atma kodla
+ölç, bulguyu yaz" diyordu. Bulgu tek bir makinede ölçülüp belgeye yazılsaydı
+başka bir makinede yanlış olurdu: Windows'un el yazısı dil paketi kuruluma
+bağlı. Bunun yerine soru çalışma zamanına indi — `WindowsInkRecognizer`
+yerel tarafa "hangi tanıyıcılar kurulu" diye soruyor ve `MlKitRecognizer`
+modelin inip inmediğini kendisi ölçüyor. Atılacak kod yerine kalan kod.
+
+**Plandan bilinçli sapma: `isAvailable` üç hâlli oldu.** A5'in sözleşmesinde
+tanıma ya vardı ya yoktu. Android'de üçüncü bir hâl var: model iniyor. Bunu
+"yok"a katmak yalan olurdu — kullanıcı tanımanın kapalı olduğunu sanıp bir
+daha denemezdi. Arayüz `RecognizerState { ready, preparing, unavailable }`
+taşıyor; `isAvailable` bir uzantı olarak duruyor, çağıranların çoğu değişmedi.
+
+**Onay şeridi artık tanımayı beklemiyor.** Eskiden okuma bitene kadar bir
+çarkıfelek dönüyordu. 20 MB'lık bir model inerken bu, kullanıcıyı boş bir
+ekranla baş başa bırakmak demek — oysa kaç satır yazdığını motor olmadan da
+biliyoruz. Satırlar ilk karede açılıyor; okunan metin geldiğinde **yalnız boş
+kalan** alanlara düşüyor, kullanıcının yazdığının üstüne geçmiyor.
+
+**Wi-Fi şartı kapatıldı.** ML Kit modeli varsayılan olarak yalnız kablosuz ağda
+indiriyor. Kablosuz ağa hiç bağlanmayan bir telefonda tanıma kalıcı olarak
+"hazırlanıyor" hâlinde kalırdı; kullanıcı ajanda modunu açarak zaten bu işi
+istedi.
+
+**Zaman damgaları uydurma.** ML Kit her noktadan bir `t` bekliyor, `InkStroke`
+ise yalnız konum saklıyor. Eşit aralıklı damgalar üretiliyor: motorun yazma
+hızından alacağı ipucu susuyor ama tanıma bozulmuyor. Alternatifi — depo
+biçimini değiştirip her noktaya zaman eklemek — eski sayfaları taşımayı
+gerektirirdi ve kazancı belirsiz. Gerçek kalemle bir tur atıldığında doğruluk
+zayıf çıkarsa ilk bakılacak yer burası.
+
+**APK 20 MB büyüdü.** ML Kit'in `libdigitalink.so`'su üç ABI için birden
+paketleniyor (yayın APK'sı ABI'ye bölünmüyor, bkz. README §Sürüm çıkarma) ve
+tek APK 80,8 MB'a çıktı. Yandan yüklenen bir dağıtım için bu görünür bir bedel.
+İki çıkış var ve ikisi de bu dilimin dışında: `--split-per-abi` ya da yayın
+derlemesini `arm64-v8a` ile sınırlamak. Karar verilmedi — tek APK'nın sadeliği
+bilinçli bir tercihti.
+
+**Kalan tek belirsizlik gerçek donanımda.** İki motorun da *doğruluğu* burada
+sınanamaz: Windows'un Türkçe dil paketi ve ML Kit'in Türkçe modeli ancak elde
+kalemle ölçülür. Sözleşme tarafı test altında — kanaldan ne gidiyor, ne
+dönüyor, hata hâlinde ne oluyor. `UnavailableRecognizer` da yerinde duruyor:
+ikisi de tutmasa ajanda çalışmaya devam eder.
