@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,8 +10,10 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'core/app_config.dart';
 import 'core/auth_service.dart';
 import 'core/connectivity.dart';
+import 'core/handwriting_recognizer.dart';
 import 'core/secure_key_store.dart';
 import 'core/telemetry.dart';
+import 'core/windows_ink_recognizer.dart';
 import 'data/app_store.dart';
 import 'data/local_store.dart';
 import 'data/persistence_providers.dart';
@@ -68,6 +71,16 @@ Future<ProviderContainer> bootstrap({
         )
       : null;
 
+  // El yazısı motorunun seçimi burada, çalışan uygulamada yapılıyor —
+  // provider'ın kendi varsayılanında değil.
+  //
+  // Neden: `handwritingRecognizerProvider`ın varsayılanı `Unavailable` ve öyle
+  // kalmalı. Seçimi provider'ın içine `Platform.isWindows` ile yazsaydık
+  // testler de Windows'ta koştuğu için gerçek kanalı çağırmaya kalkarlardı;
+  // depo zaten aynı kararı telemetri, depolama ve senkron için de burada
+  // veriyor.
+  final recognizer = _recognizerForPlatform();
+
   final container = ProviderContainer(
     overrides: [
       telemetryProvider.overrideWithValue(telemetry),
@@ -76,8 +89,16 @@ Future<ProviderContainer> bootstrap({
       remoteGatewayProvider.overrideWithValue(remote),
       authServiceProvider.overrideWithValue(authService),
       syncEngineProvider.overrideWithValue(engine),
+      handwritingRecognizerProvider.overrideWithValue(recognizer),
     ],
   );
+
+  // Yerel tarafa "tanıma var mı" sorusunu şimdiden sor; yanıt geldiğinde
+  // onay şeridi doğru cümleyi kurar. Beklemiyoruz: gelmezse arayüz iyimser
+  // davranır ve tanıma denenir.
+  if (recognizer is WindowsInkRecognizer) {
+    unawaited(recognizer.warmUp());
+  }
 
   // Store'u depoya bağla ve kayıtlı durumu yükle. Bu satırdan sonra ilk kare
   // zaten dolu çizilir.
@@ -111,6 +132,21 @@ Future<ProviderContainer> bootstrap({
 /// uygulama bugünkü gibi tamamen yerel çalışır. Bu, geliştirme makinesinde ve
 /// testlerde varsayılan yol.
 ///
+/// Bu platformda hangi el yazısı motorunun konuşacağı.
+///
+/// Windows'ta işletim sisteminin kendi `InkAnalyzer`'ı; başka her yerde
+/// "tanıma yok" hâli. Android'in ML Kit motoru planın A7 dilimi ve henüz
+/// bağlanmadı — o gelene kadar telefonda da ajanda çalışır, yalnız başlıkları
+/// kullanıcı yazar.
+///
+/// `Platform` yerine [defaultTargetPlatform] kullanılmıyor: burası zaten
+/// yalnız gerçek uygulamada koşuyor (testler provider'ı override ediyor) ve
+/// soru "hangi işletim sistemi" — "hangi tasarım dili" değil.
+HandwritingRecognizer _recognizerForPlatform() {
+  if (!kIsWeb && Platform.isWindows) return WindowsInkRecognizer();
+  return const UnavailableRecognizer();
+}
+
 /// [gatewayOverride] / [authOverride] testler ve özel derlemeler için.
 Future<(RemoteGateway, AuthService)> _initBackend(
   RemoteGateway? gatewayOverride,

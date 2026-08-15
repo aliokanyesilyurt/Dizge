@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "ink_recognizer.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -25,6 +26,8 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  // El yazisi tanima kanali (A6). Eklentisi olmadigi icin runner icinde.
+  RegisterInkRecognizer(flutter_controller_->engine(), GetHandle());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -62,6 +65,11 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   switch (message) {
+    case kInkRecognitionDoneMessage:
+      // Tanima arka planda bitti; kanal yaniti yalniz burada, platform
+      // is parcaciginda veriliyor.
+      DrainInkRecognitionResults();
+      return 0;
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
