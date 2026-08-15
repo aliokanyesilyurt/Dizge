@@ -174,7 +174,10 @@ class _FakeRecognizer implements HandwritingRecognizer {
   final List<String> texts;
 
   @override
-  bool get isAvailable => true;
+  RecognizerState get state => RecognizerState.ready;
+
+  @override
+  Future<void> warmUp() async {}
 
   @override
   Future<List<String>> recognizeLines(List<InkLine> lines) async => [

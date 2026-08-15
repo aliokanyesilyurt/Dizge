@@ -73,6 +73,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   shadcn_ui: ^0.56.0
+  google_mlkit_digital_ink_recognition: ^0.15.0
 
 dev_dependencies:
   flutter_test:

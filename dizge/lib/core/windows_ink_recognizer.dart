@@ -22,6 +22,9 @@ class WindowsInkRecognizer implements HandwritingRecognizer {
   /// ömrü boyunca değişmeyen bir makine özelliği.
   bool? _available;
 
+  /// Aynı anda iki [warmUp] çağrısı gelirse kanal bir kez konuşsun diye.
+  Future<void>? _warming;
+
   /// Kurulu el yazısı tanıyıcılarının adları (örn. "Microsoft Handwriting
   /// Recognizer - Turkish").
   ///
@@ -39,12 +42,16 @@ class WindowsInkRecognizer implements HandwritingRecognizer {
     }
   }
 
-  /// Yerel tarafa sorup sonucu saklar. [isAvailable] eşzamanlı olmak zorunda
-  /// (arayüzün sözü), bu yüzden ilk yanıt gelene kadar **iyimser** davranıyoruz:
-  /// tanıma denenir, olmazsa boş metin döner ve kullanıcı başlığı yazar.
-  /// Kötümser başlamak, çalışan bir makinede tanımayı ilk açılışta gereksiz
-  /// yere kapatırdı.
-  Future<void> warmUp() async {
+  /// Yerel tarafa sorup sonucu saklar.
+  ///
+  /// Windows'ta indirilecek bir şey yok — soru "dil paketi kurulu mu" ve yanıt
+  /// bir kanal turu kadar uzakta. Bu yüzden burada [RecognizerState.preparing]
+  /// hiç görünmez: yanıt gelene kadar motor **iyimser** davranır (aşağıya bak),
+  /// yanıt gelince ya `ready` ya `unavailable` olur.
+  @override
+  Future<void> warmUp() => _warming ??= _ask();
+
+  Future<void> _ask() async {
     try {
       _available = await _channel.invokeMethod<bool>('isAvailable') ?? false;
     } on PlatformException {
@@ -54,8 +61,13 @@ class WindowsInkRecognizer implements HandwritingRecognizer {
     }
   }
 
+  /// Yanıt gelene kadar `ready`: tanıma denenir, olmazsa boş metin döner ve
+  /// kullanıcı başlığı yazar. `preparing` ile başlamak, çalışan bir makinede
+  /// ilk açılışta boşuna "hazırlanıyor" dedirtirdi — oysa beklenen bir şey yok.
   @override
-  bool get isAvailable => _available ?? true;
+  RecognizerState get state => (_available ?? true)
+      ? RecognizerState.ready
+      : RecognizerState.unavailable;
 
   @override
   Future<List<String>> recognizeLines(List<InkLine> lines) async {

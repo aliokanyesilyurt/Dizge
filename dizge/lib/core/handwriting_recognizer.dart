@@ -2,6 +2,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'ink_lines.dart';
 
+/// Motorun o anki hâli.
+///
+/// A5'te bu bir `bool`du (`isAvailable`) ve iki hâl yetiyordu: ya tanıma var
+/// ya yok. A7 üçüncü bir hâl getirdi — **hazırlanıyor**: ML Kit'in Türkçe
+/// modeli ilk kullanımda iniyor. Bunu "yok"a katmak yalan olurdu; kullanıcı
+/// tanımanın kapalı olduğunu sanıp bir daha denemezdi.
+enum RecognizerState {
+  /// Tanıma çalışıyor.
+  ready,
+
+  /// Henüz değil ama olacak — model iniyor ya da yerel taraf sorulmadı.
+  /// Arayüz beklemeyi anlatır, "kapalı" demez.
+  preparing,
+
+  /// Bu cihazda tanıma yok. Bir hata değil, **normal bir hâl**.
+  unavailable,
+}
+
 /// El yazısını metne çeviren motorun sözleşmesi (A5).
 ///
 /// ## Neden arayüz
@@ -18,12 +36,21 @@ import 'ink_lines.dart';
 /// yazılmışsa motora tek yığın gönderilirse tek bir uzun cümle döner. Ayırma
 /// `core/ink_lines.dart`'ta, saf Dart olarak ve motordan bağımsız yapılıyor.
 abstract interface class HandwritingRecognizer {
-  /// Bu cihazda tanıma yapılabiliyor mu.
+  /// Bu cihazda tanımanın hâli.
   ///
   /// Yalnız "paket kurulu mu" değil: Windows'ta el yazısı dil paketi eksikse
-  /// ya da Android'de model henüz inmediyse de `false` döner. Arayüz bu
-  /// durumu bir hata olarak değil, **normal bir hâl** olarak taşır.
-  bool get isAvailable;
+  /// [RecognizerState.unavailable], Android'de model henüz inmediyse
+  /// [RecognizerState.preparing] döner.
+  ///
+  /// Eşzamanlı olması bilinçli — arayüz altyazısı her karede okunuyor.
+  /// Değeri değiştiren iş [warmUp] içinde yapılır.
+  RecognizerState get state;
+
+  /// Motoru sorup/hazırlayıp [state]'i yerine oturtur.
+  ///
+  /// **Idempotent olmak zorunda:** hem açılışta (bootstrap) hem onay şeridi
+  /// açılırken çağrılıyor. İkinci çağrı modeli ikinci kez indirmemeli.
+  Future<void> warmUp();
 
   /// Her satır için bir metin döndürür — **girdiyle aynı uzunlukta**.
   ///
@@ -32,6 +59,14 @@ abstract interface class HandwritingRecognizer {
   /// okuyamazsa o satır için boş dize döner, listeden düşmez — yoksa öneriler
   /// yazının hizasından kayar.
   Future<List<String>> recognizeLines(List<InkLine> lines);
+}
+
+/// [RecognizerState]'in çağıranların çoğuna yeten kısaltması.
+///
+/// Uzantı olması, üç motorun da bunu ayrı ayrı yazmasını engelliyor: hâl tek
+/// yerde tanımlı, "hazır mı" sorusunun yanıtı tek yerden geliyor.
+extension HandwritingRecognizerState on HandwritingRecognizer {
+  bool get isAvailable => state == RecognizerState.ready;
 }
 
 /// Tanımanın olmadığı hâl — bir yedek değil, **birinci sınıf bir durum**.
@@ -44,7 +79,10 @@ class UnavailableRecognizer implements HandwritingRecognizer {
   const UnavailableRecognizer();
 
   @override
-  bool get isAvailable => false;
+  RecognizerState get state => RecognizerState.unavailable;
+
+  @override
+  Future<void> warmUp() async {}
 
   @override
   Future<List<String>> recognizeLines(List<InkLine> lines) async =>
@@ -53,9 +91,10 @@ class UnavailableRecognizer implements HandwritingRecognizer {
 
 /// O an kullanılacak motor.
 ///
-/// Bugün her platformda [UnavailableRecognizer]; A6 (Windows) ve A7 (Android)
-/// bu tek satırı değiştirecek. Motor seçiminin bir provider olması, testlerin
-/// sahte bir motoru araya sokabilmesi için de gerekli.
+/// Varsayılanı [UnavailableRecognizer] ve öyle kalıyor: platform seçimi
+/// `bootstrap.dart`ta, yalnız çalışan uygulamada yapılıyor. Motor seçiminin
+/// bir provider olması, testlerin sahte bir motoru araya sokabilmesi için de
+/// gerekli.
 final handwritingRecognizerProvider = Provider<HandwritingRecognizer>(
   (ref) => const UnavailableRecognizer(),
 );

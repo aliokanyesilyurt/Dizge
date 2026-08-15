@@ -11,6 +11,7 @@ import 'core/app_config.dart';
 import 'core/auth_service.dart';
 import 'core/connectivity.dart';
 import 'core/handwriting_recognizer.dart';
+import 'core/mlkit_recognizer.dart';
 import 'core/secure_key_store.dart';
 import 'core/telemetry.dart';
 import 'core/windows_ink_recognizer.dart';
@@ -93,12 +94,11 @@ Future<ProviderContainer> bootstrap({
     ],
   );
 
-  // Yerel tarafa "tanıma var mı" sorusunu şimdiden sor; yanıt geldiğinde
-  // onay şeridi doğru cümleyi kurar. Beklemiyoruz: gelmezse arayüz iyimser
-  // davranır ve tanıma denenir.
-  if (recognizer is WindowsInkRecognizer) {
-    unawaited(recognizer.warmUp());
-  }
+  // Motoru şimdiden hazırla: Windows'ta "dil paketi var mı" sorusu, Android'de
+  // modelin indirilmesi. Beklemiyoruz — ikisi de uygulamanın açılışını
+  // geciktirmemeli; onay şeridi açıldığında `warmUp` yeniden çağrılıyor ve
+  // aynı işe biniyor.
+  unawaited(recognizer.warmUp());
 
   // Store'u depoya bağla ve kayıtlı durumu yükle. Bu satırdan sonra ilk kare
   // zaten dolu çizilir.
@@ -134,16 +134,17 @@ Future<ProviderContainer> bootstrap({
 ///
 /// Bu platformda hangi el yazısı motorunun konuşacağı.
 ///
-/// Windows'ta işletim sisteminin kendi `InkAnalyzer`'ı; başka her yerde
-/// "tanıma yok" hâli. Android'in ML Kit motoru planın A7 dilimi ve henüz
-/// bağlanmadı — o gelene kadar telefonda da ajanda çalışır, yalnız başlıkları
-/// kullanıcı yazar.
+/// Windows'ta işletim sisteminin kendi `InkAnalyzer`'ı, Android'de ML Kit;
+/// başka her yerde "tanıma yok" hâli. Bu üç satır, planın §Aa'da kabul ettiği
+/// bedelin tamamı: ayrışma burada başlıyor ve burada bitiyor.
 ///
 /// `Platform` yerine [defaultTargetPlatform] kullanılmıyor: burası zaten
 /// yalnız gerçek uygulamada koşuyor (testler provider'ı override ediyor) ve
 /// soru "hangi işletim sistemi" — "hangi tasarım dili" değil.
 HandwritingRecognizer _recognizerForPlatform() {
-  if (!kIsWeb && Platform.isWindows) return WindowsInkRecognizer();
+  if (kIsWeb) return const UnavailableRecognizer();
+  if (Platform.isWindows) return WindowsInkRecognizer();
+  if (Platform.isAndroid) return MlKitRecognizer();
   return const UnavailableRecognizer();
 }
 

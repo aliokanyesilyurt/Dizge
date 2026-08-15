@@ -53,13 +53,25 @@ class _AgendaReviewSheetState extends ConsumerState<_AgendaReviewSheet> {
     for (final s in widget.page.strokes) s.points,
   ]);
 
-  final List<TextEditingController> _titles = [];
+  /// Satır başına bir başlık alanı — **daha ilk karede**. Tanımayı bekleyip
+  /// sonra açmak, model inerken kullanıcıyı boş bir ekranla baş başa
+  /// bırakıyordu; oysa kaç satır yazdığını motor olmadan da biliyoruz.
+  late final List<TextEditingController> _titles = [
+    for (var i = 0; i < _lines.length; i++) TextEditingController(),
+  ];
 
   /// Hangi satırların göreve çevrileceği. Varsayılan **hepsi seçili**:
   /// kullanıcı zaten yazdığı şeyi göreve çevirmek için bu şeridi açtı.
   late final List<bool> _selected = List.filled(_lines.length, true);
 
-  bool _loading = true;
+  /// Tanıma hâlâ sürüyor mu — yalnız altyazının cümlesini değiştirir.
+  /// Listeyi **bekletmez**: kullanıcı okuma bitmeden de yazmaya başlayabilir.
+  bool _recognizing = true;
+
+  /// Motorun hâli **şeridin açıldığı andaki** hâli, sonra tanıma bitince
+  /// güncelleniyor. Provider'ı izlemek işe yaramazdı: değişen şey motorun
+  /// içindeki bir alan, provider'ın değeri değil.
+  late RecognizerState _state = ref.read(handwritingRecognizerProvider).state;
 
   @override
   void initState() {
@@ -69,17 +81,27 @@ class _AgendaReviewSheetState extends ConsumerState<_AgendaReviewSheet> {
 
   Future<void> _recognize() async {
     final recognizer = ref.read(handwritingRecognizerProvider);
+
+    // Android'de model ilk kullanımda iniyor. `warmUp` idempotent — açılışta
+    // bootstrap da çağırdı; buradaki çağrı aynı işe biniyor, ikinci indirme
+    // başlatmıyor.
+    await recognizer.warmUp();
+    if (!mounted) return;
+    // İndirme bitti: altyazı "indiriliyor"dan "okunuyor"a geçsin.
+    setState(() => _state = recognizer.state);
+
     final texts = await recognizer.recognizeLines(_lines);
 
     if (!mounted) return;
     setState(() {
-      _titles.clear();
-      for (var i = 0; i < _lines.length; i++) {
-        _titles.add(
-          TextEditingController(text: i < texts.length ? texts[i] : ''),
-        );
+      for (var i = 0; i < _titles.length && i < texts.length; i++) {
+        // Beklerken yazmaya başlamış olabilir. Tanımanın kullanıcının yazdığı
+        // başlığın üstüne geçmesi, §Ab'nin "sessizce" yasağının bir başka
+        // biçimi olurdu.
+        if (_titles[i].text.isEmpty) _titles[i].text = texts[i];
       }
-      _loading = false;
+      _state = recognizer.state;
+      _recognizing = false;
     });
   }
 
@@ -132,7 +154,6 @@ class _AgendaReviewSheetState extends ConsumerState<_AgendaReviewSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final recognizer = ref.watch(handwritingRecognizerProvider);
     // Kaç görev oluşacağı: **seçili ve başlığı dolu** satırlar. Yalnız dolu
     // başlıkları saymak, kapatılan satırı düğmenin sayısında bırakıyordu.
     final ready = _readyCount;
@@ -171,7 +192,7 @@ class _AgendaReviewSheetState extends ConsumerState<_AgendaReviewSheet> {
                   ),
                   const SizedBox(height: S.xs),
                   Text(
-                    _subtitle(recognizer),
+                    _subtitle(),
                     style: TextStyle(
                       color: c.inkFaint,
                       fontSize: T.caption,
@@ -183,12 +204,7 @@ class _AgendaReviewSheetState extends ConsumerState<_AgendaReviewSheet> {
               ),
             ),
             Flexible(
-              child: _loading
-                  ? const Padding(
-                      padding: EdgeInsets.all(S.xxl),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : _lines.isEmpty
+              child: _lines.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.fromLTRB(
                         S.xl,
@@ -253,16 +269,23 @@ class _AgendaReviewSheetState extends ConsumerState<_AgendaReviewSheet> {
     );
   }
 
-  String _subtitle(HandwritingRecognizer recognizer) {
+  /// Üç hâl, üç cümle. "Hazırlanıyor"u "kapalı"ya katmak yalan olurdu:
+  /// kullanıcı tanımanın hiç gelmeyeceğini sanıp bir daha denemezdi.
+  String _subtitle() {
     if (_lines.isEmpty) return 'Önce sayfaya bir şeyler yaz.';
 
-    if (!recognizer.isAvailable) {
-      return '${_lines.length} satır bulundu. Tanıma bu cihazda kapalı — '
-          'başlıkları yazarak ekleyebilirsin.';
-    }
+    final count = '${_lines.length} satır bulundu.';
 
-    return '${_lines.length} satır bulundu. Okunanı düzeltebilir, '
-        'istemediğini kapatabilirsin.';
+    return switch (_state) {
+      RecognizerState.unavailable =>
+        '$count Tanıma bu cihazda kapalı — başlıkları yazarak ekleyebilirsin.',
+      RecognizerState.preparing =>
+        '$count Tanıma modeli indiriliyor — bu bir kereliğine. '
+            'Beklemeden başlıkları yazabilirsin.',
+      RecognizerState.ready when _recognizing => '$count Yazı okunuyor…',
+      RecognizerState.ready =>
+        '$count Okunanı düzeltebilir, istemediğini kapatabilirsin.',
+    };
   }
 }
 

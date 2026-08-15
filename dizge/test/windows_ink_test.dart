@@ -1,3 +1,4 @@
+import 'package:dizge/core/handwriting_recognizer.dart';
 import 'package:dizge/core/ink_lines.dart';
 import 'package:dizge/core/windows_ink_recognizer.dart';
 import 'package:flutter/services.dart';
@@ -118,7 +119,11 @@ void main() {
     messenger.setMockMethodCallHandler(channel, null);
 
     final recognizer = WindowsInkRecognizer();
-    expect(recognizer.isAvailable, isTrue, reason: 'ilk hâl iyimser');
+    expect(
+      recognizer.state,
+      RecognizerState.ready,
+      reason: 'ilk hâl iyimser: Windows tarafında beklenen bir indirme yok',
+    );
 
     await recognizer.recognizeLines([
       line([
@@ -126,7 +131,7 @@ void main() {
       ]),
     ]);
 
-    expect(recognizer.isAvailable, isFalse);
+    expect(recognizer.state, RecognizerState.unavailable);
   });
 
   test('warmUp yerel yanıtı saklar', () async {
@@ -135,7 +140,7 @@ void main() {
     final recognizer = WindowsInkRecognizer();
     await recognizer.warmUp();
 
-    expect(recognizer.isAvailable, isFalse);
+    expect(recognizer.state, RecognizerState.unavailable);
   });
 
   test('kurulu tanıyıcılar listelenir', () async {
