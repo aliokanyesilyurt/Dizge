@@ -303,10 +303,10 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
               'Bugünün kalanından ${plan.total} iş çekilecek. '
               'Sabit işler, başlamış işler ve tamamladıkların yerinde kalıyor.',
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: S.md),
             for (final task in all.take(shown))
               Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(bottom: S.xs),
                 child: Row(
                   children: [
                     Icon(
@@ -316,7 +316,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                       size: 14,
                       color: context.colors.inkFaint,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: S.sm),
                     Expanded(
                       child: Text(
                         task.title,
@@ -329,7 +329,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
               ),
             if (rest > 0)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: S.xs),
                 child: Text(
                   've $rest tane daha',
                   style: TextStyle(
@@ -711,7 +711,7 @@ class _DayHeaderRow extends StatelessWidget {
     final showBadges = MediaQuery.sizeOf(context).width >= _badgeMinWidth;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 6, bottom: 6),
+      padding: const EdgeInsets.only(top: S.xs, bottom: S.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -719,7 +719,7 @@ class _DayHeaderRow extends StatelessWidget {
           SizedBox(
             width: kTimeGutterWidth,
             child: Padding(
-              padding: const EdgeInsets.only(right: 10, bottom: 6),
+              padding: const EdgeInsets.only(right: S.sm, bottom: S.xs),
               child: Text(
                 _utcOffsetLabel(),
                 textAlign: TextAlign.right,
@@ -805,7 +805,7 @@ class _DayHeaderCell extends StatelessWidget {
             borderRadius: R.radiusSm,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: S.xs),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -823,7 +823,7 @@ class _DayHeaderCell extends StatelessWidget {
                     letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: S.xs),
                 // Rozet sayının *yanında* duruyor, üstünde değil: üstte olsaydı
                 // ya satır yüksekliğini büyütürdü ya gün adını iterdi.
                 Row(
@@ -854,11 +854,11 @@ class _DayHeaderCell extends StatelessWidget {
                       ),
                     ),
                     if (taskCount > 0) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: S.xs),
                       ShadBadge.secondary(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 1,
+                          horizontal: S.xs,
+                          vertical: S.hair,
                         ),
                         child: Text(
                           '$taskCount',
@@ -944,7 +944,7 @@ class _UntimedRow extends StatelessWidget {
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: const EdgeInsets.only(right: 10, top: 9),
+                padding: const EdgeInsets.only(right: S.sm, top: S.sm),
                 child: Text(
                   'Saatsiz',
                   style: TextStyle(
@@ -960,7 +960,7 @@ class _UntimedRow extends StatelessWidget {
           for (var i = 0; i < 7; i++)
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(3, 6, 3, 4),
+                padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.xs),
                 children: [
                   for (final task in untimed[i])
                     _UntimedChip(
@@ -1014,8 +1014,8 @@ class _UntimedChip extends StatelessWidget {
           child: AnimatedContainer(
             duration: Motion.fast,
             height: _UntimedRow._chipHeight,
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 7),
+            margin: const EdgeInsets.only(bottom: S.xs),
+            padding: const EdgeInsets.symmetric(horizontal: S.sm),
             decoration: BoxDecoration(
               color: style.fill.withValues(alpha: done ? 0.45 : 1),
               borderRadius: R.radiusXs,
@@ -1029,7 +1029,7 @@ class _UntimedChip extends StatelessWidget {
                   size: 11,
                   color: style.text.withValues(alpha: 0.85),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: S.xs),
                 Expanded(
                   child: Text(
                     task.title,

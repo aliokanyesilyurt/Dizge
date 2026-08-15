@@ -95,7 +95,7 @@ class WeekHeaderBar extends StatelessWidget {
     final tight = MediaQuery.sizeOf(context).width < _compactWidth;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+      padding: const EdgeInsets.fromLTRB(S.lg, S.md, S.md, S.md),
       child: Row(
         children: [
           // Gezinme solda ve bitişik: ileri/geri tek bir hareket ekseni.
@@ -126,7 +126,7 @@ class WeekHeaderBar extends StatelessWidget {
             duration: Motion.base,
             curve: Motion.curve,
             child: Padding(
-              padding: EdgeInsets.only(left: tight ? 0 : 8),
+              padding: EdgeInsets.only(left: tight ? 0 : S.sm),
               child: isCurrentWeek
                   ? _RescueButton(
                       count: rescuableCount,
@@ -147,7 +147,7 @@ class WeekHeaderBar extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: S.lg),
 
           Expanded(
             child: Column(
@@ -160,7 +160,7 @@ class WeekHeaderBar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: S.hair),
                 Semantics(
                   // Ekran okuyucu haftanın boşaldığını/dolduğunu duysun; kart
                   // kalkarken bu bilgiyi de kaybetmiyoruz.
@@ -345,7 +345,7 @@ class _EnergySelect extends StatelessWidget {
               size: 16,
             ),
             if (!iconOnly) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: S.sm),
               Text(selected?.label ?? _allLabel),
             ],
           ],
@@ -399,7 +399,7 @@ class _DensitySelect extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(_iconFor(density), size: 16),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: S.sm),
                   Text(density.label),
                 ],
               ),
@@ -409,7 +409,10 @@ class _DensitySelect extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(_iconFor(selected), size: 16),
-            if (!iconOnly) ...[const SizedBox(width: 8), Text(selected.label)],
+            if (!iconOnly) ...[
+              const SizedBox(width: S.sm),
+              Text(selected.label),
+            ],
           ],
         ),
       ),

@@ -228,7 +228,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.symmetric(vertical: S.xs),
                 children: [
                   _ownerRow(c),
                   _kindRow(c),
@@ -260,7 +260,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   /// Kişisel bağlamda [OwnerLine] kendini gizliyor; o zaman bu satır sıfır
   /// yükseklikte bir boşluğa iniyor.
   Widget _ownerRow(AppPalette c) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 24),
+    padding: const EdgeInsets.symmetric(horizontal: S.xl),
     child: OwnerLine(
       ownerId: widget.existing?.ownerId,
       style: TextStyle(
@@ -274,7 +274,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   Widget _grabber(AppPalette c) => Container(
     width: 36,
     height: 4,
-    margin: const EdgeInsets.only(top: 12, bottom: 8),
+    margin: const EdgeInsets.only(top: S.md, bottom: S.sm),
     decoration: BoxDecoration(
       color: c.line,
       borderRadius: BorderRadius.circular(2),
@@ -282,7 +282,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   );
 
   Widget _titleField(AppPalette c) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 8, 14, 16),
+    padding: const EdgeInsets.fromLTRB(S.lg, S.sm, S.md, S.lg),
     child: Row(
       children: [
         Container(
@@ -293,7 +293,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: S.md),
         Expanded(
           child: TextField(
             controller: _title,
@@ -353,7 +353,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               onTap: () => setState(() => _repeatType = RepeatType.once),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: S.sm),
           Expanded(
             child: _BigChoice(
               icon: Icons.repeat_rounded,
@@ -407,7 +407,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             ],
           ),
           if (_repeatType == RepeatType.weekly) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: S.md),
             Row(
               spacing: 6,
               children: List.generate(7, (i) {
@@ -441,11 +441,11 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               }),
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: S.md),
           Row(
             children: [
               Icon(Icons.event_busy_rounded, size: 15, color: c.inkFaint),
-              const SizedBox(width: 7),
+              const SizedBox(width: S.sm),
               Expanded(
                 child: Text(
                   _until == null
@@ -571,7 +571,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: S.md),
           Text(
             _start == null
                 ? 'Saatsiz işler günün listesinde en altta durur.'
@@ -606,7 +606,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: S.xs),
           Row(
             children: [
               Text(
@@ -654,7 +654,10 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
           GestureDetector(
             onTap: _addCustomCategory,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              padding: const EdgeInsets.symmetric(
+                horizontal: S.md,
+                vertical: S.sm,
+              ),
               decoration: BoxDecoration(
                 borderRadius: R.radiusXs,
                 border: Border.all(color: c.line),
@@ -663,7 +666,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.add_rounded, size: 14, color: c.inkDim),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: S.xs),
                   Text(
                     'Özel',
                     style: TextStyle(color: c.inkDim, fontSize: T.body),
@@ -737,7 +740,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: S.md),
           Switch(
             value: _isFixed,
             onChanged: (v) => setState(() => _isFixed = v),
@@ -779,7 +782,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             drawMode: _drawMode,
             onChanged: (v) => setState(() => _drawMode = v),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: S.md),
           if (_drawMode)
             DrawingCanvas(controller: _sketch, color: _color)
           else
@@ -799,7 +802,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
 
   Widget _footer(AppPalette c) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 16, 18),
+      padding: const EdgeInsets.fromLTRB(S.lg, S.md, S.lg, S.lg),
       decoration: BoxDecoration(
         color: c.surfaceAlt,
         border: Border(top: BorderSide(color: c.lineSoft)),
@@ -819,7 +822,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: S.md),
           ElevatedButton(
             onPressed: _save,
             child: Text(widget.existing == null ? 'Ekle' : 'Kaydet'),
@@ -860,7 +863,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                   decoration: const InputDecoration(hintText: 'Kategori adı'),
                   onChanged: (v) => name = v,
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: S.lg),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
@@ -970,7 +973,7 @@ class _PropertyRow extends StatelessWidget {
     final c = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.hair),
       child: AnimatedContainer(
         duration: Motion.base,
         curve: Motion.curve,
@@ -986,13 +989,13 @@ class _PropertyRow extends StatelessWidget {
               borderRadius: R.radiusMd,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 13,
+                  horizontal: S.md,
+                  vertical: S.md,
                 ),
                 child: Row(
                   children: [
                     Icon(icon, size: 17, color: c.inkDim),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: S.md),
                     SizedBox(
                       width: 76,
                       child: Text(
@@ -1039,7 +1042,7 @@ class _PropertyRow extends StatelessWidget {
               alignment: Alignment.topCenter,
               child: open
                   ? Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                      padding: const EdgeInsets.fromLTRB(S.md, 0, S.md, S.lg),
                       child: child,
                     )
                   : const SizedBox(width: double.infinity),
@@ -1078,7 +1081,7 @@ class _BigChoice extends StatelessWidget {
         child: AnimatedContainer(
           duration: Motion.base,
           curve: Motion.curve,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.md),
           decoration: BoxDecoration(
             color: selected ? c.accentSoft : c.surface,
             borderRadius: R.radiusSm,
@@ -1091,7 +1094,7 @@ class _BigChoice extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(icon, size: 18, color: selected ? c.navActiveInk : c.inkDim),
-              const SizedBox(height: 9),
+              const SizedBox(height: S.sm),
               Text(
                 title,
                 style: TextStyle(
@@ -1100,7 +1103,7 @@ class _BigChoice extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: S.hair),
               Text(
                 subtitle,
                 style: TextStyle(
@@ -1138,7 +1141,7 @@ class _ChoiceChipTile extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         child: AnimatedContainer(
           duration: Motion.fast,
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.sm),
           decoration: BoxDecoration(
             color: selected ? c.accentSoft : c.surface,
             borderRadius: R.radiusPill,
@@ -1171,7 +1174,7 @@ class _Tag extends StatelessWidget {
     final style = context.colors.tag(color, selected: selected);
     return AnimatedContainer(
       duration: Motion.fast,
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.sm),
       decoration: BoxDecoration(
         color: style.fill,
         borderRadius: R.radiusPill,
@@ -1210,7 +1213,10 @@ class _SegToggle extends StatelessWidget {
           cursor: SystemMouseCursors.click,
           child: AnimatedContainer(
             duration: Motion.fast,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: S.md,
+              vertical: S.sm,
+            ),
             decoration: BoxDecoration(
               color: active ? c.surfaceAlt : Colors.transparent,
               borderRadius: R.radiusPill,
@@ -1220,7 +1226,7 @@ class _SegToggle extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(icon, size: 14, color: active ? c.ink : c.inkFaint),
-                const SizedBox(width: 6),
+                const SizedBox(width: S.xs),
                 Text(
                   label,
                   style: TextStyle(
@@ -1237,7 +1243,7 @@ class _SegToggle extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(S.xs),
       decoration: BoxDecoration(
         color: c.isDark ? c.bg : c.hover,
         borderRadius: R.radiusPill,

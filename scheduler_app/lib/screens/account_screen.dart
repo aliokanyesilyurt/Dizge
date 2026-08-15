@@ -41,17 +41,17 @@ class AccountScreen extends ConsumerWidget {
             // Geniş ekranda satırlar okunmaz uzunlukta gerilmesin.
             constraints: const BoxConstraints(maxWidth: 640),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 26, 24, 40),
+              padding: const EdgeInsets.fromLTRB(S.xl, S.xl, S.xl, S.xxl),
               children: [
                 const _ProfileHeader(),
-                const SizedBox(height: 16),
+                const SizedBox(height: S.lg),
                 const _DisplayNameField(),
-                const SizedBox(height: 28),
+                const SizedBox(height: S.xl),
 
                 // --- Görünüm ---
                 const _GroupLabel('Görünüm'),
                 const _ThemeCard(),
-                const SizedBox(height: 26),
+                const SizedBox(height: S.xl),
 
                 // --- Veri ve gizlilik (çalışıyor) ---
                 const _GroupLabel('Veri ve gizlilik'),
@@ -79,26 +79,26 @@ class AccountScreen extends ConsumerWidget {
                       'İnternet olmadan da tam çalışır.',
                 ),
                 const _TelemetryTile(),
-                const SizedBox(height: 10),
+                const SizedBox(height: S.sm),
                 const _DangerZone(),
 
-                const SizedBox(height: 26),
+                const SizedBox(height: S.xl),
 
                 // --- Hesap ---
                 const _GroupLabel('Hesap'),
                 const _AccountSection(),
 
                 // --- Henüz backend bekleyenler ---
-                const SizedBox(height: 10),
+                const SizedBox(height: S.sm),
                 const _Notice(),
-                const SizedBox(height: 10),
+                const SizedBox(height: S.sm),
                 const _Tile(
                   icon: Icons.notifications_rounded,
                   title: 'Bildirimler',
                   subtitle: 'Hatırlatmalar',
                 ),
 
-                const SizedBox(height: 26),
+                const SizedBox(height: S.xl),
                 Center(
                   child: Text(
                     'Sürüm 1.0.0  ·  ${AppConfig.environment}',
@@ -143,7 +143,7 @@ class _ProfileHeader extends ConsumerWidget {
         // diyordu, bu daire "senin hesabın" diyor — grup arkadaşlarının
         // gördüğü rozetin ta kendisi, aynı renk ve aynı harflerle.
         UserAvatar(profile: me, userId: user?.id, size: 60, showTooltip: false),
-        const SizedBox(width: 16),
+        const SizedBox(width: S.lg),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,7 +155,7 @@ class _ProfileHeader extends ConsumerWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: S.xs),
               Text(
                 // Ad bilinmiyorsa başlık zaten e-posta oldu; onu bir de altına
                 // yazmak aynı şeyi iki kez söylemek olurdu.
@@ -260,7 +260,7 @@ class _DisplayNameFieldState extends ConsumerState<_DisplayNameField> {
     final canSave = !_saving && !offline;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(S.lg, S.md, S.lg, S.md),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: R.radiusMd,
@@ -277,7 +277,7 @@ class _DisplayNameFieldState extends ConsumerState<_DisplayNameField> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: S.sm),
           Row(
             children: [
               Expanded(
@@ -294,14 +294,14 @@ class _DisplayNameFieldState extends ConsumerState<_DisplayNameField> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: S.md),
               FilledButton(
                 onPressed: canSave ? () => _save(user.id) : null,
                 child: Text(_saving ? 'Kaydediliyor…' : 'Kaydet'),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: S.sm),
           Text(
             offline
                 ? 'Ad değiştirmek bağlantı gerektiriyor.'
@@ -507,7 +507,7 @@ class _ThemeCard extends ConsumerWidget {
           Row(
             children: [
               Icon(Icons.palette_rounded, size: 18, color: c.inkDim),
-              const SizedBox(width: 12),
+              const SizedBox(width: S.md),
               Expanded(
                 child: Text(
                   'Tema',
@@ -520,7 +520,7 @@ class _ThemeCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: S.xs),
           Text(
             'Tercihin bu cihazda saklanır ve uygulama açılır açılmaz uygulanır.',
             style: TextStyle(
@@ -530,7 +530,7 @@ class _ThemeCard extends ConsumerWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: S.md),
           Row(
             children: [
               for (final o in _options) ...[
@@ -543,7 +543,7 @@ class _ThemeCard extends ConsumerWidget {
                     onTap: () => ref.read(themeModeProvider.notifier).set(o.$4),
                   ),
                 ),
-                if (o != _options.last) const SizedBox(width: 10),
+                if (o != _options.last) const SizedBox(width: S.sm),
               ],
             ],
           ),
@@ -579,7 +579,7 @@ class _ThemeOptionCard extends StatelessWidget {
         child: AnimatedContainer(
           duration: Motion.base,
           curve: Motion.curve,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: S.md),
           decoration: BoxDecoration(
             color: selected ? c.accentSoft : c.bg,
             borderRadius: R.radiusSm,
@@ -591,7 +591,7 @@ class _ThemeOptionCard extends StatelessWidget {
           child: Column(
             children: [
               Icon(icon, size: 20, color: selected ? c.navActiveInk : c.inkDim),
-              const SizedBox(height: 8),
+              const SizedBox(height: S.sm),
               Text(
                 title,
                 style: TextStyle(
@@ -600,7 +600,7 @@ class _ThemeOptionCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 1),
+              const SizedBox(height: S.hair),
               Text(
                 caption,
                 style: TextStyle(
@@ -639,7 +639,7 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
       child: Row(
         children: [
           Icon(Icons.insights_rounded, size: 18, color: c.inkDim),
-          const SizedBox(width: 12),
+          const SizedBox(width: S.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -652,7 +652,7 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: S.xs),
                 Text(
                   'Hangi ekranların kullanıldığı gibi sayısal veriler. '
                   'İş başlıkların, notların ve yerlerin asla gönderilmez.',
@@ -667,7 +667,7 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
                 // zorundayız. Çalışıyormuş gibi yapan bir anahtar, kapalı bir
                 // anahtardan daha kötüdür.
                 if (available && !AppConfig.telemetryAvailable) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: S.xs),
                   Text(
                     'Bu derlemede analitik sunucusu yapılandırılmadı; '
                     'tercihin yine de saklanıyor.',
@@ -682,7 +682,7 @@ class _TelemetryTileState extends ConsumerState<_TelemetryTile> {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: S.sm),
           Switch(
             value: gate?.enabled ?? false,
             onChanged: available
@@ -747,7 +747,7 @@ class _DangerZone extends ConsumerWidget {
         borderRadius: R.radiusMd,
         onTap: () => _wipe(context, ref),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: S.lg, vertical: S.lg),
           decoration: BoxDecoration(
             color: c.danger.withValues(alpha: c.isDark ? 0.07 : 0.05),
             borderRadius: R.radiusMd,
@@ -756,7 +756,7 @@ class _DangerZone extends ConsumerWidget {
           child: Row(
             children: [
               Icon(Icons.delete_forever_rounded, size: 18, color: c.danger),
-              const SizedBox(width: 12),
+              const SizedBox(width: S.md),
               Expanded(
                 child: Text(
                   'Cihazdaki verileri sil',
@@ -791,8 +791,8 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      margin: const EdgeInsets.only(bottom: S.sm),
+      padding: const EdgeInsets.symmetric(horizontal: S.lg, vertical: S.lg),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: R.radiusMd,
@@ -826,7 +826,7 @@ class _StatusTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: iconColor ?? c.inkDim),
-          const SizedBox(width: 12),
+          const SizedBox(width: S.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -839,7 +839,7 @@ class _StatusTile extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: S.xs),
                 Text(
                   subtitle,
                   style: TextStyle(
@@ -866,13 +866,13 @@ class _Notice extends StatelessWidget {
     final c = context.colors;
 
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(S.lg),
       decoration: BoxDecoration(color: c.accentSoft, borderRadius: R.radiusMd),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.info_rounded, size: 17, color: c.navActiveInk),
-          const SizedBox(width: 11),
+          const SizedBox(width: S.md),
           Expanded(
             child: Text(
               'Hesap sistemi backend eklendiğinde çalışır hale gelecek. '
@@ -898,7 +898,7 @@ class _GroupLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+      padding: const EdgeInsets.fromLTRB(S.xs, 0, S.xs, S.sm),
       child: Text(text, style: Theme.of(context).textTheme.labelSmall),
     );
   }
@@ -937,7 +937,7 @@ class _ActionTile extends StatelessWidget {
           child: Row(
             children: [
               Icon(icon, size: 18, color: iconColor ?? c.accent),
-              const SizedBox(width: 12),
+              const SizedBox(width: S.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -950,7 +950,7 @@ class _ActionTile extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: S.hair),
                     Text(
                       subtitle,
                       style: TextStyle(
@@ -992,7 +992,7 @@ class _Tile extends StatelessWidget {
         child: Row(
           children: [
             Icon(icon, size: 18, color: c.inkDim),
-            const SizedBox(width: 12),
+            const SizedBox(width: S.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1005,7 +1005,7 @@ class _Tile extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: S.hair),
                   Text(
                     subtitle,
                     style: TextStyle(

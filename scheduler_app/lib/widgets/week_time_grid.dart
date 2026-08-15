@@ -985,18 +985,21 @@ class _EventBlockState extends State<_EventBlock> {
     // "Kahve"yi "Kah…" yapardı.
     final owner = <Widget>[
       if (task.ownerId != null) ...[
-        const SizedBox(width: 4),
+        const SizedBox(width: S.xs),
         OwnerAvatar(ownerId: task.ownerId, size: compact ? 12 : 14),
       ],
     ];
 
     final body = Container(
-      padding: EdgeInsets.fromLTRB(5, compact ? 1 : 3, 5, 2),
+      padding: EdgeInsets.fromLTRB(S.xs, compact ? S.hair : S.xs, S.xs, S.hair),
       child: compact
           // Kısa blok: "Başlık · 09:00" tek satır.
           ? Row(
               children: [
-                for (final mark in marks) ...[mark, const SizedBox(width: 3)],
+                for (final mark in marks) ...[
+                  mark,
+                  const SizedBox(width: S.xs),
+                ],
                 Flexible(
                   child: Text(
                     title,
@@ -1005,7 +1008,7 @@ class _EventBlockState extends State<_EventBlock> {
                     style: titleStyle,
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: S.xs),
                 Text(task.startString, maxLines: 1, style: timeStyle),
                 ...owner,
               ],
@@ -1017,7 +1020,7 @@ class _EventBlockState extends State<_EventBlock> {
                   children: [
                     for (final mark in marks) ...[
                       mark,
-                      const SizedBox(width: 3),
+                      const SizedBox(width: S.xs),
                     ],
                     Expanded(
                       child: Text(
@@ -1303,7 +1306,7 @@ class _Preview extends StatelessWidget {
               Container(
                 width: 3,
                 height: 16,
-                margin: const EdgeInsets.only(top: 2, right: 8),
+                margin: const EdgeInsets.only(top: S.hair, right: S.sm),
                 decoration: BoxDecoration(
                   color: style.stripe,
                   borderRadius: BorderRadius.circular(2),
@@ -1327,13 +1330,13 @@ class _Preview extends StatelessWidget {
                 Icon(Icons.check_circle_outline, size: 16, color: c.inkDim),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: S.sm),
           // "Kimin işi" satırı (Y4.4f). Detay listesinin **üstünde**: saatten
           // önce gelen soru, paylaşılan bir takvimde "bu benim mi" sorusu.
           // Kişisel bağlamda kendini gizliyor.
           if (task.ownerId != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: S.xs),
               child: OwnerLine(
                 ownerId: task.ownerId,
                 style: TextStyle(
@@ -1345,12 +1348,12 @@ class _Preview extends StatelessWidget {
             ),
           for (final (icon, text) in details)
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: S.xs),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(icon, size: 13, color: c.inkFaint),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: S.xs),
                   Expanded(
                     child: Text(
                       text,
@@ -1366,7 +1369,7 @@ class _Preview extends StatelessWidget {
                 ],
               ),
             ),
-          const SizedBox(height: 8),
+          const SizedBox(height: S.sm),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -1380,7 +1383,7 @@ class _Preview extends StatelessWidget {
                   leading: const Icon(Icons.inbox_rounded, size: 15),
                   child: const Text('Kenara al'),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: S.xs),
               ],
               // Rutinin karşılığı. [onMoveToPool] ile aynı yerde ve aynı
               // sessizlikte duruyor çünkü kullanıcı için aynı şey: "bugün
@@ -1395,7 +1398,7 @@ class _Preview extends StatelessWidget {
                   ),
                   child: Text(skipped ? 'Atlamayı kaldır' : 'Bugün atla'),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: S.xs),
               ],
               ShadButton.outline(
                 size: ShadButtonSize.sm,
@@ -1465,7 +1468,7 @@ class _DragPreview extends StatelessWidget {
               SizedBox(width: 3, child: ColoredBox(color: style.stripe)),
               Flexible(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+                  padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.xs),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -1479,7 +1482,7 @@ class _DragPreview extends StatelessWidget {
                           letterSpacing: 0.2,
                         ),
                       ),
-                      const SizedBox(height: 1),
+                      const SizedBox(height: S.hair),
                       Flexible(
                         child: Text(
                           task.title.isEmpty ? 'Başlıksız' : task.title,

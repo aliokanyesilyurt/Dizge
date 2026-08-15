@@ -62,7 +62,12 @@ class PoolPanel extends StatelessWidget {
                 child: tasks.isEmpty
                     ? const _EmptyPool()
                     : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(10, 4, 10, 16),
+                        padding: const EdgeInsets.fromLTRB(
+                          S.sm,
+                          S.xs,
+                          S.sm,
+                          S.lg,
+                        ),
                         itemCount: tasks.length,
                         itemBuilder: (context, i) => _PoolCard(
                           task: tasks[i],
@@ -109,16 +114,16 @@ class PoolRail extends StatelessWidget {
           child: InkWell(
             onTap: onExpand,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: S.md),
               child: Column(
                 children: [
                   Icon(Icons.inbox_rounded, size: 18, color: c.inkDim),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: S.sm),
                   if (count > 0)
                     ShadBadge(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 1,
+                        horizontal: S.xs,
+                        vertical: S.hair,
                       ),
                       child: Text(
                         '$count',
@@ -128,7 +133,7 @@ class PoolRail extends StatelessWidget {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: S.sm),
                   // Dikey başlık: 44px'e yatay yazı sığmıyor, ikon tek başına
                   // da "burası ne" sorusunu cevaplamıyor.
                   Expanded(
@@ -171,7 +176,7 @@ class _Header extends StatelessWidget {
     final c = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 6, 8),
+      padding: const EdgeInsets.fromLTRB(S.md, S.md, S.xs, S.sm),
       child: Row(
         children: [
           Expanded(
@@ -188,9 +193,12 @@ class _Header extends StatelessWidget {
             ),
           ),
           if (count > 0) ...[
-            const SizedBox(width: 6),
+            const SizedBox(width: S.xs),
             ShadBadge.secondary(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              padding: const EdgeInsets.symmetric(
+                horizontal: S.xs,
+                vertical: S.hair,
+              ),
               child: Text(
                 '$count',
                 style: const TextStyle(
@@ -228,12 +236,12 @@ class _EmptyPool extends StatelessWidget {
     final c = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(S.lg, S.sm, S.lg, S.xl),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.inbox_rounded, size: 22, color: c.inkFaint),
-          const SizedBox(height: 10),
+          const SizedBox(height: S.sm),
           Text(
             'Burası boş',
             style: TextStyle(
@@ -242,7 +250,7 @@ class _EmptyPool extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: S.xs),
           Text(
             'Bugün olmayacak bir işi buraya bırak; silmeden kenarda bekler.',
             textAlign: TextAlign.center,
@@ -284,7 +292,7 @@ class _PoolCard extends StatelessWidget {
     final card = Opacity(
       opacity: stale ? 0.55 : 1,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: const EdgeInsets.only(bottom: S.sm),
         decoration: BoxDecoration(
           color: style.fill,
           borderRadius: R.radiusSm,
@@ -302,7 +310,7 @@ class _PoolCard extends StatelessWidget {
                 SizedBox(width: 3, child: ColoredBox(color: style.stripe)),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
+                    padding: const EdgeInsets.fromLTRB(S.sm, S.sm, S.sm, S.sm),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -317,7 +325,7 @@ class _PoolCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: S.xs),
                         Text(
                           _waitLabel(waited),
                           style: TextStyle(
@@ -402,7 +410,7 @@ class _DragFeedback extends StatelessWidget {
         opacity: 0.92,
         child: Container(
           width: 168,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: S.sm, vertical: S.sm),
           decoration: BoxDecoration(
             color: style.fill,
             borderRadius: R.radiusXs,

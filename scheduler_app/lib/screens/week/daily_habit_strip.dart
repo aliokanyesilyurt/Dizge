@@ -44,12 +44,12 @@ class DailyHabitStrip extends StatelessWidget {
     final c = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 12, 10),
+      padding: const EdgeInsets.fromLTRB(S.lg, 0, S.md, S.sm),
       child: Row(
         children: [
           Padding(
             // Çiplerin gövdesiyle aynı optik hatta otursun.
-            padding: const EdgeInsets.only(right: 10, bottom: 1),
+            padding: const EdgeInsets.only(right: S.sm, bottom: S.hair),
             child: Text(
               'BUGÜN',
               style: TextStyle(
@@ -70,7 +70,7 @@ class DailyHabitStrip extends StatelessWidget {
                 children: [
                   for (final habit in habits)
                     Padding(
-                      padding: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.only(right: S.sm),
                       child: _HabitChip(
                         habit: habit,
                         day: day,
@@ -124,7 +124,7 @@ class _HabitChip extends StatelessWidget {
             duration: Motion.fast,
             curve: Motion.curve,
             height: 30,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.symmetric(horizontal: S.sm),
             decoration: BoxDecoration(
               color: done ? style.fill : Colors.transparent,
               borderRadius: R.radiusPill,
@@ -141,7 +141,7 @@ class _HabitChip extends StatelessWidget {
                   size: 14,
                   color: done ? style.text : habit.color,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: S.xs),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: _maxTitleWidth),
                   child: Text(
@@ -158,7 +158,7 @@ class _HabitChip extends StatelessWidget {
                   ),
                 ),
                 if (_progressLabel() case final label?) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: S.xs),
                   _StreakBadge(label: label, isDaily: _isDaily),
                 ],
               ],
@@ -211,7 +211,7 @@ class _StreakBadge extends StatelessWidget {
     final c = context.colors;
 
     return ShadBadge.secondary(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: S.xs, vertical: S.hair),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -223,7 +223,7 @@ class _StreakBadge extends StatelessWidget {
               size: 11,
               color: c.warning,
             ),
-            const SizedBox(width: 2),
+            const SizedBox(width: S.hair),
           ],
           Text(
             label,

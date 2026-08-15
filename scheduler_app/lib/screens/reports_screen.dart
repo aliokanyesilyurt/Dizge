@@ -61,7 +61,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         ),
                         children: [
                           _OverviewCard(report: report),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: S.md),
                           _Card(
                             title: 'Kategoriye göre zaman',
                             child: HBarChart(
@@ -76,7 +76,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: S.md),
                           _Card(
                             title: 'Etikete göre zaman',
                             child: HBarChart(
@@ -93,7 +93,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   'Görevlere etiket ekleyince burada dağılım çıkar.',
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: S.md),
                           _WeekdayCard(report: report),
                         ],
                       ),
@@ -119,7 +119,7 @@ class _OverviewCard extends StatelessWidget {
       child: Row(
         children: [
           CompletionRing(value: report.completionRate, caption: 'zamanında'),
-          const SizedBox(width: 24),
+          const SizedBox(width: S.xl),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,13 +129,13 @@ class _OverviewCard extends StatelessWidget {
                   label: 'tamamlanan görev',
                   color: c.accent,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: S.md),
                 _Metric(
                   value: '${report.planned - report.completed}',
                   label: 'açık / kaçan',
                   color: c.secondary,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: S.md),
                 _Metric(
                   value: '${report.planned}',
                   label: 'planlanan toplam',
@@ -199,7 +199,7 @@ class _Metric extends StatelessWidget {
             letterSpacing: -0.8,
           ),
         ),
-        const SizedBox(width: 9),
+        const SizedBox(width: S.sm),
         Expanded(
           child: Text(
             label,
@@ -228,7 +228,7 @@ class _Card extends StatelessWidget {
     final c = context.colors;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(S.lg),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: R.radiusMd,
@@ -241,7 +241,7 @@ class _Card extends StatelessWidget {
           Text(title, style: Theme.of(context).textTheme.titleMedium),
           if (subtitle != null)
             Padding(
-              padding: const EdgeInsets.only(top: 3),
+              padding: const EdgeInsets.only(top: S.xs),
               child: Text(
                 subtitle!,
                 style: TextStyle(
@@ -251,7 +251,7 @@ class _Card extends StatelessWidget {
                 ),
               ),
             ),
-          const SizedBox(height: 18),
+          const SizedBox(height: S.lg),
           child,
         ],
       ),
@@ -277,8 +277,11 @@ class _RangePicker extends StatelessWidget {
           child: AnimatedContainer(
             duration: Motion.fast,
             curve: Motion.curve,
-            margin: const EdgeInsets.only(left: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+            margin: const EdgeInsets.only(left: S.xs),
+            padding: const EdgeInsets.symmetric(
+              horizontal: S.md,
+              vertical: S.sm,
+            ),
             decoration: BoxDecoration(
               color: sel ? c.surfaceAlt : Colors.transparent,
               borderRadius: R.radiusPill,
@@ -298,7 +301,7 @@ class _RangePicker extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(S.xs),
       decoration: BoxDecoration(color: c.hover, borderRadius: R.radiusPill),
       child: Row(
         mainAxisSize: MainAxisSize.min,

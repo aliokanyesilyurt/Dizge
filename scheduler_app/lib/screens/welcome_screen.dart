@@ -248,7 +248,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Center(child: BrandMark(size: 56)),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: S.xl),
                     Text(
                       _title,
                       textAlign: TextAlign.center,
@@ -260,7 +260,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: S.sm),
                     Text(
                       _subtitle,
                       textAlign: TextAlign.center,
@@ -271,7 +271,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         height: 1.45,
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: S.xxl),
 
                     // Kod adımında e-posta alanı gizli: kullanıcı onu az önce
                     // yazdı ve değiştirmesi kodu geçersiz kılardı.
@@ -290,7 +290,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       ),
 
                     if (_mode == _Mode.signIn || _mode == _Mode.signUp) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: S.sm),
                       TextField(
                         controller: _password,
                         focusNode: _passwordFocus,
@@ -322,7 +322,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       ),
 
                     if (_info != null) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: S.md),
                       Text(
                         _info!,
                         textAlign: TextAlign.center,
@@ -336,7 +336,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ],
 
                     if (_error != null) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: S.md),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -345,7 +345,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                             size: 16,
                             color: c.danger,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: S.sm),
                           Expanded(
                             child: Text(
                               _error!,
@@ -361,7 +361,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       ),
                     ],
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: S.lg),
                     FilledButton(
                       onPressed: _locked ? null : _submit,
                       child: _busy
@@ -381,14 +381,16 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     // Google düğmesi koymak, parolasını unutan kullanıcıyı
                     // üçüncü bir yola saptırırdı.
                     if (!recovering) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: S.lg),
                       Row(
                         children: [
                           Expanded(
                             child: Divider(color: c.lineSoft, height: 1),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: S.sm,
+                            ),
                             child: Text(
                               'ya da',
                               style: TextStyle(
@@ -403,7 +405,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: S.lg),
                       // Düğme sağlayıcı kapalıyken de görünür (G8d): bir
                       // yapılandırma bayrağı, tek kişilik bir projede
                       // unutulacak ikinci bir anahtar olurdu. Kapalıysa
@@ -429,7 +431,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                             : const Text('Google ile devam et'),
                       ),
                       if (offline) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: S.sm),
                         Text(
                           'Google girişi tarayıcı üzerinden olur; çevrimdışıyken '
                           'çalışmaz.',
@@ -444,7 +446,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       ],
                     ],
 
-                    const SizedBox(height: 6),
+                    const SizedBox(height: S.xs),
                     if (recovering)
                       TextButton(
                         onPressed: _locked ? null : () => _goTo(_Mode.signIn),
@@ -476,7 +478,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         ),
                     ],
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: S.lg),
                     // Kapının tek gerçek maliyeti (G1). Kullanıcı bunu hata
                     // ekranında değil, burada öğrenmeli.
                     Text(

@@ -1043,7 +1043,7 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
           fontWeight: FontWeight.w600,
         ),
         shape: RoundedRectangleBorder(borderRadius: R.radiusPill),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+        padding: const EdgeInsets.symmetric(horizontal: S.xl, vertical: S.lg),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -1051,7 +1051,7 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
         backgroundColor: p.accent,
         foregroundColor: p.onAccent,
         shape: RoundedRectangleBorder(borderRadius: R.radiusPill),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+        padding: const EdgeInsets.symmetric(horizontal: S.xl, vertical: S.lg),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -1069,7 +1069,7 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
         foregroundColor: p.ink,
         side: BorderSide(color: p.line),
         shape: RoundedRectangleBorder(borderRadius: R.radiusPill),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: S.lg, vertical: S.md),
       ),
     ),
     iconButtonTheme: IconButtonThemeData(
@@ -1137,7 +1137,10 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.dark}) {
       filled: true,
       fillColor: p.isDark ? p.surfaceAlt : p.hover,
       hintStyle: TextStyle(color: p.inkFaint, fontSize: T.strong),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: S.md,
+        vertical: S.md,
+      ),
       border: OutlineInputBorder(
         borderRadius: R.radiusSm,
         borderSide: BorderSide(color: p.line),

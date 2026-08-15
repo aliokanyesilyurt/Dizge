@@ -168,7 +168,10 @@ class _AppShellState extends ConsumerState<AppShell> {
           : AppBar(
               backgroundColor: c.bg,
               title: const Text('Program & Takvim'),
-              actions: const [_ThemeToggleButton(), SizedBox(width: 6)],
+              actions: const [
+                _ThemeToggleButton(),
+                SizedBox(width: S.xs),
+              ],
             ),
       body: Row(
         children: [
@@ -214,12 +217,15 @@ class _OfflineBanner extends ConsumerWidget {
           ? Container(
               width: double.infinity,
               color: c.surface,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: const EdgeInsets.symmetric(
+                horizontal: S.md,
+                vertical: S.sm,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.cloud_off_rounded, size: 13, color: c.inkFaint),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: S.sm),
                   Text(
                     'Çevrimdışı — değişiklikler cihazda saklanıyor',
                     style: TextStyle(
@@ -285,7 +291,7 @@ class _Sidebar extends StatelessWidget {
                 GroupSwitcher(collapsed: collapsed),
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: S.md),
                     children: [
                       if (!collapsed) const _SectionLabel('Takvim'),
                       for (final item in _calendarItems)
@@ -295,7 +301,7 @@ class _Sidebar extends StatelessWidget {
                           collapsed: collapsed,
                           onTap: () => onSelect(item.section),
                         ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: S.lg),
                       if (!collapsed) const _SectionLabel('Listeler'),
                       for (final item in _listItems)
                         _NavTile(
@@ -304,7 +310,7 @@ class _Sidebar extends StatelessWidget {
                           collapsed: collapsed,
                           onTap: () => onSelect(item.section),
                         ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: S.lg),
                       if (!collapsed) const _SectionLabel('Bilgi & Analiz'),
                       for (final item in _knowledgeItems)
                         _NavTile(
@@ -313,7 +319,7 @@ class _Sidebar extends StatelessWidget {
                           collapsed: collapsed,
                           onTap: () => onSelect(item.section),
                         ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: S.md),
                     ],
                   ),
                 ),
@@ -363,22 +369,22 @@ class _Brand extends StatelessWidget {
     // Daraltılmışken logo yerine doğrudan genişletme düğmesi dursun.
     if (collapsed) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(0, 18, 0, 12),
+        padding: const EdgeInsets.fromLTRB(0, S.lg, 0, S.md),
         child: Column(
           children: [
             logo,
-            if (toggle != null) ...[const SizedBox(height: 6), toggle],
+            if (toggle != null) ...[const SizedBox(height: S.xs), toggle],
           ],
         ),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 10, 14),
+      padding: const EdgeInsets.fromLTRB(S.lg, S.lg, S.sm, S.md),
       child: Row(
         children: [
           logo,
-          const SizedBox(width: 12),
+          const SizedBox(width: S.md),
           Expanded(
             child: Text(
               'Program',
@@ -406,7 +412,7 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 12, 8),
+      padding: const EdgeInsets.fromLTRB(S.md, S.sm, S.md, S.sm),
       child: Text(text, style: Theme.of(context).textTheme.labelSmall),
     );
   }
@@ -448,10 +454,10 @@ class _NavTileState extends State<_NavTile> {
         child: AnimatedContainer(
           duration: Motion.fast,
           curve: Motion.curve,
-          margin: const EdgeInsets.symmetric(vertical: 2),
+          margin: const EdgeInsets.symmetric(vertical: S.hair),
           padding: EdgeInsets.symmetric(
-            horizontal: collapsed ? 0 : 14,
-            vertical: 11,
+            horizontal: collapsed ? 0 : S.md,
+            vertical: S.md,
           ),
           decoration: BoxDecoration(
             color: selected
@@ -467,7 +473,7 @@ class _NavTileState extends State<_NavTile> {
               : Row(
                   children: [
                     Icon(widget.item.icon, size: 19, color: ink),
-                    const SizedBox(width: 13),
+                    const SizedBox(width: S.md),
                     Expanded(
                       child: Text(
                         widget.item.label,
@@ -509,7 +515,7 @@ class _ThemeRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (collapsed) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: S.sm),
         child: Center(child: _ThemeToggleButton()),
       );
     }
@@ -518,9 +524,9 @@ class _ThemeRow extends ConsumerWidget {
     final mode = ref.watch(themeModeProvider);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+      padding: const EdgeInsets.fromLTRB(S.md, S.xs, S.md, S.md),
       child: Container(
-        padding: const EdgeInsets.all(3),
+        padding: const EdgeInsets.all(S.xs),
         decoration: BoxDecoration(
           color: c.isDark ? c.sidebarHover : c.hover,
           borderRadius: R.radiusPill,
@@ -660,15 +666,15 @@ class _ProfileTile extends ConsumerWidget {
         duration: Motion.fast,
         color: selected ? c.navActiveFill : Colors.transparent,
         padding: EdgeInsets.symmetric(
-          horizontal: collapsed ? 0 : 16,
-          vertical: 13,
+          horizontal: collapsed ? 0 : S.lg,
+          vertical: S.md,
         ),
         child: collapsed
             ? Center(child: avatar)
             : Row(
                 children: [
                   avatar,
-                  const SizedBox(width: 11),
+                  const SizedBox(width: S.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

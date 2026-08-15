@@ -125,11 +125,11 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
 
           // --- Başlık satırı: renk noktası + tek satırlık alan ---
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 16, 6),
+            padding: const EdgeInsets.fromLTRB(S.lg, S.xs, S.lg, S.xs),
             child: Row(
               children: [
                 _ColorDot(color: _category.color, onTap: _pickCategory),
-                const SizedBox(width: 14),
+                const SizedBox(width: S.md),
                 Expanded(
                   child: TextField(
                     controller: _title,
@@ -170,14 +170,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
             height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: const EdgeInsets.symmetric(horizontal: S.lg),
               children: [
                 _Pill(
                   icon: Icons.calendar_today_rounded,
                   label: _dateLabel,
                   onTap: _pickDate,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: S.sm),
                 _Pill(
                   icon: Icons.schedule_rounded,
                   label: _start == null ? 'Saatsiz' : Task.formatTime(_start!),
@@ -185,14 +185,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   onTap: _pickTime,
                 ),
                 if (_start != null) ...[
-                  const SizedBox(width: 8),
+                  const SizedBox(width: S.sm),
                   _Pill(
                     icon: Icons.timelapse_rounded,
                     label: Task.formatDuration(_duration),
                     onTap: _cycleDuration,
                   ),
                 ],
-                const SizedBox(width: 8),
+                const SizedBox(width: S.sm),
                 _Pill(
                   icon: Icons.sell_rounded,
                   label: _category.name,
@@ -203,12 +203,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
             ),
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: S.xs),
           Divider(height: 1, color: c.lineSoft),
 
           // --- Alt eylem çubuğu ---
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 16, 16),
+            padding: const EdgeInsets.fromLTRB(S.md, S.md, S.lg, S.lg),
             child: Row(
               children: [
                 TextButton.icon(
@@ -304,7 +304,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
             children: [
               _Grabber(),
               Text('Kategori', style: Theme.of(ctx).textTheme.titleMedium),
-              const SizedBox(height: 10),
+              const SizedBox(height: S.sm),
               for (final cat in AppData.categories)
                 ListTile(
                   dense: true,
@@ -325,7 +325,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                       : null,
                   onTap: () => Navigator.pop(ctx, cat),
                 ),
-              const SizedBox(height: 10),
+              const SizedBox(height: S.sm),
             ],
           ),
         );
@@ -343,7 +343,7 @@ class _Grabber extends StatelessWidget {
     return Container(
       width: 36,
       height: 4,
-      margin: const EdgeInsets.only(top: 12, bottom: 14),
+      margin: const EdgeInsets.only(top: S.md, bottom: S.md),
       decoration: BoxDecoration(
         color: c.line,
         borderRadius: BorderRadius.circular(2),
@@ -406,7 +406,7 @@ class _Pill extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         child: AnimatedContainer(
           duration: Motion.fast,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(horizontal: S.md),
           decoration: BoxDecoration(
             color: active
                 ? tint.withValues(alpha: c.isDark ? 0.14 : 0.10)
@@ -420,7 +420,7 @@ class _Pill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 14, color: tint),
-              const SizedBox(width: 7),
+              const SizedBox(width: S.sm),
               Text(
                 label,
                 style: TextStyle(

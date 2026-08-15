@@ -104,8 +104,8 @@ class GroupSwitcher extends ConsumerWidget {
         duration: Motion.fast,
         curve: Motion.curve,
         padding: EdgeInsets.symmetric(
-          horizontal: collapsed ? 0 : 12,
-          vertical: 9,
+          horizontal: collapsed ? 0 : S.md,
+          vertical: S.sm,
         ),
         decoration: BoxDecoration(
           color: inGroup ? c.navActiveFill : c.sidebarHover,
@@ -116,7 +116,7 @@ class GroupSwitcher extends ConsumerWidget {
             : Row(
                 children: [
                   Icon(icon, size: 18, color: ink),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: S.sm),
                   Expanded(
                     child: Text(
                       ctx.label,
@@ -138,10 +138,10 @@ class GroupSwitcher extends ConsumerWidget {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        collapsed ? 12 : 14,
+        collapsed ? S.md : S.md,
         0,
-        collapsed ? 12 : 14,
-        10,
+        collapsed ? S.md : S.md,
+        S.sm,
       ),
       // Daraltılmışken ad görünmüyor; hangi bağlamda olunduğu ipucunda kalsın.
       child: collapsed ? Tooltip(message: ctx.label, child: button) : button,
@@ -166,7 +166,7 @@ class GroupSwitcher extends ConsumerWidget {
             size: 17,
             color: active ? c.navActiveInk : c.inkFaint,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: S.sm),
           Expanded(
             child: Text(
               label,
@@ -200,7 +200,7 @@ class GroupSwitcher extends ConsumerWidget {
       child: Row(
         children: [
           Icon(icon, size: 16, color: c.inkFaint),
-          const SizedBox(width: 10),
+          const SizedBox(width: S.sm),
           Text(
             label,
             style: TextStyle(

@@ -118,7 +118,7 @@ class HBarChart extends StatelessWidget {
 
     if (rows.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: S.lg),
         child: Text(
           emptyText,
           style: TextStyle(color: c.inkFaint, fontSize: T.caption, height: 1.4),
@@ -131,7 +131,7 @@ class HBarChart extends StatelessWidget {
       children: [
         for (final r in rows)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(vertical: S.xs),
             child: Row(
               children: [
                 SizedBox(
@@ -174,7 +174,7 @@ class HBarChart extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: S.sm),
                 SizedBox(
                   width: 48,
                   child: Text(
@@ -222,7 +222,7 @@ class VBarChart extends StatelessWidget {
           for (var i = 0; i < values.length; i++)
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: S.xs),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -234,7 +234,7 @@ class VBarChart extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: S.xs),
                     Expanded(
                       child: Align(
                         alignment: Alignment.bottomCenter,
@@ -257,7 +257,7 @@ class VBarChart extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: S.xs),
                     Text(
                       labels[i],
                       style: TextStyle(

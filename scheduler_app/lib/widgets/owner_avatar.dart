@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/group_context.dart';
 import '../core/profile_directory.dart';
+import '../theme.dart';
 import 'user_avatar.dart';
 
 /// Bir işin **sahibini** gösteren rozet (Y4.4d).
@@ -77,7 +78,7 @@ class OwnerLine extends ConsumerWidget {
           size: 16,
           showTooltip: false,
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: S.xs),
         Flexible(
           child: Text(
             name,

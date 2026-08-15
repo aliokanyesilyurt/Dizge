@@ -39,7 +39,7 @@ class HabitHeatmap extends StatelessWidget {
           children: [
             // Sol: gün etiketleri (Pzt / Çar / Cum hizası)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: S.sm),
               child: Column(
                 children: List.generate(7, (r) {
                   final show = r == 0 || r == 2 || r == 4;
@@ -84,7 +84,7 @@ class HabitHeatmap extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: S.sm),
         _Legend(color: habit.color),
       ],
     );
@@ -109,7 +109,7 @@ class HabitHeatmap extends StatelessWidget {
       duration: Motion.fast,
       width: _cell,
       height: _cell,
-      margin: const EdgeInsets.all(_gap / 2),
+      margin: const EdgeInsets.all(_gap / S.hair),
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(4),
@@ -136,7 +136,7 @@ class _Legend extends StatelessWidget {
     Widget box(Color fill) => Container(
       width: 11,
       height: 11,
-      margin: const EdgeInsets.symmetric(horizontal: 2),
+      margin: const EdgeInsets.symmetric(horizontal: S.hair),
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(3),
@@ -148,11 +148,11 @@ class _Legend extends StatelessWidget {
     return Row(
       children: [
         Text('Az', style: label),
-        const SizedBox(width: 5),
+        const SizedBox(width: S.xs),
         box(c.hover),
         box(color.withValues(alpha: 0.5)),
         box(color),
-        const SizedBox(width: 5),
+        const SizedBox(width: S.xs),
         Text('Çok', style: label),
       ],
     );

@@ -137,8 +137,8 @@ class _NoteRowState extends State<_NoteRow> {
         child: AnimatedContainer(
           duration: Motion.fast,
           curve: Motion.curve,
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+          margin: const EdgeInsets.only(bottom: S.sm),
+          padding: const EdgeInsets.symmetric(horizontal: S.lg, vertical: S.md),
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: R.radiusMd,
@@ -148,13 +148,13 @@ class _NoteRowState extends State<_NoteRow> {
           child: Row(
             children: [
               Icon(Icons.description_rounded, size: 18, color: c.inkDim),
-              const SizedBox(width: 12),
+              const SizedBox(width: S.md),
               // Sahiplik rozeti (Y4.4d); kişisel bağlamda gizli. Not ikonunun
               // **yerine** geçmiyor, yanına geliyor: ikon "bu bir not" diyor,
               // rozet "bu notu kim yazdı" — ikisi farklı soru.
               if (widget.note.ownerId != null) ...[
                 OwnerAvatar(ownerId: widget.note.ownerId, size: 16),
-                const SizedBox(width: 9),
+                const SizedBox(width: S.sm),
               ],
               Expanded(
                 child: Column(
@@ -175,7 +175,7 @@ class _NoteRowState extends State<_NoteRow> {
                     ),
                     if (preview.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(top: 3),
+                        padding: const EdgeInsets.only(top: S.xs),
                         child: Text(
                           preview,
                           maxLines: 1,
@@ -193,8 +193,8 @@ class _NoteRowState extends State<_NoteRow> {
               if (widget.backlinkCount > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 4,
+                    horizontal: S.sm,
+                    vertical: S.xs,
                   ),
                   decoration: BoxDecoration(
                     color: c.hover,
@@ -203,7 +203,7 @@ class _NoteRowState extends State<_NoteRow> {
                   child: Row(
                     children: [
                       Icon(Icons.link_rounded, size: 13, color: c.inkDim),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: S.xs),
                       Text(
                         '${widget.backlinkCount}',
                         style: TextStyle(
@@ -329,7 +329,7 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
           children: [
             // Üst bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 16, 4),
+              padding: const EdgeInsets.fromLTRB(S.sm, S.sm, S.lg, S.xs),
               child: Row(
                 children: [
                   IconButton(
@@ -356,7 +356,7 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                   // Uzun satırlar okunmaz olmasın: ölçü ~70 karakter.
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(24, 6, 24, 48),
+                    padding: const EdgeInsets.fromLTRB(S.xl, S.xs, S.xl, S.xxl),
                     children: [
                       TextField(
                         controller: _titleCtrl,
@@ -383,7 +383,7 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                         ),
                         onChanged: (_) => setState(() {}),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: S.md),
                       TextField(
                         controller: _bodyCtrl,
                         focusNode: _bodyFocus,
@@ -407,13 +407,13 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                         ),
                         onChanged: (_) => setState(() {}),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: S.xxl),
                       if (outTitles.isNotEmpty) ...[
                         const _PanelLabel(
                           icon: Icons.north_east_rounded,
                           text: 'Bu notun bağlantıları',
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: S.sm),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -426,13 +426,13 @@ class _NoteDetailState extends ConsumerState<_NoteDetail> {
                               ),
                           ],
                         ),
-                        const SizedBox(height: 26),
+                        const SizedBox(height: S.xl),
                       ],
                       const _PanelLabel(
                         icon: Icons.south_west_rounded,
                         text: 'Backlinks (buraya bağlananlar)',
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: S.sm),
                       if (backlinks.isEmpty)
                         Text(
                           'Henüz kimse bu nota bağlanmadı. Bir görevin ya da '
@@ -479,7 +479,7 @@ class _PanelLabel extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 13, color: c.inkFaint),
-        const SizedBox(width: 7),
+        const SizedBox(width: S.sm),
         // Karışık büyük/küçük harf olduğu için `labelSmall`ın geniş harf
         // aralığı yerine daha sıkı bir ölçü.
         Text(
@@ -518,7 +518,7 @@ class _LinkChip extends StatelessWidget {
       child: MouseRegion(
         cursor: isNote ? SystemMouseCursors.click : MouseCursor.defer,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.sm),
           decoration: BoxDecoration(
             color: color.withValues(alpha: c.isDark ? 0.13 : 0.09),
             borderRadius: R.radiusPill,
@@ -536,7 +536,7 @@ class _LinkChip extends StatelessWidget {
                 size: 13,
                 color: color,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: S.xs),
               Text(
                 title,
                 style: TextStyle(
@@ -568,8 +568,8 @@ class _BacklinkRow extends StatelessWidget {
       child: MouseRegion(
         cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
         child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+          margin: const EdgeInsets.only(bottom: S.sm),
+          padding: const EdgeInsets.symmetric(horizontal: S.lg, vertical: S.md),
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: R.radiusMd,
@@ -583,7 +583,7 @@ class _BacklinkRow extends StatelessWidget {
                 size: 16,
                 color: isTask ? c.secondary : c.accent,
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: S.md),
               Expanded(
                 child: Text(
                   node.title.isEmpty ? 'Başlıksız' : node.title,
@@ -651,14 +651,14 @@ class _LinkPickerState extends State<_LinkPicker> {
             Container(
               width: 36,
               height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 6),
+              margin: const EdgeInsets.only(top: S.md, bottom: S.xs),
               decoration: BoxDecoration(
                 color: c.line,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+              padding: const EdgeInsets.fromLTRB(S.lg, S.md, S.lg, S.sm),
               child: TextField(
                 controller: _query,
                 autofocus: true,
@@ -677,7 +677,7 @@ class _LinkPickerState extends State<_LinkPicker> {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(horizontal: S.sm),
                 children: [
                   if (canCreate)
                     ListTile(
@@ -710,7 +710,7 @@ class _LinkPickerState extends State<_LinkPicker> {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: S.sm),
           ],
         ),
       ),

@@ -117,6 +117,48 @@ void main() {
     });
   });
 
+  group('boşluk göçü', () {
+    test('ara vericiler ve kenar boşlukları ölçekten okunur', () {
+      // Ölçeğin ikinci yarısı. Yazı boyu gibi burada da tek koruma, elle
+      // sayı yazmanın imkânsız hâle gelmesi: bir dosyada `SizedBox(height: 11)`
+      // serbest kaldığı sürece dikey ritim yeniden dağılır.
+      //
+      // İki kalıp denetleniyor:
+      //   * çocuksuz `SizedBox` — saf ara verici (çocuklu olan bir **ölçü**dür,
+      //     boşluk değil, ve ölçeğe girmesi gerekmez),
+      //   * iç içe parantez içermeyen `EdgeInsets.*` çağrıları (hesaplı
+      //     olanlar — `MediaQuery.viewInsetsOf(context).bottom` gibi — zaten
+      //     bir sayı yazmıyor).
+      //
+      // `0` serbest: sıfır bir kademe değil, boşluğun yokluğu.
+      // Kapanan parantez desenin parçası: yalnız **çocuksuz** biçim yakalanır.
+      // `SizedBox(width: 3, child: ColoredBox(...))` bir renk şeridinin
+      // kalınlığıdır — ölçü, boşluk değil.
+      final spacer = RegExp(r'SizedBox\((?:height|width): [0-9.]+\)');
+      final inset = RegExp(r'EdgeInsets\.\w+\(([^()]*)\)', dotAll: true);
+      final rawNumber = RegExp(r'(?<![\w.])[1-9][0-9]*(\.[0-9]+)?(?![\w.])');
+
+      final offenders = <String>[];
+
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final path = entity.path.replaceAll(r'\', '/');
+        final source = entity.readAsStringSync();
+
+        if (spacer.hasMatch(source)) {
+          offenders.add('$path — elle yazılmış ara verici');
+        }
+        for (final match in inset.allMatches(source)) {
+          if (rawNumber.hasMatch(match.group(1)!)) {
+            offenders.add('$path — ${match.group(0)}');
+          }
+        }
+      }
+
+      expect(offenders, isEmpty, reason: 'ölçek dışı boşluk');
+    });
+  });
+
   group('okuma genişliği', () {
     testWidgets('geniş pencerede içerik sütunda durur', (tester) async {
       // 1600 piksellik bir pencerede satır, gözün sonundan başına dönemeyeceği

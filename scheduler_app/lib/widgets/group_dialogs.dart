@@ -133,7 +133,7 @@ class _GroupDialogState extends ConsumerState<_GroupDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(widget.description, style: _faint(context)),
-          const SizedBox(height: 16),
+          const SizedBox(height: S.lg),
           TextField(
             controller: _field,
             autofocus: true,
@@ -263,7 +263,7 @@ class _ManageGroupDialogState extends ConsumerState<_ManageGroupDialog> {
                 'bir adres yazarsan yalnız o hesapta çalışır.',
                 style: _faint(context),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: S.md),
               TextField(
                 controller: _email,
                 enabled: !_busy && !offline,
@@ -273,7 +273,7 @@ class _ManageGroupDialogState extends ConsumerState<_ManageGroupDialog> {
                   hintText: 'ornek@posta.com',
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: S.sm),
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
@@ -283,10 +283,10 @@ class _ManageGroupDialogState extends ConsumerState<_ManageGroupDialog> {
                 ),
               ),
               if (_token != null) _TokenBox(_token!),
-              const SizedBox(height: 8),
+              const SizedBox(height: S.sm),
               Divider(color: c.lineSoft),
             ],
-            const SizedBox(height: 4),
+            const SizedBox(height: S.xs),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
@@ -322,10 +322,10 @@ class _TokenBox extends StatelessWidget {
     final c = context.colors;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: S.md),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(11),
+        padding: const EdgeInsets.all(S.md),
         decoration: BoxDecoration(
           color: c.surfaceAlt,
           borderRadius: BorderRadius.circular(R.sm),
@@ -337,7 +337,7 @@ class _TokenBox extends StatelessWidget {
             Row(
               children: [
                 Icon(Icons.check_rounded, size: 15, color: c.accent),
-                const SizedBox(width: 6),
+                const SizedBox(width: S.xs),
                 Text(
                   'Panoya kopyalandı',
                   style: TextStyle(
@@ -348,7 +348,7 @@ class _TokenBox extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 7),
+            const SizedBox(height: S.sm),
             SelectableText(
               token,
               style: TextStyle(
@@ -369,11 +369,11 @@ class _OfflineNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 12),
+    padding: const EdgeInsets.only(top: S.md),
     child: Row(
       children: [
         Icon(Icons.cloud_off_rounded, size: 14, color: context.colors.inkFaint),
-        const SizedBox(width: 7),
+        const SizedBox(width: S.sm),
         Expanded(
           child: Text(
             'Grup işlemleri sunucuya bağlanmayı gerektiriyor; '
@@ -395,12 +395,12 @@ class _ErrorNote extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: S.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.error_outline_rounded, size: 14, color: c.danger),
-          const SizedBox(width: 7),
+          const SizedBox(width: S.sm),
           Expanded(
             child: Text(
               message,

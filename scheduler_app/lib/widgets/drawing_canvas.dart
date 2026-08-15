@@ -96,7 +96,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
             },
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: S.sm),
         Row(
           children: [
             Text(

@@ -129,7 +129,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
 
   Widget _header(AppPalette c, String monthName, int year) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 6),
+      padding: const EdgeInsets.fromLTRB(S.sm, S.md, S.sm, S.xs),
       child: Row(
         children: [
           IconButton(
@@ -145,7 +145,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
                   '$monthName $year',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: S.hair),
                 Text(
                   'kaydırarak ayları gez',
                   style: TextStyle(color: c.inkFaint, fontSize: T.micro),
@@ -291,14 +291,14 @@ class _Cell extends StatelessWidget {
         child: AnimatedContainer(
           duration: Motion.base,
           curve: Motion.curve,
-          margin: const EdgeInsets.all(3),
+          margin: const EdgeInsets.all(S.xs),
           decoration: BoxDecoration(
             color: fill,
             borderRadius: R.radiusSm,
             border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
             boxShadow: isSelected || isToday ? c.shadowSm : null,
           ),
-          padding: const EdgeInsets.fromLTRB(6, 6, 5, 5),
+          padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.xs),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -321,7 +321,7 @@ class _Cell extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: S.xs),
               // Hücreye sığmayan işler kırpılır (gün görünümünde tamamı var).
               Expanded(
                 child: ListView(
@@ -343,14 +343,14 @@ class _Cell extends StatelessWidget {
     final tag = c.tag(task.color);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2.5),
+      padding: const EdgeInsets.only(bottom: S.hair),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 5,
             height: 5,
-            margin: const EdgeInsets.only(top: 4, right: 4),
+            margin: const EdgeInsets.only(top: S.xs, right: S.xs),
             decoration: BoxDecoration(
               color: done ? Colors.transparent : task.color,
               shape: BoxShape.circle,
@@ -376,11 +376,11 @@ class _Cell extends StatelessWidget {
           // sonunda**: başa koymak, zaten tek satıra sığmayan başlıktan bir
           // parça daha alırdı. Kişisel bağlamda kendini gizler.
           if (task.ownerId != null) ...[
-            const SizedBox(width: 3),
+            const SizedBox(width: S.xs),
             Padding(
               // Nokta ve yazı üstten hizalı; rozet de onlarla aynı çizgide
               // dursun diye 1px iniyor.
-              padding: const EdgeInsets.only(top: 1),
+              padding: const EdgeInsets.only(top: S.hair),
               child: OwnerAvatar(ownerId: task.ownerId, size: 12),
             ),
           ],
@@ -400,7 +400,7 @@ class _RoutinesSheet extends ConsumerWidget {
     final routines = ref.watch(routinesProvider);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
+      padding: const EdgeInsets.fromLTRB(S.lg, S.lg, S.lg, S.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,11 +408,14 @@ class _RoutinesSheet extends ConsumerWidget {
           Row(
             children: [
               Icon(Icons.repeat_rounded, size: 18, color: c.inkDim),
-              const SizedBox(width: 10),
+              const SizedBox(width: S.sm),
               Text('Rutinler', style: Theme.of(context).textTheme.titleLarge),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: S.sm,
+                  vertical: S.xs,
+                ),
                 decoration: BoxDecoration(
                   color: c.hover,
                   borderRadius: R.radiusPill,
@@ -428,10 +431,10 @@ class _RoutinesSheet extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: S.lg),
           if (routines.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 28),
+              padding: const EdgeInsets.symmetric(vertical: S.xl),
               child: Text(
                 'Henüz rutin yok. Bir iş eklerken türünü "Rutin" seçersen '
                 'burada listelenir.',
@@ -447,7 +450,7 @@ class _RoutinesSheet extends ConsumerWidget {
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: routines.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: S.sm),
                 itemBuilder: (_, i) {
                   final t = routines[i];
                   return Material(
@@ -457,7 +460,7 @@ class _RoutinesSheet extends ConsumerWidget {
                       onTap: () =>
                           showTaskEditor(context, date: t.date, existing: t),
                       child: Container(
-                        padding: const EdgeInsets.all(13),
+                        padding: const EdgeInsets.all(S.md),
                         decoration: BoxDecoration(
                           color: c.surface,
                           borderRadius: R.radiusMd,
@@ -474,7 +477,7 @@ class _RoutinesSheet extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(2),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: S.md),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,7 +492,7 @@ class _RoutinesSheet extends ConsumerWidget {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const SizedBox(height: 3),
+                                  const SizedBox(height: S.xs),
                                   Text(
                                     [
                                       t.repeat.describe(t.date),

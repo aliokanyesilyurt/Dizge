@@ -47,7 +47,7 @@ class YearViewScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: GridView.builder(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(S.lg),
           // Sabit 3 sütun geniş ekranda ayları aşırı geriyordu; genişliğe göre
           // sütun sayısı belirlensin ki webde de derli toplu dursun.
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -123,7 +123,7 @@ class _MiniMonthState extends State<_MiniMonth> {
       final mark = markedDays[d];
 
       return Padding(
-        padding: const EdgeInsets.all(1),
+        padding: const EdgeInsets.all(S.hair),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: isToday ? c.accent : Colors.transparent,
@@ -146,7 +146,7 @@ class _MiniMonthState extends State<_MiniMonth> {
                 Container(
                   width: 3.5,
                   height: 3.5,
-                  margin: const EdgeInsets.only(top: 1.5),
+                  margin: const EdgeInsets.only(top: S.hair),
                   decoration: BoxDecoration(
                     color: isToday ? c.onAccent : mark,
                     shape: BoxShape.circle,
@@ -177,7 +177,7 @@ class _MiniMonthState extends State<_MiniMonth> {
             ),
             boxShadow: _hovered ? c.shadowMd : c.shadowSm,
           ),
-          padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
+          padding: const EdgeInsets.fromLTRB(S.md, S.md, S.md, S.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -193,7 +193,7 @@ class _MiniMonthState extends State<_MiniMonth> {
                     ),
                   ),
                   if (isCurrentMonth) ...[
-                    const SizedBox(width: 6),
+                    const SizedBox(width: S.xs),
                     Container(
                       width: 5,
                       height: 5,
@@ -205,7 +205,7 @@ class _MiniMonthState extends State<_MiniMonth> {
                   ],
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: S.sm),
               Expanded(
                 child: Column(
                   children: List.generate(6, (week) {

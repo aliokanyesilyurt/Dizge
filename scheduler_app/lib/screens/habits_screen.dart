@@ -79,8 +79,8 @@ class _HabitCard extends ConsumerWidget {
     final rate = habit.completionRate(30);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: S.md),
+      padding: const EdgeInsets.all(S.lg),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: R.radiusMd,
@@ -100,7 +100,7 @@ class _HabitCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: S.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,7 +135,7 @@ class _HabitCard extends ConsumerWidget {
                 color: habit.color,
                 onTap: () => store.toggleHabit(habit, today),
               ),
-              const SizedBox(width: 2),
+              const SizedBox(width: S.hair),
               IconButton(
                 onPressed: () => _confirmDelete(context, store, habit),
                 icon: Icon(
@@ -146,7 +146,7 @@ class _HabitCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: S.lg),
           Row(
             children: [
               _Stat(
@@ -155,7 +155,7 @@ class _HabitCard extends ConsumerWidget {
                 label: 'gün seri',
                 color: streak > 0 ? c.warning : c.inkFaint,
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: S.xl),
               _Stat(
                 icon: Icons.percent_rounded,
                 value: '${(rate * 100).round()}',
@@ -164,7 +164,7 @@ class _HabitCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: S.lg),
           HabitHeatmap(
             habit: habit,
             onToggleDay: (day) => store.toggleHabit(habit, day),
@@ -218,7 +218,7 @@ class _TodayButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: Motion.base,
           curve: Motion.curve,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.sm),
           decoration: BoxDecoration(
             color: done ? color : c.hover,
             borderRadius: R.radiusPill,
@@ -233,7 +233,7 @@ class _TodayButton extends StatelessWidget {
                 size: 15,
                 color: done ? onColor : c.inkDim,
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: S.xs),
               Text(
                 'Bugün',
                 style: TextStyle(
@@ -269,7 +269,7 @@ class _Stat extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 18, color: color),
-        const SizedBox(width: 7),
+        const SizedBox(width: S.sm),
         Text(
           value,
           style: TextStyle(
@@ -279,7 +279,7 @@ class _Stat extends StatelessWidget {
             letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(width: 5),
+        const SizedBox(width: S.xs),
         Text(
           label,
           style: TextStyle(
@@ -338,9 +338,9 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
             style: TextStyle(color: c.ink),
             decoration: const InputDecoration(hintText: 'Ör. Sabah koşusu'),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: S.lg),
           Text('Renk', style: Theme.of(context).textTheme.labelSmall),
-          const SizedBox(height: 10),
+          const SizedBox(height: S.sm),
           Wrap(
             spacing: 9,
             runSpacing: 9,
@@ -364,9 +364,9 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
                 ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: S.lg),
           Text('Ritim', style: Theme.of(context).textTheme.labelSmall),
-          const SizedBox(height: 10),
+          const SizedBox(height: S.sm),
           SegmentedButton<HabitCadence>(
             segments: const [
               ButtonSegment(value: HabitCadence.daily, label: Text('Her gün')),
@@ -380,7 +380,7 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
             onSelectionChanged: (s) => setState(() => _cadence = s.first),
           ),
           if (_cadence == HabitCadence.weekly) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: S.md),
             Row(
               children: [
                 Text(

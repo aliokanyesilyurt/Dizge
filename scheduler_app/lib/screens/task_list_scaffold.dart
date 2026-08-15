@@ -95,7 +95,7 @@ class EmptyState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
+        padding: const EdgeInsets.symmetric(horizontal: S.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -110,7 +110,7 @@ class EmptyState extends StatelessWidget {
               ),
               child: Icon(icon, size: 26, color: c.inkFaint),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: S.lg),
             if (title != null) ...[
               Text(
                 title!,
@@ -122,7 +122,7 @@ class EmptyState extends StatelessWidget {
                   letterSpacing: -0.1,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: S.xs),
             ],
             Text(
               text,
@@ -169,8 +169,8 @@ class _RowState extends State<_Row> {
         child: AnimatedContainer(
           duration: Motion.fast,
           curve: Motion.curve,
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
+          margin: const EdgeInsets.only(bottom: S.sm),
+          padding: const EdgeInsets.fromLTRB(S.md, S.md, S.lg, S.md),
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: R.radiusMd,
@@ -188,13 +188,13 @@ class _RowState extends State<_Row> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: S.md),
               // Sahiplik rozeti (Y4.4d). Burada **satır başında**: listede
               // yer var ve göz zaten soldan tarıyor, "kimin işi" sorusu
               // başlığı okumadan yanıtlanıyor. Kişisel bağlamda gizli.
               if (t.ownerId != null) ...[
                 OwnerAvatar(ownerId: t.ownerId, size: 16),
-                const SizedBox(width: 9),
+                const SizedBox(width: S.sm),
               ],
               Expanded(
                 child: Column(
@@ -213,7 +213,7 @@ class _RowState extends State<_Row> {
                     ),
                     if (t.categoryName.isNotEmpty || t.scheduled)
                       Padding(
-                        padding: const EdgeInsets.only(top: 3),
+                        padding: const EdgeInsets.only(top: S.xs),
                         child: Text(
                           [
                             if (t.scheduled) t.timeString,
@@ -231,7 +231,7 @@ class _RowState extends State<_Row> {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: S.sm),
               Text(
                 widget.trailing,
                 style: TextStyle(

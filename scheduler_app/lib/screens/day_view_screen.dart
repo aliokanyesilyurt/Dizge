@@ -89,7 +89,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
               '${d.day} ${_monthNames[d.month - 1]} ${d.year}',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: S.hair),
             Text(
               tasks.isEmpty
                   ? _weekdays[d.weekday - 1]
@@ -154,7 +154,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                         ...singles.map(_card),
                       ],
                       if (routines.isNotEmpty) ...[
-                        if (singles.isNotEmpty) const SizedBox(height: 18),
+                        if (singles.isNotEmpty) const SizedBox(height: S.lg),
                         _sectionHeader(
                           c,
                           Icons.repeat_rounded,
@@ -180,15 +180,18 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
   /// noktalı 'İ' yapmaz.
   Widget _sectionHeader(AppPalette c, IconData icon, String title, int count) =>
       Padding(
-        padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
+        padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.sm),
         child: Row(
           children: [
             Icon(icon, size: 14, color: c.inkFaint),
-            const SizedBox(width: 7),
+            const SizedBox(width: S.sm),
             Text(title, style: Theme.of(context).textTheme.labelSmall),
-            const SizedBox(width: 7),
+            const SizedBox(width: S.sm),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              padding: const EdgeInsets.symmetric(
+                horizontal: S.xs,
+                vertical: S.hair,
+              ),
               decoration: BoxDecoration(
                 color: c.hover,
                 borderRadius: R.radiusPill,
@@ -207,7 +210,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
       );
 
   Widget _card(Task task) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.only(bottom: S.sm),
     child: _TaskCard(
       task: task,
       date: widget.date,
@@ -261,7 +264,7 @@ class _TaskCard extends StatelessWidget {
             ),
             boxShadow: selected ? c.shadowMd : c.shadowSm,
           ),
-          padding: const EdgeInsets.fromLTRB(14, 13, 6, 13),
+          padding: const EdgeInsets.fromLTRB(S.md, S.md, S.xs, S.md),
           child: Row(
             children: [
               _Check(
@@ -270,7 +273,7 @@ class _TaskCard extends StatelessWidget {
                 done: done,
                 onTap: onToggleDone,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: S.md),
               SizedBox(
                 width: 48,
                 child: task.scheduled
@@ -301,9 +304,9 @@ class _TaskCard extends StatelessWidget {
                         style: TextStyle(color: c.inkFaint, fontSize: T.micro),
                       ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: S.sm),
               Container(width: 1, height: 32, color: c.lineSoft),
-              const SizedBox(width: 12),
+              const SizedBox(width: S.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,7 +332,7 @@ class _TaskCard extends StatelessWidget {
                           ),
                         ),
                         if (task.isRoutine) ...[
-                          const SizedBox(width: 6),
+                          const SizedBox(width: S.xs),
                           Icon(
                             Icons.repeat_rounded,
                             size: 13,
@@ -338,18 +341,18 @@ class _TaskCard extends StatelessWidget {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: S.xs),
                     Row(
                       children: [
                         _MiniTag(text: task.categoryName, color: task.color),
                         if (task.place.isNotEmpty) ...[
-                          const SizedBox(width: 7),
+                          const SizedBox(width: S.sm),
                           Icon(
                             Icons.place_rounded,
                             size: 11,
                             color: c.inkFaint,
                           ),
-                          const SizedBox(width: 2),
+                          const SizedBox(width: S.hair),
                           Flexible(
                             child: Text(
                               task.place,
@@ -366,7 +369,7 @@ class _TaskCard extends StatelessWidget {
                     ),
                     if (task.note.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.only(top: S.xs),
                         child: Text(
                           task.note,
                           maxLines: 2,
@@ -380,7 +383,7 @@ class _TaskCard extends StatelessWidget {
                       ),
                     if (task.sketch != null && !task.sketch!.isEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.only(top: S.xs),
                         child: SketchThumbnail(sketch: task.sketch!),
                       ),
                   ],
@@ -425,7 +428,7 @@ class _Check extends StatelessWidget {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: Padding(
-          padding: const EdgeInsets.all(2),
+          padding: const EdgeInsets.all(S.hair),
           child: AnimatedContainer(
             duration: Motion.fast,
             curve: Motion.curve,
@@ -457,7 +460,7 @@ class _MiniTag extends StatelessWidget {
     if (text.isEmpty) return const SizedBox.shrink();
     final style = context.colors.tag(color);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: S.sm, vertical: S.xs),
       decoration: BoxDecoration(color: style.fill, borderRadius: R.radiusPill),
       child: Text(
         text,
