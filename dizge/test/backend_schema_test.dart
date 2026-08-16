@@ -244,4 +244,32 @@ void main() {
       );
     });
   });
+
+  /// Z8 — yeni model alanları neden sunucu göçü istemiyor.
+  ///
+  /// İlk şemanın B1 kararı hibrit: sunucunun süzmesi/sıralaması gereken
+  /// alanlar tipli sütun, kaydın geri kalanı `payload jsonb`. Saat penceresi
+  /// (Z2) ve gün içi tekrarlar (Z6) ikinci gruba düşüyor — payload'ın içinde
+  /// gidiyorlar ve sunucu şeması onları hiç tanımak zorunda değil.
+  ///
+  /// Bu test o kararın bekçisi: `payload` bir gün tipli sütunlara bölünürse
+  /// yeni alan eklemek yine migration ister ve burası kırmızıya döner.
+  group('Z8 — payload esnekliği', () {
+    test('nodes tablosu payload jsonb taşıyor', () {
+      expect(sql, contains('payload jsonb'));
+    });
+
+    test('istemcinin yeni alanları için tipli sütun yok', () {
+      // Varsa, bir migration unutulmuş demektir.
+      for (final column in ['window_start', 'window_end', 'times_of_day']) {
+        expect(
+          sql.contains(column),
+          isFalse,
+          reason:
+              '$column sütunu şemaya girmiş; payload kararı (B1) değişmişse '
+              'plan §Z8 yeniden yazılmalı',
+        );
+      }
+    });
+  });
 }
