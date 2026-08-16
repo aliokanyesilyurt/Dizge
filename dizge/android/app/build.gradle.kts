@@ -20,6 +20,44 @@ val keystoreProperties = Properties().apply {
 }
 val hasReleaseKey = keystoreProperties.getProperty("storeFile") != null
 
+// Yayın APK'sına hangi işlemci mimarilerinin gireceği.
+//
+// Flutter'ın `--target-platform` bayrağı yalnız **kendi** kitaplıklarını
+// kırpıyor (`libflutter.so`, `libapp.so`); eklentilerden gelen yerel
+// kitaplıklar üç ABI için de paketlenmeye devam ediyor. Ölçüm: arm64
+// istenen APK 43,9 MiB çıktı ve bunun 12,7'si ML Kit'in hiç
+// çalıştırılmayacak `libdigitalink.so` kopyalarıydı.
+//
+// Süzgeç bu yüzden burada, gradle tarafında — ve **yalnız `release`**:
+// hata ayıklama derlemesi x86_64 emülatörde açılabilmeli.
+val abiOfPlatform = mapOf(
+    "android-arm" to "armeabi-v7a",
+    "android-arm64" to "arm64-v8a",
+    "android-x64" to "x86_64",
+)
+val requestedPlatforms = (project.findProperty("target-platform") as String?)
+    ?.split(",")
+    ?.map { it.trim() }
+    ?.filter { it.isNotEmpty() }
+    .orEmpty()
+
+// Tanınmayan bir platform gelirse süzgeç **hiç** kurulmuyor. Yanlış tarafa
+// düşmenin bedeli asimetrik: eksik süzgeç yalnız büyük bir APK üretir,
+// fazla süzgeç ise Flutter'ın kitaplığını koyup eklentininkini atarak
+// açılışta çöken bir APK üretir.
+val releaseAbis =
+    if (requestedPlatforms.isNotEmpty() && requestedPlatforms.all { abiOfPlatform.containsKey(it) }) {
+        requestedPlatforms.map { abiOfPlatform.getValue(it) }
+    } else {
+        if (requestedPlatforms.isNotEmpty()) {
+            logger.warn(
+                "  UYARI · Tanınmayan target-platform ($requestedPlatforms): " +
+                    "ABI süzgeci uygulanmadı, APK tüm mimarileri taşıyacak."
+            )
+        }
+        emptyList()
+    }
+
 android {
     namespace = "com.aliokan.dizge"
     compileSdk = flutter.compileSdkVersion
@@ -60,6 +98,13 @@ android {
 
     buildTypes {
         release {
+            if (releaseAbis.isNotEmpty()) {
+                ndk {
+                    abiFilters.clear()
+                    abiFilters.addAll(releaseAbis)
+                }
+            }
+
             signingConfig = if (hasReleaseKey) {
                 signingConfigs.getByName("release")
             } else {

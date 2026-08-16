@@ -18,6 +18,12 @@
 .PARAMETER Target
     `windows`, `android` ya da `both` (varsayılan).
 
+.PARAMETER Abi
+    APK'ya hangi işlemci mimarilerinin gireceği: `arm64` (varsayılan),
+    `arm64+arm` ya da `hepsi`. Varsayılan 2015 sonrası her telefonu kapsar
+    ve APK'yı 80,6 MiB'dan 31,1 MiB'a indirir; gerekçe aşağıda, APK'yı
+    derleyen bölümün başındaki notta.
+
 .PARAMETER SkipTests
     Testleri atlar. Varsayılan olarak koşuyorlar: dağıtılan bir sürüm,
     kırmızı bir takımla çıkmamalı.
@@ -32,6 +38,8 @@
 param(
     [ValidateSet('windows', 'android', 'both')]
     [string] $Target = 'both',
+    [ValidateSet('arm64', 'arm64+arm', 'hepsi')]
+    [string] $Abi = 'arm64',
     [switch] $SkipTests
 )
 
@@ -63,7 +71,9 @@ $version = $Matches[1]
 $build = $Matches[2]
 
 Write-Host ""
-Write-Host "Dizge $version+$build  ·  hedef: $Target" -ForegroundColor Cyan
+$head = "Dizge $version+$build  ·  hedef: $Target"
+if ($Target -in @('android', 'both')) { $head += "  ·  abi: $Abi" }
+Write-Host $head -ForegroundColor Cyan
 Write-Host ""
 
 Push-Location $project
@@ -133,17 +143,41 @@ gösterebilir. "Daha fazla bilgi" › "Yine de çalıştır" ile geçilir.
             Write-Host ""
         }
 
-        # `--split-per-abi` değil tek APK: yandan yükleme için tek dosya
-        # göndermek, karşı tarafa "telefonun hangi işlemciyi kullanıyor"
-        # diye sormaktan iyi. Mağazaya çıkılırsa orada app bundle var.
-        flutter build apk --release "--dart-define-from-file=$env_file"
+        # `--split-per-abi` değil, hâlâ tek APK: yandan yükleme için tek
+        # dosya göndermek, karşı tarafa "telefonun hangi işlemciyi
+        # kullanıyor" diye sormaktan iyi. Mağazaya çıkılırsa orada app
+        # bundle var. Değişen, o tek dosyanın **neyi taşıdığı**.
+        #
+        # Üç mimarili APK 80,6 MiB'dı ve bunun 76'sı yerel kitaplıktı. En
+        # büyük dilim x86_64'tü (28,9 MiB) — yalnız emülatörlerin kullandığı,
+        # yandan yüklenen hiçbir telefonda çalışmayan mimari. ML Kit'in
+        # `libdigitalink.so`'su bedeli üçe katlıyordu: 8,4 + 6,6 + 4,3 MiB.
+        #
+        # Varsayılan `arm64` 2015 sonrası her telefonu kapsıyor. Elde 32-bit
+        # bir cihaz varsa APK kurulmaz ve Android nedenini söylemez, yalnız
+        # "uygulama yüklenmedi" der. Karşılığı tek bayrak: `-Abi arm64+arm`.
+        $platforms = switch ($Abi) {
+            'arm64'     { 'android-arm64' }
+            'arm64+arm' { 'android-arm,android-arm64' }
+            'hepsi'     { $null }
+        }
+
+        $apk_args = @('build', 'apk', '--release', "--dart-define-from-file=$env_file")
+        if ($platforms) { $apk_args += "--target-platform=$platforms" }
+
+        flutter @apk_args
         if ($LASTEXITCODE -ne 0) { exit 1 }
 
         $apk = Join-Path $project 'build\app\outputs\flutter-apk\app-release.apk'
-        $dest = Join-Path $out "Dizge-$version-$build.apk"
+
+        # ABI adı dosya adına giriyor: aynı sürümün iki farklı kapsamlı
+        # APK'sı üretilebiliyor ve "hangisini göndermiştim" sorusu yalnız
+        # ada bakarak yanıtlanabilmeli.
+        $dest = Join-Path $out "Dizge-$version-$build-$Abi.apk"
         Copy-Item $apk $dest -Force
 
-        Write-Host "  ✓ $dest" -ForegroundColor Green
+        $mb = [math]::Round((Get-Item $dest).Length / 1MB, 1)
+        Write-Host "  ✓ $dest  ·  $mb MiB" -ForegroundColor Green
     }
 }
 finally {

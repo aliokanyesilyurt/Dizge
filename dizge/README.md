@@ -174,9 +174,39 @@ Testleri koşar, iki hedefi de derler ve `build/surum/` altına koyar:
 | Çıktı | Ne |
 |---|---|
 | `Dizge-<sürüm>-windows.zip` | Uygulama klasörü + `dizge_scheme.ps1` + `OKU-BENI.txt` |
-| `Dizge-<sürüm>-<yapı>.apk` | Yandan yüklenebilir tek APK (ABI'ye bölünmemiş) |
+| `Dizge-<sürüm>-<yapı>-<abi>.apk` | Yandan yüklenebilir tek APK (ABI'ye bölünmemiş) |
 
 `-Target windows` / `-Target android` ile tek hedef, `-SkipTests` ile testsiz.
+
+### APK hangi mimarileri taşıyor
+
+Tek APK kararı duruyor — yandan yükleme için tek dosya göndermek, karşı tarafa
+"telefonun hangi işlemciyi kullanıyor" diye sormaktan iyi. Değişen, o tek
+dosyanın **neyi taşıdığı**.
+
+Üç mimarili APK 80,6 MiB'dı ve bunun 76'sı yerel kitaplıktı. En büyük dilim
+x86_64'tü (28,9 MiB): yalnız emülatörlerin kullandığı, yandan yüklenen hiçbir
+telefonda çalışmayan mimari. ML Kit'in tanıma kitaplığı da bedeli üçe
+katlıyordu (8,4 + 6,6 + 4,3 MiB).
+
+| `-Abi` | APK | Kimi kapsar |
+|---|---|---|
+| `arm64` *(varsayılan)* | **31,1 MiB** | 2015 sonrası her telefon |
+| `arm64+arm` | 53,1 MiB | 32-bit eski/ucuz cihazlar da |
+| `hepsi` | 80,6 MiB | Emülatörler dâhil; eski davranış |
+
+Elde 32-bit bir cihaz varsa varsayılan APK **kurulmaz** ve Android nedenini
+söylemez, yalnız "uygulama yüklenmedi" der. Karşılığı tek bayrak:
+`-Abi arm64+arm`.
+
+Süzgecin iki yeri var ve ikisi de gerekli. Flutter'ın `--target-platform`
+bayrağı yalnız kendi kitaplıklarını (`libflutter.so`, `libapp.so`) kırpıyor;
+eklentilerden gelen yerel kitaplıklar üç ABI için de paketlenmeye devam
+ediyor — tek başına bayrakla ölçülen 43,9 MiB'ın 12,7'si hiç çalıştırılmayacak
+`libdigitalink.so` kopyalarıydı. Asıl süzgeç bu yüzden `android/app/build.gradle.kts`
+içinde `abiFilters` ile ve **yalnız `release`** için kuruluyor: hata ayıklama
+derlemesi x86_64 emülatörde açılabilmeli. İkisi de aynı bayraktan besleniyor,
+gradle tarafı `target-platform` özelliğini okuyor.
 
 Betiğin elle `flutter build` çalıştırmaktan farkı, **`env.json`'u unutmaması**.
 Unutulduğunda derleme başarılı olur ama uygulama sunucusuz açılır: hatasız
@@ -415,9 +445,9 @@ eklenirse test onu yakalar, gözden kaçmaz.
 - Izgarada **sıkıştırarak yakınlaştırma (pinch)** yok; yoğunluk başlıktaki
   düğmeyle üç kademeli değişiyor. Sıkıştırma jesti dikey kaydırmayla aynı
   arenada yarışıyor ve güvenilir çalışmıyordu.
-- **APK 80,8 MB.** ML Kit'in tanıma kitaplığı üç ABI için birden paketleniyor
-  (tek APK bilinçli bir tercih, bkz. Sürüm çıkarma). `--split-per-abi` ya da
-  yalnız `arm64-v8a` bunu üçte birine indirir; henüz yapılmadı.
+- **Yayın APK'sı yalnız `arm64-v8a` taşıyor** (31,1 MiB). 32-bit bir cihazda
+  kurulmaz; o cihaz için `-Abi arm64+arm` ile ayrı bir APK çıkmak gerekir
+  (bkz. Sürüm çıkarma › APK hangi mimarileri taşıyor).
 - **El yazısı tanımanın doğruluğu gerçek donanımda ölçülmedi.** Sözleşme
   tarafı test altında (kanaldan ne gidiyor, ne dönüyor, hata hâlinde ne oluyor)
   ama Windows'un Türkçe dil paketi ve ML Kit'in Türkçe modeli ancak elde

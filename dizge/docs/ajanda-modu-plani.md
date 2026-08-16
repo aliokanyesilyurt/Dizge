@@ -333,12 +333,16 @@ biçimini değiştirip her noktaya zaman eklemek — eski sayfaları taşımayı
 gerektirirdi ve kazancı belirsiz. Gerçek kalemle bir tur atıldığında doğruluk
 zayıf çıkarsa ilk bakılacak yer burası.
 
-**APK 20 MB büyüdü.** ML Kit'in `libdigitalink.so`'su üç ABI için birden
-paketleniyor (yayın APK'sı ABI'ye bölünmüyor, bkz. README §Sürüm çıkarma) ve
-tek APK 80,8 MB'a çıktı. Yandan yüklenen bir dağıtım için bu görünür bir bedel.
-İki çıkış var ve ikisi de bu dilimin dışında: `--split-per-abi` ya da yayın
-derlemesini `arm64-v8a` ile sınırlamak. Karar verilmedi — tek APK'nın sadeliği
-bilinçli bir tercihti.
+**APK 20 MB büyüdü — sonradan karara bağlandı (16 Ağustos).** ML Kit'in
+`libdigitalink.so`'su üç ABI için birden paketleniyordu ve tek APK 80,6 MiB'a
+çıkmıştı. Bu not "karar verilmedi" diyerek kapanmıştı; karar ertesinde verildi
+ve **tek APK'nın sadeliği korundu**: `--split-per-abi` alınmadı, bunun yerine o
+tek APK'nın taşıdığı mimariler daraltıldı. Yayın varsayılanı `arm64-v8a` ve APK
+**31,1 MiB**; 32-bit bir cihaz gerekirse `-Abi arm64+arm` ile ayrı bir APK
+çıkıyor. Ölçüm sırasında çıkan ders belgeye geçti: Flutter'ın
+`--target-platform` bayrağı yalnız kendi kitaplıklarını kırpıyor, eklenti
+kitaplıkları için gradle tarafında `abiFilters` gerekiyor (bkz. README §APK
+hangi mimarileri taşıyor).
 
 **Kalan tek belirsizlik gerçek donanımda.** İki motorun da *doğruluğu* burada
 sınanamaz: Windows'un Türkçe dil paketi ve ML Kit'in Türkçe modeli ancak elde
