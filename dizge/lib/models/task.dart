@@ -565,10 +565,41 @@ const List<Color> kTaskColors = [
 
 /// Bir iş kategorisi: ad + renk. Hazır olanlar + kullanıcının eklediği özel olanlar.
 class TaskCategory {
+  /// **Depolanan** ad. Kaydın kimliği; değişmez (bkz. [categoryLabel]).
   final String name;
   final Color color;
   const TaskCategory(this.name, this.color);
+
+  /// Ekranda görünecek hâli. Depoya giden [name] değil, bu gösterilir.
+  String get label => categoryLabel(name);
 }
+
+/// Hazır kategorilerin görünen adları: depolanan ad → ekrandaki ad.
+///
+/// Depolanan ad bilerek değişmiyor. O metin hem yerel anlık görüntüde hem
+/// sunucuda duruyor ve senkronda kaydın kimliği; yeniden adlandırmak üç yeri
+/// birden kırardı: eski anlık görüntüler, kuyrukta bekleyen değişiklikler ve
+/// **eski sürümdeki ikinci cihaz** — o cihaz eski adı geri yazar, kategori
+/// ikiye bölünürdü. Bu yüzden Başlık Düzeni yalnız görünen tarafta yaşıyor
+/// (bkz. `docs/zaman-araliklari-ve-adlandirma-plani.md` §Zd).
+///
+/// Adlar **elle** yazıldı; `toUpperCase()` kullanılmıyor. Dart varsayılan
+/// yerelde `'iş'.toUpperCase()` için `IŞ` üretir, `İŞ` değil — büyük harfe
+/// çevirmeyi koda bırakmak ekranda "Kalıcı Iş" yazdırırdı.
+const Map<String, String> kCategoryLabels = {
+  'Kalıcı iş': 'Kalıcı İş',
+  'Günlük rutin': 'Günlük Rutin',
+  'Haftalık / ara sıra': 'Haftalık / Ara Sıra',
+  'Önemli / acil': 'Önemli / Acil',
+  'Hobi / keyfi': 'Hobi / Keyfi',
+};
+
+/// Depolanan kategori adının ekranda görüneceği hâli.
+///
+/// Tanınmayan ad **olduğu gibi** dönüyor: kullanıcının kendi yazdığı özel
+/// kategorinin yazımına karışmak, onu kendi verisinde tanınmaz hâle getirirdi.
+String categoryLabel(String storedName) =>
+    kCategoryLabels[storedName] ?? storedName;
 
 /// Uygulama genel ayarları + kategori listesi (sadece bellekte tutulur).
 class AppData {

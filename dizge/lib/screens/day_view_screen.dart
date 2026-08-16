@@ -344,7 +344,7 @@ class _TaskCard extends StatelessWidget {
                     const SizedBox(height: S.xs),
                     Row(
                       children: [
-                        _MiniTag(text: task.categoryName, color: task.color),
+                        _MiniTag(text: categoryLabel(task.categoryName), color: task.color),
                         if (task.place.isNotEmpty) ...[
                           const SizedBox(width: S.sm),
                           Icon(

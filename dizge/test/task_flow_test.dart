@@ -35,7 +35,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Rutin seçilince "Tekrar" satırı kendiliğinden açılır.
-    await tester.tap(find.text('Haftanın günleri'));
+    await tester.tap(find.text('Haftanın Günleri'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Ekle'));
@@ -112,7 +112,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rutin'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Haftanın günleri'));
+    await tester.tap(find.text('Haftanın Günleri'));
     await tester.pumpAndSettle();
 
     // Sırayla her satırı aç; taşma olursa pump sırasında hata fırlar.

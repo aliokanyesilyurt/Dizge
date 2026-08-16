@@ -331,7 +331,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     ),
                   ),
                   title: Text(
-                    cat.name,
+                    cat.label,
                     style: TextStyle(color: c.ink, fontSize: T.strong),
                   ),
                   trailing: cat.name == _category.name

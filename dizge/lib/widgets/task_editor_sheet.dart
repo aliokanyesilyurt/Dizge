@@ -342,7 +342,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     return _PropertyRow(
       icon: _isRoutine ? Icons.repeat_rounded : Icons.today_rounded,
       label: 'Tür',
-      value: _isRoutine ? 'Rutin' : 'Tek günlük',
+      value: _isRoutine ? 'Rutin' : 'Tek Günlük',
       valueColor: _isRoutine ? c.accent : c.ink,
       open: _open == 'kind',
       onTap: () => _toggle('kind'),
@@ -351,7 +351,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
           Expanded(
             child: _BigChoice(
               icon: Icons.today_rounded,
-              title: 'Tek günlük',
+              title: 'Tek Günlük',
               subtitle: 'Sadece seçilen günde',
               selected: !_isRoutine,
               onTap: () => setState(() => _repeatType = RepeatType.once),
@@ -393,18 +393,18 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             runSpacing: 8,
             children: [
               _chip(
-                'Her gün',
+                'Her Gün',
                 _repeatType == RepeatType.daily,
                 () => setState(() => _repeatType = RepeatType.daily),
               ),
-              _chip('Haftanın günleri', _repeatType == RepeatType.weekly, () {
+              _chip('Haftanın Günleri', _repeatType == RepeatType.weekly, () {
                 setState(() {
                   _repeatType = RepeatType.weekly;
                   if (_weekdays.isEmpty) _weekdays = {_date.weekday};
                 });
               }),
               _chip(
-                'Her ay',
+                'Her Ay',
                 _repeatType == RepeatType.monthly,
                 () => setState(() => _repeatType = RepeatType.monthly),
               ),
@@ -638,7 +638,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     return _PropertyRow(
       icon: Icons.sell_rounded,
       label: 'Kategori',
-      valueWidget: _Tag(text: _categoryName, color: _color),
+      valueWidget: _Tag(text: categoryLabel(_categoryName), color: _color),
       open: _open == 'category',
       onTap: () => _toggle('category'),
       child: Wrap(
@@ -652,7 +652,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 _color = cat.color;
                 _categoryName = cat.name;
               }),
-              child: _Tag(text: cat.name, color: cat.color, selected: sel),
+              child: _Tag(text: cat.label, color: cat.color, selected: sel),
             );
           }),
           GestureDetector(

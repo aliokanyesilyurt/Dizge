@@ -68,7 +68,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               rows: [
                                 for (final b in report.byCategory.take(6))
                                   HBarRow(
-                                    b.label,
+                                    // Kova anahtarı depolanan ad; ekranda
+                                    // görünen adıyla yazılıyor (§Zd).
+                                    categoryLabel(b.label),
                                     b.color,
                                     b.hours,
                                     Task.formatDuration(b.hours),

@@ -220,7 +220,7 @@ class _RowState extends State<_Row> {
                         child: Text(
                           [
                             if (t.scheduled) t.timeString,
-                            if (t.categoryName.isNotEmpty) t.categoryName,
+                            if (t.categoryName.isNotEmpty) categoryLabel(t.categoryName),
                           ].join('  ·  '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
