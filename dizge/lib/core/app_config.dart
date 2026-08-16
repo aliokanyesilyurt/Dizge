@@ -117,7 +117,13 @@ class AppConfig {
   /// v2 → v3 adımı **yok**, çünkü eksik damga okuma anında `createdAt`'ten
   /// türetiliyor (`Habit.fromJson`). Görüntüyü yeniden yazmak gereksiz iş
   /// olurdu.
-  static const int kSchemaVersion = 3;
+  ///
+  /// v4: `Task.windowStart` / `windowEnd` — işin içinde kalması istenen saat
+  /// aralığı. v3 → v4 adımı da **yok**, aynı gerekçeyle: anahtar bulunmayan
+  /// eski kayıt "pencere yok" diye okunuyor (`_readWindow`), ki zaten doğru
+  /// cevap bu. Sürüm yine de artıyor — yazılan şekil değişti ve bir sonraki
+  /// göç adımının hangi tabandan başlayacağı buradan okunuyor.
+  static const int kSchemaVersion = 4;
 
   // --- Senkronizasyon ------------------------------------------------------
 

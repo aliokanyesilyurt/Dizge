@@ -174,6 +174,20 @@ class Task implements Node {
   Sketch? sketch; // açıklama (elle çizilmiş), isteğe bağlı
   double? startHour; // 0.0 - 24.0, null => saatsiz
   double durationHours; // süre (saat cinsinden)
+
+  /// İşin içinde kalması istenen saat aralığı; null => pencere yok.
+  ///
+  /// Pencere bir **kısıt**, bir süre değil: "09:00–12:00 arasında" demek "üç
+  /// saat sürecek" demek değildir — ne kadar süreceğini [durationHours]
+  /// söyler. İkisi tek alana yüklenseydi kullanıcı hangisini kastettiğini
+  /// söyleyemezdi (bkz. plan §Za).
+  ///
+  /// Pencere yeni bir eksen açmıyor, [isFixed]'i **nicelendiriyor**:
+  /// kımıldatılamaz işin zaten çivili bir saati vardır, pencere orada
+  /// anlamsız. Esnek işte ise "istediğin yere taşı"yı "şu aralıkta taşı"ya
+  /// çeviriyor — Günü Kurtar bu sınırı aşamaz (§Zb).
+  double? windowStart;
+  double? windowEnd;
   Color color;
   String categoryName;
   Repeat repeat;
@@ -253,6 +267,8 @@ class Task implements Node {
     this.sketch,
     this.startHour,
     this.durationHours = 1.0,
+    this.windowStart,
+    this.windowEnd,
     required this.color,
     this.categoryName = '',
     this.repeat = const Repeat.once(),
@@ -395,6 +411,8 @@ class Task implements Node {
     sketch: sketch,
     startHour: startHour,
     durationHours: durationHours,
+    windowStart: windowStart,
+    windowEnd: windowEnd,
     color: color,
     categoryName: categoryName,
     repeat: repeat,
@@ -437,6 +455,10 @@ class Task implements Node {
     sketch: sketch,
     startHour: startHour,
     durationHours: durationHours,
+    // Pencere de [isFixed] gibi işin kendi doğası: kopyada kaybolursa kopya
+    // sessizce sınırsız doğar ve ilk Günü Kurtar'da pencerenin dışına düşer.
+    windowStart: windowStart,
+    windowEnd: windowEnd,
     color: color,
     categoryName: categoryName,
     repeat: repeat,
@@ -462,6 +484,8 @@ class Task implements Node {
     'sketch': sketch?.toJson(),
     'startHour': startHour,
     'durationHours': durationHours,
+    'windowStart': windowStart,
+    'windowEnd': windowEnd,
     'colorHex': colorToHex(color),
     'categoryName': categoryName,
     'repeat': repeat.toJson(),
@@ -493,6 +517,11 @@ class Task implements Node {
         : Sketch.fromJson((j['sketch'] as Map).cast<String, dynamic>()),
     startHour: (j['startHour'] as num?)?.toDouble(),
     durationHours: (j['durationHours'] as num?)?.toDouble() ?? 1.0,
+    // Yarım ya da ters pencere okunmuyor: anahtar yoksa (eski kayıt) ya da
+    // çift tutarsızsa pencere hiç yok sayılıyor. Yarısını kabul etmek,
+    // ekranda ucu açık bir aralık göstermek olurdu.
+    windowStart: _readWindow(j)?.$1,
+    windowEnd: _readWindow(j)?.$2,
     color: colorFromHex(j['colorHex'] as String?),
     categoryName: (j['categoryName'] as String?) ?? '',
     repeat: j['repeat'] == null
@@ -526,6 +555,19 @@ class Task implements Node {
 ///
 /// Okunamayan gün sessizce düşer: tek bozuk tarih yüzünden bütün kaydı
 /// açılmaz kılmak, o güne ait tik'i kaybetmekten pahalı.
+/// Kayıttan pencere çifti; geçersizse **hiç yok**.
+///
+/// Yarım (yalnız bir uç) ya da ters (`start >= end`) bir çift okunmuyor.
+/// Yarısını kabul etmek ekranda ucu açık bir aralık göstermek, tersini kabul
+/// etmek ise Günü Kurtar'a hiçbir saatin sığmadığı bir kısıt vermek olurdu —
+/// iş sessizce her seferinde havuza inerdi.
+(double, double)? _readWindow(Map<String, dynamic> j) {
+  final start = (j['windowStart'] as num?)?.toDouble();
+  final end = (j['windowEnd'] as num?)?.toDouble();
+  if (start == null || end == null || start >= end) return null;
+  return (start, end);
+}
+
 Set<DateTime> _readDays(Object? raw) =>
     (raw as List?)
         ?.map((e) => dateFromKeyOrNull(e as String?))
