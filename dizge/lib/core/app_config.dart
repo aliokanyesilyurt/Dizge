@@ -123,7 +123,12 @@ class AppConfig {
   /// eski kayıt "pencere yok" diye okunuyor (`_readWindow`), ki zaten doğru
   /// cevap bu. Sürüm yine de artıyor — yazılan şekil değişti ve bir sonraki
   /// göç adımının hangi tabandan başlayacağı buradan okunuyor.
-  static const int kSchemaVersion = 4;
+  ///
+  /// v5: `Task.timesOfDay` / `completedSlots` — işin o gün tekrarlanacağı
+  /// saatler ve hangi tekrarın yapıldığı. Göç adımı yine yok: anahtarı
+  /// bulunmayan kayıt "tek sefer" diye okunuyor ve tek saat zaten
+  /// `startHour`'da duruyor.
+  static const int kSchemaVersion = 5;
 
   // --- Senkronizasyon ------------------------------------------------------
 

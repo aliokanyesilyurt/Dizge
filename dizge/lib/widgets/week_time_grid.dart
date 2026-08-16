@@ -565,20 +565,36 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
 
     for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
       final day = _dayAt(dayIndex);
-      final scheduled = widget.tasksByDay[dayIndex]
-          .where((t) => t.scheduled)
-          .toList();
-      if (scheduled.isEmpty) continue;
+      // Yerleşim **işler** değil **tekrarlar** üzerinden: gün içinde birkaç
+      // kez olan bir iş (Z6) o gün birden çok blok çiziyor ve her biri
+      // çakışma paylaşımına kendi başına giriyor. Tek seferlik işte liste tek
+      // öğeli olduğu için davranış değişmiyor.
+      final occurrences = <(Task, double)>[];
+      for (final t in widget.tasksByDay[dayIndex]) {
+        if (!t.scheduled) continue;
+        for (final hour in t.occurrenceHours) {
+          occurrences.add((t, hour));
+        }
+      }
+      if (occurrences.isEmpty) continue;
 
       // Çakışanları sütunlara paylaştır (saf mantık, core/time_grid.dart).
-      final slots = layoutEvents<Task>(
-        scheduled,
-        startOf: (t) => t.startHour!,
-        endOf: (t) => t.startHour! + t.durationHours,
+      final slots = layoutEvents<(Task, double)>(
+        occurrences,
+        startOf: (o) => o.$2,
+        endOf: (o) => o.$2 + o.$1.durationHours,
       );
 
       for (final slot in slots) {
-        final task = slot.item;
+        final task = slot.item.$1;
+        final hour = slot.item.$2;
+
+        // Aynı işin birden çok bloğu varsa sürükleme ve süre çekme kapalı.
+        // Üç dozdan birini sürüklemek modelde tanımsız: onMove tek bir
+        // `startHour` yazıyor, yani hareket sessizce **hepsini** taşırdı.
+        // Saatler düzenleyiciden değişiyor; blok yine açılıyor, işaretleniyor,
+        // kopyalanıyor, siliniyor.
+        final many = task.hasManyTimes;
         final dragging = _drag?.task.id == task.id;
         final dimmed = task.exceedsEnergy(widget.energyLimit);
         final skipped = task.isSkippedOn(day);
@@ -623,7 +639,9 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
               child: _EventBlock(
                 task: task,
                 day: day,
-                done: task.isDoneOn(day),
+                // Çoklu saatte tik o **tekrarın** kendisi: sabah dozu
+                // işaretliyken akşamki boş görünmeli.
+                done: many ? task.isSlotDone(day, hour) : task.isDoneOn(day),
                 skipped: skipped,
                 dimmed: dimmed,
                 // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
@@ -640,10 +658,12 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                 onEdit: () => widget.onTapTask(task, day),
                 onDuplicate: () => widget.onDuplicate(task, day),
                 onDelete: () => widget.onDelete(task),
-                onLongPressStart: (d) => _onDragStart(task, dayIndex, d),
+                onLongPressStart: many
+                    ? (_) {}
+                    : (d) => _onDragStart(task, dayIndex, d),
                 onLongPressMoveUpdate: _onDragUpdate,
                 onLongPressEnd: (_) => _onDragEnd(),
-                onResizeStart: () => _onResizeStart(task),
+                onResizeStart: many ? () {} : () => _onResizeStart(task),
                 onResizeUpdate: _onResizeUpdate,
                 onResizeEnd: _onResizeEnd,
               ),

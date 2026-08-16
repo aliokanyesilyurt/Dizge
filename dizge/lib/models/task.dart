@@ -188,6 +188,31 @@ class Task implements Node {
   /// çeviriyor — Günü Kurtar bu sınırı aşamaz (§Zb).
   double? windowStart;
   double? windowEnd;
+
+  /// Aynı işin o gün tekrarlanacağı saatler; boş => tek sefer.
+  ///
+  /// Pencereden farkı: pencere bir **kısıt** (iş bir kez olur, yeri
+  /// serbesttir), bu ise bir **çoğalma** (iş birkaç kez olur, her tekrar ayrı
+  /// tamamlanır). İlaç, su içme, kontrol turu bu ikincisi (plan §Za).
+  ///
+  /// [startHour] kaldırılmadı, listenin ilk öğesinin **aynası** oldu:
+  /// [date]'in nullable yapılmama gerekçesiyle aynı gerekçe — `startHour` kod
+  /// tabanında çok yerde okunuyor (sıralama, ızgara yerleşimi, çakışma
+  /// paylaşımı) ve kaldırmak her çağrı yerine bir hata fırsatı eklerdi. Liste
+  /// [setTimes] üzerinden değişiyor ve aynayı o koruyor.
+  List<double> timesOfDay;
+
+  /// Çoklu saatte hangi tekrarın tamamlandığı: `2026-08-17#08.00`.
+  ///
+  /// [completedOn] gün hassasiyetinde kalıyor, bu onun yanına geliyor. Aynı
+  /// kümede toplansalardı "sabah içtim" ile "üçünü de içtim" ayırt edilemezdi
+  /// — [completedOn] ile [skippedOn] ayrımının aynı mantığı.
+  ///
+  /// Anahtar **saat değeri**, dizin değil: 14:00 silindiğinde 08:00'in
+  /// tamamlanmışlığı yerinde kalsın diye. Dizinle anahtarlansaydı bir saati
+  /// çıkarmak kalanların geçmişini kaydırırdı.
+  final Set<String> completedSlots;
+
   Color color;
   String categoryName;
   Repeat repeat;
@@ -269,6 +294,8 @@ class Task implements Node {
     this.durationHours = 1.0,
     this.windowStart,
     this.windowEnd,
+    List<double>? timesOfDay,
+    Set<String>? completedSlots,
     required this.color,
     this.categoryName = '',
     this.repeat = const Repeat.once(),
@@ -288,6 +315,8 @@ class Task implements Node {
     this.ownerId,
   }) : id = id ?? newNodeId(),
        date = dayKey(date),
+       timesOfDay = _normalizeTimes(timesOfDay),
+       completedSlots = completedSlots ?? <String>{},
        completedOn = completedOn ?? <DateTime>{},
        skippedOn = skippedOn ?? <DateTime>{},
        tags = tags ?? <String>{},
@@ -311,6 +340,46 @@ class Task implements Node {
 
   double? get endHour =>
       startHour == null ? null : (startHour! + durationHours).clamp(0.0, 24.0);
+
+  /// Bu iş o gün birden çok kez mi tekrarlanıyor?
+  bool get hasManyTimes => timesOfDay.length > 1;
+
+  /// O günün tekrar saatleri. Çoklu saat yoksa tek öğe: [startHour].
+  ///
+  /// Çağıran taraf "bir mi çok mu" diye ayrım yapmak zorunda kalmasın diye
+  /// tek kapı: saatsiz işte boş liste döner.
+  List<double> get occurrenceHours {
+    if (timesOfDay.isNotEmpty) return timesOfDay;
+    final s = startHour;
+    return s == null ? const [] : [s];
+  }
+
+  /// Saat listesini yazar ve [startHour] aynasını korur.
+  ///
+  /// Sıralanıp yinelenenler atılıyor: ızgara sıralı bekliyor ve aynı saati
+  /// iki kez eklemek görünmeyen bir çift blok üretirdi.
+  void setTimes(List<double> hours) {
+    timesOfDay = _normalizeTimes(hours);
+    if (timesOfDay.isNotEmpty) startHour = timesOfDay.first;
+  }
+
+  /// [day] gününün [hour] tekrarının kimliği.
+  static String slotKey(DateTime day, double hour) =>
+      '${dateToKey(dayKey(day))}#${hour.toStringAsFixed(2)}';
+
+  bool isSlotDone(DateTime day, double hour) =>
+      completedSlots.contains(slotKey(day, hour));
+
+  void setSlotDone(DateTime day, double hour, bool done) {
+    final k = slotKey(day, hour);
+    done ? completedSlots.add(k) : completedSlots.remove(k);
+
+    // Gün, ancak o günün **bütün** tekrarları bittiğinde tamamlanmış sayılır.
+    // Biri işaretliyken günü tamamlanmış saymak, üç kez içilecek ilacın ilk
+    // dozunda "bitti" demek olurdu.
+    final hours = occurrenceHours;
+    setDone(day, hours.isNotEmpty && hours.every((h) => isSlotDone(day, h)));
+  }
 
   bool isDoneOn(DateTime day) => completedOn.contains(dayKey(day));
 
@@ -413,6 +482,8 @@ class Task implements Node {
     durationHours: durationHours,
     windowStart: windowStart,
     windowEnd: windowEnd,
+    timesOfDay: [...timesOfDay],
+    completedSlots: {...completedSlots},
     color: color,
     categoryName: categoryName,
     repeat: repeat,
@@ -459,6 +530,9 @@ class Task implements Node {
     // sessizce sınırsız doğar ve ilk Günü Kurtar'da pencerenin dışına düşer.
     windowStart: windowStart,
     windowEnd: windowEnd,
+    // Saatler devralınır; hangi tekrarın yapıldığı **devralınmaz** —
+    // [completedOn] gibi o da kaynağa ait.
+    timesOfDay: [...timesOfDay],
     color: color,
     categoryName: categoryName,
     repeat: repeat,
@@ -486,6 +560,8 @@ class Task implements Node {
     'durationHours': durationHours,
     'windowStart': windowStart,
     'windowEnd': windowEnd,
+    'timesOfDay': timesOfDay,
+    'completedSlots': completedSlots.toList(),
     'colorHex': colorToHex(color),
     'categoryName': categoryName,
     'repeat': repeat.toJson(),
@@ -522,6 +598,11 @@ class Task implements Node {
     // ekranda ucu açık bir aralık göstermek olurdu.
     windowStart: _readWindow(j)?.$1,
     windowEnd: _readWindow(j)?.$2,
+    timesOfDay: (j['timesOfDay'] as List?)
+        ?.map((e) => (e as num).toDouble())
+        .toList(),
+    completedSlots:
+        (j['completedSlots'] as List?)?.map((e) => e as String).toSet(),
     color: colorFromHex(j['colorHex'] as String?),
     categoryName: (j['categoryName'] as String?) ?? '',
     repeat: j['repeat'] == null
@@ -555,6 +636,20 @@ class Task implements Node {
 ///
 /// Okunamayan gün sessizce düşer: tek bozuk tarih yüzünden bütün kaydı
 /// açılmaz kılmak, o güne ait tik'i kaybetmekten pahalı.
+/// Saat listesini ızgaranın beklediği hâle getirir: sıralı, yinelemesiz ve
+/// 0–24 aralığında. Tek öğe kalırsa liste **boşaltılıyor** — "tek sefer"in
+/// gösterimi boş liste, çünkü tek saat zaten [Task.startHour]'da duruyor ve
+/// iki yerde iki ayrı doğru olması er geç ayrışırdı.
+List<double> _normalizeTimes(List<double>? raw) {
+  if (raw == null || raw.isEmpty) return <double>[];
+  final set = <double>{};
+  for (final h in raw) {
+    if (h >= 0 && h < 24) set.add(h);
+  }
+  if (set.length < 2) return <double>[];
+  return set.toList()..sort();
+}
+
 /// Kayıttan pencere çifti; geçersizse **hiç yok**.
 ///
 /// Yarım (yalnız bir uç) ya da ters (`start >= end`) bir çift okunmuyor.

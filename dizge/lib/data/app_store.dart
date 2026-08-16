@@ -278,6 +278,23 @@ class AppStore extends ChangeNotifier {
     _touched();
   }
 
+  /// Gün içinde tekrarlayan işin **tek bir tekrarını** işaretler (Z6).
+  ///
+  /// Ayrı bir kapı: [setTaskDone] günün tamamını yazıyor. Aynı kapıdan
+  /// geçselerdi sabah dozunu işaretlemek akşamkini de bitmiş sayardı.
+  /// Günün tamamlanmışlığını `Task.setSlotDone` kendisi hesaplıyor —
+  /// hepsi bitmeden gün bitmiş olmuyor.
+  void setTaskSlotDone(Task task, DateTime day, double hour, bool done) {
+    task.setSlotDone(day, hour, done);
+    task.updatedAt = DateTime.now();
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    _telemetry.capture(
+      done ? Ev.taskCompleted : Ev.taskUncompleted,
+      props: {'routine': task.isRoutine, 'slot': true},
+    );
+    _touched();
+  }
+
   void setTaskDone(Task task, DateTime day, bool done) {
     task.setDone(day, done);
     task.updatedAt = DateTime.now();

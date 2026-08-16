@@ -65,6 +65,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   late double _duration;
   late double? _windowStart;
   late double? _windowEnd;
+  late List<double> _times;
   late Color _color;
   late String _categoryName;
   late Energy? _energy;
@@ -98,6 +99,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     _duration = e?.durationHours ?? 1.0;
     _windowStart = e?.windowStart;
     _windowEnd = e?.windowEnd;
+    _times = [...?e?.timesOfDay];
     final cat = AppData.categories.first;
     _color = e?.color ?? cat.color;
     _categoryName = e?.categoryName ?? cat.name;
@@ -164,6 +166,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       // arkada duran bir aralık, kullanıcının göremediği bir kısıt olurdu.
       ..windowStart = _isFixed ? null : _windowStart
       ..windowEnd = _isFixed ? null : _windowEnd
+      ..setTimes(_start == null ? const [] : _times)
       ..color = _color
       ..categoryName = _categoryName
       ..energy = _energy
@@ -243,6 +246,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                   if (_isRoutine) _repeatRow(c),
                   _dateRow(),
                   _timeRow(c),
+                  // Çoklu saat yalnız saatli işte anlamlı: saatsiz bir işin
+                  // "birkaç kez"i tutunacak bir yer bulamaz.
+                  if (_start != null) _timesRow(c),
                   if (_start != null) _durationRow(c),
                   _categoryRow(c),
                   _energyRow(c),
@@ -745,6 +751,66 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   /// Eforun hemen altında, çünkü ikisi de aynı soruyu ayrı eksenlerden
   /// soruyor: efor "ne kadar yorar", sabitlik "kımıldatılabilir mi". Öncelikle
   /// karıştırılmaması için bilerek ayrı bir satır (bkz. plan K3).
+  /// Günde birden çok tekrar: 08:00 / 14:00 / 20:00 gibi.
+  ///
+  /// Pencereyle karışmasın diye ayrı satır ve ayrı dil: burada iş **birkaç
+  /// kez** olur, orada bir kez olur ama yeri serbesttir (§Za).
+  Widget _timesRow(AppPalette c) {
+    final many = _times.length > 1;
+    return _PropertyRow(
+      icon: Icons.repeat_one_rounded,
+      label: 'Gün içinde tekrar',
+      value: many
+          ? '${_times.length} kez'
+          : 'Tek sefer',
+      valueColor: many ? null : c.inkFaint,
+      open: _open == 'times',
+      onTap: () => _toggle('times'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _chip('Tek sefer', !many, () => setState(_times.clear)),
+              for (final h in [..._times]..sort())
+                _chip(
+                  '${Task.formatTime(h)}  ×',
+                  true,
+                  () => setState(() => _times.remove(h)),
+                ),
+              _chip('Saat ekle…', false, _addTime),
+            ],
+          ),
+          const SizedBox(height: S.md),
+          Text(
+            many
+                ? 'Her tekrar ayrı işaretlenir; gün ancak hepsi bitince '
+                      'tamamlanmış sayılır.'
+                : 'İlaç, su içme, kontrol turu gibi gün içinde tekrarlayan '
+                      'işler için saat ekle.',
+            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Listeye bir saat ekler.
+  ///
+  /// İlk eklemede işin kendi saati de listeye giriyor: kullanıcı "14:00 da
+  /// olsun" derken 08:00'i silmek istememiştir.
+  Future<void> _addTime() async {
+    final picked = await _askHour(helpText: 'Tekrar saati', initial: _start ?? 9);
+    if (picked == null || !mounted) return;
+    setState(() {
+      if (_times.isEmpty && _start != null) _times.add(_start!);
+      if (!_times.contains(picked)) _times.add(picked);
+      _times.sort();
+    });
+  }
+
   /// Saat penceresi: işin içinde kalması istenen aralık.
   ///
   /// Süre alanı değil — "09:00–12:00 arasında" demek "üç saat sürecek" demek

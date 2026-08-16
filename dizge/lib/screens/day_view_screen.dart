@@ -151,7 +151,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                           'BUGÜNE ÖZEL',
                           singles.length,
                         ),
-                        ...singles.map(_card),
+                        ...singles.expand(_cards),
                       ],
                       if (routines.isNotEmpty) ...[
                         if (singles.isNotEmpty) const SizedBox(height: S.lg),
@@ -161,7 +161,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                           'RUTİNLER',
                           routines.length,
                         ),
-                        ...routines.map(_card),
+                        ...routines.expand(_cards),
                       ],
                     ],
                   ),
@@ -209,18 +209,40 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
         ),
       );
 
-  Widget _card(Task task) => Padding(
+  /// Bir işin o günkü kart(lar)ı.
+  ///
+  /// Gün içinde tekrarlayan iş (Z6) **tekrar başına** bir kart veriyor:
+  /// üç dozluk ilaç üç satır, her biri kendi tikiyle. Tek kart olsaydı
+  /// "sabahkini içtim" diyecek bir yer kalmazdı.
+  List<Widget> _cards(Task task) {
+    if (!task.hasManyTimes) return [_card(task)];
+    return [for (final hour in task.occurrenceHours) _card(task, hour: hour)];
+  }
+
+  Widget _card(Task task, {double? hour}) => Padding(
     padding: const EdgeInsets.only(bottom: S.sm),
     child: _TaskCard(
+      key: hour == null ? null : ValueKey('${task.id}@$hour'),
       task: task,
       date: widget.date,
+      hour: hour,
       selected: identical(task, _selected),
       onTap: () =>
           setState(() => _selected = identical(_selected, task) ? null : task),
       onEdit: () => _openEditor(existing: task),
-      onToggleDone: () => ref
-          .read(appStoreProvider)
-          .setTaskDone(task, widget.date, !task.isDoneOn(widget.date)),
+      onToggleDone: () {
+        final store = ref.read(appStoreProvider);
+        if (hour == null) {
+          store.setTaskDone(task, widget.date, !task.isDoneOn(widget.date));
+        } else {
+          store.setTaskSlotDone(
+            task,
+            widget.date,
+            hour,
+            !task.isSlotDone(widget.date, hour),
+          );
+        }
+      },
     ),
   );
 }
@@ -228,14 +250,19 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
 class _TaskCard extends StatelessWidget {
   final Task task;
   final DateTime date;
+
+  /// Gün içinde tekrarlayan işin **hangi** tekrarı; null => işin kendisi.
+  final double? hour;
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onToggleDone;
 
   const _TaskCard({
+    super.key,
     required this.task,
     required this.date,
+    this.hour,
     required this.selected,
     required this.onTap,
     required this.onEdit,
@@ -245,7 +272,10 @@ class _TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final done = task.isDoneOn(date);
+    // Tekrar kartında tik o tekrarın kendisi; günün tamamı değil.
+    final done = hour == null
+        ? task.isDoneOn(date)
+        : task.isSlotDone(date, hour!);
 
     return GestureDetector(
       onTap: onTap,
@@ -268,7 +298,9 @@ class _TaskCard extends StatelessWidget {
           child: Row(
             children: [
               _Check(
-                key: ValueKey('done-${task.id}'),
+                key: ValueKey(
+                  hour == null ? 'done-${task.id}' : 'done-${task.id}@$hour',
+                ),
                 color: task.color,
                 done: done,
                 onTap: onToggleDone,
@@ -282,7 +314,9 @@ class _TaskCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            task.startString,
+                            hour == null
+                                ? task.startString
+                                : Task.formatTime(hour!),
                             style: TextStyle(
                               color: done ? c.inkFaint : c.ink,
                               fontWeight: FontWeight.w700,

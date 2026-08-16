@@ -86,8 +86,8 @@ void main() {
   });
 
   group('Z2 — şema', () {
-    test('sürüm 4', () {
-      expect(AppConfig.kSchemaVersion, 4);
+    test('sürüm 5', () {
+      expect(AppConfig.kSchemaVersion, 5);
     });
 
     test('v3 anlık görüntüsü kayıpsız açılıyor', () {
@@ -109,7 +109,7 @@ void main() {
 
       final migrated = migrateSnapshot(Map<String, dynamic>.from(old));
 
-      expect(migrated['schemaVersion'], 4);
+      expect(migrated['schemaVersion'], 5);
       expect((migrated['tasks'] as List).length, 1);
 
       final task = Task.fromJson(

@@ -17,6 +17,12 @@ void main() {
   final day = DateTime(2026, 8, 17);
 
   Future<void> openEditor(WidgetTester tester, {Task? existing}) async {
+    // Uzun bir yüzey: sayfa büyüdükçe ListView alttaki satırları hiç kurmuyor
+    // ve bulucu "yok" diyor. Testin ölçtüğü şey yerleşim değil davranış.
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     late BuildContext ctx;
     await pumpApp(
       tester,
