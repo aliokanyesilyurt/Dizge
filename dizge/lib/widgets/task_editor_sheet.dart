@@ -63,6 +63,8 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   late DateTime? _until;
   late double? _start;
   late double _duration;
+  late double? _windowStart;
+  late double? _windowEnd;
   late Color _color;
   late String _categoryName;
   late Energy? _energy;
@@ -94,6 +96,8 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
             ? null
             : widget.presetStart!.hour + widget.presetStart!.minute / 60.0);
     _duration = e?.durationHours ?? 1.0;
+    _windowStart = e?.windowStart;
+    _windowEnd = e?.windowEnd;
     final cat = AppData.categories.first;
     _color = e?.color ?? cat.color;
     _categoryName = e?.categoryName ?? cat.name;
@@ -156,6 +160,10 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
           : null
       ..startHour = _start
       ..durationHours = _duration
+      // Kımıldatılamaz işaretlenmişse pencere temizleniyor: satır gizliyken
+      // arkada duran bir aralık, kullanıcının göremediği bir kısıt olurdu.
+      ..windowStart = _isFixed ? null : _windowStart
+      ..windowEnd = _isFixed ? null : _windowEnd
       ..color = _color
       ..categoryName = _categoryName
       ..energy = _energy
@@ -239,6 +247,10 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                   _categoryRow(c),
                   _energyRow(c),
                   _fixedRow(c),
+                  // Pencere yalnız esnek işte var: kımıldatılamaz işin zaten
+                  // çivili bir saati vardır, orada aralık sormak anlamsız
+                  // (plan §Zb).
+                  if (!_isFixed) _windowRow(c),
                   _placeRow(c),
                   _noteRow(c),
                 ],
@@ -522,6 +534,17 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
 
   static const List<double> _hourPresets = [7.0, 9.0, 12.0, 14.0, 18.0, 20.0];
 
+  /// Hazır aralıklar: sabah / öğleden sonra / akşam.
+  ///
+  /// Günün kaba dilimleri; ince ayar "Seç…" ile yapılıyor. Amaç iki uç için
+  /// iki ayrı saat seçtirmeden en sık istenen üç aralığı tek dokunuşa
+  /// indirmek.
+  static const List<(double, double)> _windowPresets = [
+    (9.0, 12.0),
+    (13.0, 18.0),
+    (18.0, 22.0),
+  ];
+
   Widget _timeRow(AppPalette c) {
     return _PropertyRow(
       icon: Icons.schedule_rounded,
@@ -722,6 +745,103 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   /// Eforun hemen altında, çünkü ikisi de aynı soruyu ayrı eksenlerden
   /// soruyor: efor "ne kadar yorar", sabitlik "kımıldatılabilir mi". Öncelikle
   /// karıştırılmaması için bilerek ayrı bir satır (bkz. plan K3).
+  /// Saat penceresi: işin içinde kalması istenen aralık.
+  ///
+  /// Süre alanı değil — "09:00–12:00 arasında" demek "üç saat sürecek" demek
+  /// değil. Alt yazı bu ikisini yan yana gösteriyor ki karışmasın.
+  Widget _windowRow(AppPalette c) {
+    final has = _windowStart != null && _windowEnd != null;
+    return _PropertyRow(
+      icon: Icons.compress_rounded,
+      label: 'Saat aralığı',
+      value: has
+          ? '${Task.formatTime(_windowStart!)} – ${Task.formatTime(_windowEnd!)}'
+          : 'Yok',
+      valueColor: has ? null : c.inkFaint,
+      open: _open == 'window',
+      onTap: () => _toggle('window'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _chip('Yok', !has, () {
+                setState(() {
+                  _windowStart = null;
+                  _windowEnd = null;
+                });
+              }),
+              for (final w in _windowPresets)
+                _chip(
+                  '${Task.formatTime(w.$1)} – ${Task.formatTime(w.$2)}',
+                  _windowStart == w.$1 && _windowEnd == w.$2,
+                  () => setState(() {
+                    _windowStart = w.$1;
+                    _windowEnd = w.$2;
+                  }),
+                ),
+              _chip('Seç…', has && !_windowPresets.contains((_windowStart!, _windowEnd!)), _pickWindow),
+            ],
+          ),
+          const SizedBox(height: S.md),
+          Text(
+            has
+                ? 'İş bu aralıkta kalır; "Günü kurtar" dışına taşıyamaz. '
+                      'Süre ayrı: ${Task.formatDuration(_duration)}.'
+                : 'Aralık seçilirse iş yalnız o saatler arasında yer alır.',
+            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Aralığın iki ucunu sırayla sorar.
+  ///
+  /// Ters ya da sıfır genişlikli seçim **yazılmıyor**: modelde de okunmuyor
+  /// (bkz. `_readWindow`), burada sessizce düzeltmek yerine hiç uygulamamak
+  /// kullanıcıya ne olduğunu gösteriyor — seçtiği aralık olduğu gibi duruyor.
+  Future<void> _pickWindow() async {
+    final start = await _askHour(
+      helpText: 'Aralığın başlangıcı',
+      initial: _windowStart ?? 9,
+    );
+    if (start == null || !mounted) return;
+
+    final end = await _askHour(
+      helpText: 'Aralığın bitişi',
+      initial: _windowEnd ?? (start + 3).clamp(0.0, 24.0),
+    );
+    if (end == null || !mounted) return;
+
+    if (end <= start) return;
+    setState(() {
+      _windowStart = start;
+      _windowEnd = end;
+    });
+  }
+
+  Future<double?> _askHour({
+    required String helpText,
+    required double initial,
+  }) async {
+    final picked = await showTimePicker(
+      context: context,
+      helpText: helpText,
+      initialTime: TimeOfDay(
+        hour: initial.floor() % 24,
+        minute: ((initial % 1) * 60).round() % 60,
+      ),
+      builder: (ctx, child) => MediaQuery(
+        data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    return picked == null ? null : picked.hour + picked.minute / 60;
+  }
+
   Widget _fixedRow(AppPalette c) {
     return _PropertyRow(
       icon: _isFixed ? Icons.push_pin_rounded : Icons.push_pin_outlined,

@@ -491,13 +491,16 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
         ),
       ),
 
-      // 3) Etkinlik blokları.
+      // 3) Saat penceresi şeritleri (bloklardan ÖNCE, altta kalsın).
+      ..._buildWindowBands(width),
+
+      // 4) Etkinlik blokları.
       ..._buildBlocks(width),
 
-      // 4) "Şu an" çizgisi.
+      // 5) "Şu an" çizgisi.
       if (_todayIndex != null) _nowIndicator(c, width, _todayIndex!),
 
-      // 5) Sürüklenen bloğun hayaleti (en üstte).
+      // 6) Sürüklenen bloğun hayaleti (en üstte).
       if (_drag != null && !_drag!.overPool) _dragGhost(width, _drag!),
     ],
   );
@@ -510,6 +513,50 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       widget.today.day,
     ).difference(widget.monday).inDays;
     return (diff >= 0 && diff < 7) ? diff : null;
+  }
+
+  /// Saat penceresi olan işlerin arkasındaki soluk şerit.
+  ///
+  /// Şerit bloğun **arkasında** duruyor ve dokunuş almıyor: o bir kısıtın
+  /// resmi, tıklanacak bir nesne değil. Blok şeridin içinde serbestçe kayar;
+  /// pencereyi görünür kılmak, işi neden oraya taşıyamadığını ekranda
+  /// söylemek demek (plan §Zb).
+  List<Widget> _buildWindowBands(double canvasWidth) {
+    final columnWidth = _columnWidth(canvasWidth);
+    final bands = <Widget>[];
+
+    for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
+      for (final task in widget.tasksByDay[dayIndex]) {
+        final start = task.windowStart;
+        final end = task.windowEnd;
+        if (start == null || end == null) continue;
+
+        final top = _m.yFor(start);
+        bands.add(
+          Positioned(
+            // Kimlik testin tutamağı: ızgarada başka süslenmiş kutular da
+            // var, şeridi onlardan ayıran şey bu.
+            key: ValueKey('window-band-${task.id}'),
+            left: dayIndex * columnWidth + 2,
+            top: top,
+            width: math.max(0.0, columnWidth - 4),
+            height: math.max(0.0, _m.yFor(end) - top),
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: task.color.withValues(alpha: 0.10),
+                  borderRadius: R.radiusXs,
+                  border: Border.all(
+                    color: task.color.withValues(alpha: 0.28),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+    return bands;
   }
 
   List<Widget> _buildBlocks(double canvasWidth) {

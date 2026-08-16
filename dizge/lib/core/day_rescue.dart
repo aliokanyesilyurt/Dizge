@@ -64,6 +64,26 @@ DayRescuePlan planDayRescue(
     final start = task.startHour;
     if (start != null && start < afterHour) continue;
 
+    // Saat penceresi (Z2), saatsiz işe bu kuralın karşılığını veriyor.
+    //
+    // Kurtarma işleri **saatlerini değiştirerek taşımıyor**; havuza alıyor ya
+    // da atlıyor. O yüzden pencerenin buradaki gücü "dışına çıkarma" değil,
+    // yukarıdaki "başlamış iş süpürülmez" kuralının pencereli karşılığı:
+    //
+    // * Pencere **açıksa** (başladı, henüz kapanmadı) iş şu an yapılıyor
+    //   olabilir — başlamış saatli iş gibi korunuyor.
+    // * Pencere **kapandıysa** korunmuyor: o iş bugün artık olamaz, kenara
+    //   alınacakların tam da kendisi. Açık pencereyle aynı kefeye konsaydı
+    //   günün en kesin ölü işi ekranda kalırdı.
+    // * Pencere **ileride** ise bugünkü davranış: süpürülebilir.
+    if (start == null) {
+      final from = task.windowStart;
+      final to = task.windowEnd;
+      if (from != null && to != null && from <= afterHour && afterHour < to) {
+        continue;
+      }
+    }
+
     (task.isRoutine ? toSkip : toPool).add(task);
   }
 

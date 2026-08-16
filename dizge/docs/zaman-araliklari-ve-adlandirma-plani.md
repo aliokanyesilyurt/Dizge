@@ -161,12 +161,27 @@ Pencere, blokun arkasında soluk bir şerit. Blok şeridin içinde kayabilir.
 **Bitti sayılır:** pencereli bir iş ızgarada şeritle çiziliyor; penceresiz iş
 bugünkü gibi görünüyor (görünüm testi).
 
-### Z5 — Pencere: Günü Kurtar'a saygı
+### Z5 — Pencere: Günü Kurtar'a saygı ✅
 
 `planDayRescue` pencereyi kısıt olarak okur.
 
-**Bitti sayılır:** birim testi — pencereye sığan iş pencere içinde kalıyor,
-sığmayan havuza iniyor, penceresiz iş bugünkü davranışını sürdürüyor.
+**Plandan bilinçli sapma.** §Zb "Günü Kurtar bir işi pencerenin dışına atamaz"
+diyordu; bu, işleri saatlerini değiştirerek taşıyan bir kurtarma varsayıyordu.
+Oysa kurtarma **hiçbir işin saatini değiştirmiyor** — havuza alıyor ya da
+atlıyor. Pencerenin buradaki gerçek karşılığı, var olan "başlamış iş
+süpürülmez" kuralının pencereli hâli oldu:
+
+* Pencere **açıksa** (başladı, kapanmadı) iş korunuyor — başlamış saatli iş gibi.
+* Pencere **kapandıysa** korunmuyor: o iş bugün artık olamaz, kenara
+  alınacakların tam da kendisi. Açık pencereyle aynı kefeye konsaydı günün en
+  kesin ölü işi ekranda kalırdı.
+* Pencere **ileride** ise bugünkü davranış sürüyor.
+
+Kural yalnız **saatsiz** işe uygulanıyor: saatli işte zaten `startHour`
+kararı veriyor.
+
+**Bitti sayılır:** birim testi — açık pencere korunuyor, kapanmış pencere
+havuza iniyor, ileride duran pencere ve penceresiz iş bugünkü davranışta.
 
 ### Z6 — Çoklu saat: model ve tamamlanma
 

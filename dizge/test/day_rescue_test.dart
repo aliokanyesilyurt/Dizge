@@ -371,4 +371,62 @@ void main() {
       expect(find.text('Bugün'), findsOneWidget);
     });
   });
+
+  group('Z5 — saat penceresi', () {
+    Task windowed({required double from, required double to}) => Task(
+      title: 'Rapor',
+      color: const Color(0xFF38BDF8),
+      date: DateTime(2026, 8, 17),
+      startHour: null,
+      windowStart: from,
+      windowEnd: to,
+    );
+
+    test('açık pencere korunuyor', () {
+      // Pencere açıkken iş şu an yapılıyor olabilir: başlamış saatli işle
+      // aynı gerekçeyle masadan alınmıyor.
+      final task = windowed(from: 9, to: 12);
+      final plan = planDayRescue(
+        [task],
+        day: DateTime(2026, 8, 17),
+        afterHour: 10,
+      );
+      expect(plan.isEmpty, isTrue);
+    });
+
+    test('kapanmış pencere korunmuyor', () {
+      // Bugün artık olamaz; kenara alınacakların tam da kendisi.
+      final task = windowed(from: 9, to: 12);
+      final plan = planDayRescue(
+        [task],
+        day: DateTime(2026, 8, 17),
+        afterHour: 15,
+      );
+      expect(plan.toPool, [task]);
+    });
+
+    test('ileride duran pencere bugünkü davranışta', () {
+      final task = windowed(from: 18, to: 22);
+      final plan = planDayRescue(
+        [task],
+        day: DateTime(2026, 8, 17),
+        afterHour: 15,
+      );
+      expect(plan.toPool, [task]);
+    });
+
+    test('penceresiz saatsiz iş bugünkü gibi süpürülüyor', () {
+      final task = Task(
+        title: 'Saatsiz',
+        color: const Color(0xFF38BDF8),
+        date: DateTime(2026, 8, 17),
+      );
+      final plan = planDayRescue(
+        [task],
+        day: DateTime(2026, 8, 17),
+        afterHour: 10,
+      );
+      expect(plan.toPool, [task]);
+    });
+  });
 }
