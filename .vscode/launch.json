@@ -1,15 +1,55 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "chrome",
-            "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
-        }
-    ]
+  // Bu dosya **depo kökü** için. Uygulama kökün bir alt klasöründe (`dizge/`)
+  // yaşıyor ve kökte pubspec yok; o yüzden her yapılandırma `cwd` ile projeyi
+  // gösteriyor.
+  //
+  // `cwd` olmadan VS Code, açık olan dosyayı (ör. lib/bootstrap.dart) düz bir
+  // Dart programı sanıp çalıştırıyor. Düz Dart'ta `dart:ui` yoktur: derleme
+  // "Color isn't a type", "Size isn't a type" diye yüzlerce satırla patlar ve
+  // hata koddaymış gibi görünür. Yapılandırmanın tek işi bu tuzağı kapatmak.
+  //
+  // Aynı liste `dizge/.vscode/launch.json` içinde de var; oradan (klasörü
+  // doğrudan açarak) çalıştırmak da geçerli yol.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Sunucu anahtarlari kaynak koda gomulmez (bkz. lib/core/app_config.dart).
+      // env.json gitignore'da; yeni gelistirici onu env.example.json'dan kopyalar.
+      // Dosya yoksa uygulama yine acilir, sadece tamamen yerel calisir.
+      "name": "Dizge (Windows)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "dizge",
+      "program": "lib/main.dart",
+      "deviceId": "windows",
+      "toolArgs": ["--dart-define-from-file=env.json"]
+    },
+    {
+      // Anahtarsiz kosum: kapinin acik kaldigi gelistirme kipi (G2).
+      "name": "Dizge (yerel kip, anahtarsiz)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "dizge",
+      "program": "lib/main.dart",
+      "deviceId": "windows"
+    },
+    {
+      "name": "Dizge (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "dizge",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "toolArgs": ["--dart-define-from-file=env.json"]
+    },
+    {
+      "name": "Dizge (Edge)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "dizge",
+      "program": "lib/main.dart",
+      "deviceId": "edge",
+      "toolArgs": ["--dart-define-from-file=env.json"]
+    }
+  ]
 }
