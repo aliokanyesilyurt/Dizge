@@ -25,7 +25,15 @@ void main() {
     windowEnd: windowEnd,
   );
 
-  Future<void> pumpGrid(WidgetTester tester, Task t) async {
+  /// İşi verilen günlere koyarak ızgarayı çizer.
+  ///
+  /// Rutin, deponun aynı `Task` nesnesini birden çok güne döndürmesiyle
+  /// görünür; bu yardımcı o durumu birebir taklit ediyor.
+  Future<void> pumpGridOnDays(
+    WidgetTester tester,
+    Task t,
+    Set<int> days,
+  ) async {
     tester.view.physicalSize = const Size(800, 600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -35,7 +43,10 @@ void main() {
         home: Scaffold(
           body: WeekTimeGrid(
             monday: monday,
-            tasksByDay: List.generate(7, (i) => i == 0 ? [t] : const []),
+            tasksByDay: List.generate(
+              7,
+              (i) => days.contains(i) ? [t] : const <Task>[],
+            ),
             metrics: metrics,
             today: monday,
             onTapTask: (_, _) {},
@@ -51,8 +62,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Şerit, işin kimliğiyle işaretli.
-  Finder bandFinder(Task t) => find.byKey(ValueKey('window-band-${t.id}'));
+  Future<void> pumpGrid(WidgetTester tester, Task t) =>
+      pumpGridOnDays(tester, t, {0});
+
+  /// Şerit, işin kimliği **ve günüyle** işaretli: aynı rutin haftada birkaç
+  /// gün göründüğünde her günün kendi şeridi var.
+  Finder bandFinder(Task t, {int day = 0}) =>
+      find.byKey(ValueKey('window-band-${t.id}@$day'));
 
   testWidgets('penceresiz işte şerit çizilmiyor', (tester) async {
     final t = task();
@@ -73,6 +89,23 @@ void main() {
 
     final size = tester.getSize(bandFinder(t));
     expect(size.height, closeTo(3 * hourHeight, 0.5));
+  });
+
+  testWidgets('haftaya yayılan rutinde her günün kendi şeridi var', (
+    tester,
+  ) async {
+    // Rutin, deponun **aynı** Task nesnesini birden çok güne döndürmesiyle
+    // görünüyor. Şeridin anahtarı yalnız `task.id` olsaydı bütün günlerin
+    // şeridi tek bir Stack'e aynı kimlikle girer, Flutter "Duplicate keys
+    // found" diye ağacı düşürürdü.
+    final t = task(windowStart: 9, windowEnd: 12);
+    await pumpGridOnDays(tester, t, {0, 2, 4});
+
+    expect(tester.takeException(), isNull);
+    for (final day in [0, 2, 4]) {
+      expect(bandFinder(t, day: day), findsOneWidget);
+    }
+    expect(bandFinder(t, day: 1), findsNothing);
   });
 
   testWidgets('şerit dokunuş almıyor', (tester) async {

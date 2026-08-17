@@ -536,7 +536,12 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
           Positioned(
             // Kimlik testin tutamağı: ızgarada başka süslenmiş kutular da
             // var, şeridi onlardan ayıran şey bu.
-            key: ValueKey('window-band-${task.id}'),
+            //
+            // Gün de anahtarda: pencereli bir **rutin** haftanın birkaç
+            // gününde aynı `Task` nesnesiyle görünüyor ve bütün şeritler tek
+            // bir Stack'e giriyor. Yalnız `task.id` yazsaydık Flutter aynı
+            // anahtarı iki kez görüp ağacı düşürürdü.
+            key: ValueKey('window-band-${task.id}@$dayIndex'),
             left: dayIndex * columnWidth + 2,
             top: top,
             width: math.max(0.0, columnWidth - 4),
