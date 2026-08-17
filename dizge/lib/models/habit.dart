@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
 import 'node.dart';
 
-/// Alışkanlığın ritmi:
-/// - [daily]: her gün yapılması beklenir (seri = ardışık gün).
-/// - [weekly]: haftada [Habit.targetPerWeek] kez yeter (esnek rutin; seri =
-///   hedefi tutturan ardışık haftalar).
-enum HabitCadence { daily, weekly }
-
-/// Alışkanlık: takvimdeki rutinden farklı olarak "zinciri kırma" (streak)
-/// psikolojisi ve ısı haritası için ayrı bir veri modeli. Her tamamlanan gün
-/// [doneDates]'e yazılır (yalnızca gün hassasiyetinde).
+/// Alışkanlık: **süreksiz** olan iş.
+///
+/// Rutinle ayrımı bilinçli ve modelde (plan §Zc):
+///
+/// | | Alışkanlık | Rutin (`Task` + `Repeat`) |
+/// |---|---|---|
+/// | Ritim | Süreksiz — haftada [targetPerWeek] kez yeter | Sürekli, düzenli |
+/// | Saat | Yok; gün içinde istediğin an | Var; takvimde blok |
+/// | Ölçü | Seri (streak) + ısı haritası | Tamamlama / atlama |
+///
+/// Eskiden ayrıca bir `HabitCadence` ekseni vardı (`daily` / `weekly`) ve
+/// `daily` bu ayrımı çürütüyordu: her gün belli bir şeyi yapmak alışkanlık
+/// değil rutindir. Eksen kaldırıldı; ritmin tamamı [targetPerWeek] (1–7).
+/// Haftada 7 "her gün" demek — anlam kayboldu değil, tek yere indi.
+///
+/// Her tamamlanan gün [doneDates]'e yazılır (yalnızca gün hassasiyetinde).
 class Habit {
   final String id;
   String title;
   Color color;
-  HabitCadence cadence;
-
-  /// [HabitCadence.weekly] için haftalık hedef (ör. haftada 3).
+  /// Haftada kaç kez yapılması bekleniyor (1–7).
+  ///
+  /// 7 = her gün. Ritmin tek ekseni bu; ayrı bir "günlük mü haftalık mı"
+  /// sorusu yok.
   int targetPerWeek;
+
+  /// Her gün beklenen bir alışkanlık mı? Ölçünün birimini bu belirliyor.
+  bool get isEveryDay => targetPerWeek >= 7;
 
   final Set<DateTime> doneDates;
   final DateTime createdAt;
@@ -39,7 +50,6 @@ class Habit {
     String? id,
     required this.title,
     required this.color,
-    this.cadence = HabitCadence.daily,
     this.targetPerWeek = 3,
     Set<DateTime>? doneDates,
     DateTime? createdAt,
@@ -84,8 +94,12 @@ class Habit {
   }
 
   /// Güncel seri. Bugün henüz yapılmadıysa seriyi kırmaz (dünden sayar).
-  int get currentStreak =>
-      cadence == HabitCadence.daily ? _dailyStreak() : _weeklyStreak();
+  ///
+  /// Birimi hedeften çıkıyor: her gün beklenen alışkanlıkta **ardışık gün**,
+  /// haftada N'de **hedefi tutturan ardışık hafta**. Eskiden bunu ayrı bir
+  /// ritim ekseni söylüyordu; eksen kalkınca ölçü hedefin kendisinden
+  /// türetiliyor — ve günlük alışkanlıkların gördüğü sayı değişmiyor.
+  int get currentStreak => isEveryDay ? _dailyStreak() : _weeklyStreak();
 
   int _dailyStreak() {
     var day = dayOnly(DateTime.now());
@@ -122,7 +136,7 @@ class Habit {
     for (var i = 0; i < days; i++) {
       if (doneDates.contains(today.subtract(Duration(days: i)))) done++;
     }
-    if (cadence == HabitCadence.weekly) {
+    if (!isEveryDay) {
       // Beklenen = hedef * (days/7); orantısal.
       final expected = targetPerWeek * (days / 7);
       return expected == 0 ? 0 : (done / expected).clamp(0.0, 1.0);
@@ -134,7 +148,11 @@ class Habit {
     'id': id,
     'title': title,
     'colorHex': colorToHex(color),
-    'cadence': cadence.name,
+    // `cadence` artık modelde yok ama **yazılmaya devam ediyor**: bu sürümü
+    // tanımayan bir cihaz alanı bulamazsa varsayılana (her gün) düşer ve
+    // haftada 3'lük bir alışkanlık orada günlük görünürdü. Türetilen değer
+    // yazmak, o cihazın doğru okumasını sürdürüyor.
+    'cadence': isEveryDay ? 'daily' : 'weekly',
     'targetPerWeek': targetPerWeek,
     'doneDates': doneDates.map(dateToKey).toList(),
     'createdAt': createdAt.toIso8601String(),
@@ -146,11 +164,12 @@ class Habit {
     id: j['id'] as String?,
     title: (j['title'] as String?) ?? '',
     color: colorFromHex(j['colorHex'] as String?),
-    cadence: HabitCadence.values.firstWhere(
-      (c) => c.name == j['cadence'],
-      orElse: () => HabitCadence.daily,
-    ),
-    targetPerWeek: (j['targetPerWeek'] as num?)?.toInt() ?? 3,
+    // Göç (§Zc): eski `daily` kaydı "haftada 7" olarak okunuyor. Silinmiyor,
+    // susturulmuyor — anlamı korunuyor ve serisi aynı gün sayısını göstermeye
+    // devam ediyor. Kullanıcı isterse hedefi düşürür.
+    targetPerWeek: j['cadence'] == 'daily'
+        ? 7
+        : ((j['targetPerWeek'] as num?)?.toInt() ?? 3).clamp(1, 7),
     doneDates:
         (j['doneDates'] as List?)
             ?.map((e) => dateFromKeyOrNull(e as String?))

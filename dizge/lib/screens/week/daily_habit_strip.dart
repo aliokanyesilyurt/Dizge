@@ -169,7 +169,7 @@ class _HabitChip extends StatelessWidget {
     );
   }
 
-  bool get _isDaily => habit.cadence == HabitCadence.daily;
+  bool get _isDaily => habit.isEveryDay;
 
   /// Rozetin yazısı; gösterilecek bir şey yoksa null.
   ///

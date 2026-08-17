@@ -213,7 +213,7 @@ alanları. Ad, sıra numarası taşıyan kalıba uyar.
 **Bitti sayılır:** şema testi yeni alanları görüyor; eski istemci yeni sütunlar
 karşısında kırılmıyor (alanlar nullable).
 
-### Z9 — Alışkanlık–rutin ayrışması
+### Z9 — Alışkanlık–rutin ayrışması ✅
 
 `HabitCadence.daily` kalkar, göçte `weekly(7)` olur (Zc). Alışkanlıklar ve
 Rutinler ekranlarının başlık/boş durum metinleri ayrımı anlatır.

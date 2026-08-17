@@ -47,12 +47,9 @@ void main() {
 
     await tester.tap(find.text('Rutinler'));
     await tester.pumpAndSettle();
-    expect(
-      find.text(
-        'Henüz rutin yok.\nTekrar eden bir iş ekleyince burada görünür.',
-      ),
-      findsOneWidget,
-    );
+    // Metnin tamamı değil ayrımı taşıyan cümlesi aranıyor: boş durum
+    // yazısı ayarlanabilir, ekranın hangisi olduğu değil.
+    expect(find.textContaining('Henüz rutin yok.'), findsOneWidget);
 
     await tester.tap(find.text('Yapılacaklar'));
     await tester.pumpAndSettle();

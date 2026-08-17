@@ -594,7 +594,10 @@ class AppStore extends ChangeNotifier {
     habit.groupId ??= activeGroupId;
     _habits.add(habit);
     _record(EntityKind.habit, MutationOp.upsert, habit.id, habit.toJson());
-    _telemetry.capture(Ev.habitCreated, props: {'cadence': habit.cadence.name});
+    _telemetry.capture(
+      Ev.habitCreated,
+      props: {'target_per_week': habit.targetPerWeek},
+    );
     _touched();
   }
 

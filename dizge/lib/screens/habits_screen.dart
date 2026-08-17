@@ -44,7 +44,10 @@ class HabitsScreen extends ConsumerWidget {
                     ? const EmptyState(
                         icon: Icons.local_fire_department_rounded,
                         title: 'Henüz alışkanlık yok.',
-                        text: 'Spor, gitar, kod… küçük başla, zinciri kırma.',
+                        text:
+                            'Saati olmayan, haftada birkaç kez yeten işler '
+                            'burada: spor, gitar, kod… Belli saatte tekrar '
+                            'eden bir iş ise yeri Rutinler.',
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(
@@ -117,7 +120,7 @@ class _HabitCard extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      habit.cadence == HabitCadence.daily
+                      habit.isEveryDay
                           ? 'Her gün'
                           : 'Haftada ${habit.targetPerWeek}',
                       style: TextStyle(
@@ -313,7 +316,7 @@ class _AddHabitDialog extends StatefulWidget {
 class _AddHabitDialogState extends State<_AddHabitDialog> {
   final _controller = TextEditingController();
   Color _color = kTaskColors.first;
-  HabitCadence _cadence = HabitCadence.daily;
+
   int _target = 3;
 
   @override
@@ -365,49 +368,42 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
             ],
           ),
           const SizedBox(height: S.lg),
+          // Ritim tek eksen: haftada kaç kez. "Günlük mü haftalık mı" diye
+          // ayrı bir soru yok — 7 zaten "her gün" (plan §Zc).
           Text('Ritim', style: Theme.of(context).textTheme.labelSmall),
-          const SizedBox(height: S.sm),
-          SegmentedButton<HabitCadence>(
-            segments: const [
-              ButtonSegment(value: HabitCadence.daily, label: Text('Her gün')),
-              ButtonSegment(
-                value: HabitCadence.weekly,
-                label: Text('Haftada N'),
+          const SizedBox(height: S.xs),
+          Text(
+            'Alışkanlık süreksiz olan iştir: haftada kaç kez yeteceğini sen '
+            'söylersin. Her gün belli bir saatte yapılacak bir şey ise onu '
+            'rutin olarak ekle.',
+            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
+          ),
+          const SizedBox(height: S.md),
+          Row(
+            children: [
+              Text('Hedef', style: TextStyle(color: c.inkDim, fontSize: T.body)),
+              Expanded(
+                child: Slider(
+                  value: _target.toDouble(),
+                  min: 1,
+                  max: 7,
+                  divisions: 6,
+                  label: '$_target',
+                  onChanged: (v) => setState(() => _target = v.round()),
+                ),
+              ),
+              // Ucundaki 7'yi "7/hafta" diye yazmak eksenin tek olduğunu
+              // gizlerdi: kullanıcı orada "her gün"ü arıyor, sayıyı değil.
+              Text(
+                _target >= 7 ? 'Her gün' : '$_target/hafta',
+                style: TextStyle(
+                  color: c.ink,
+                  fontSize: T.body,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
-            selected: {_cadence},
-            showSelectedIcon: false,
-            onSelectionChanged: (s) => setState(() => _cadence = s.first),
           ),
-          if (_cadence == HabitCadence.weekly) ...[
-            const SizedBox(height: S.md),
-            Row(
-              children: [
-                Text(
-                  'Hedef',
-                  style: TextStyle(color: c.inkDim, fontSize: T.body),
-                ),
-                Expanded(
-                  child: Slider(
-                    value: _target.toDouble(),
-                    min: 1,
-                    max: 7,
-                    divisions: 6,
-                    label: '$_target',
-                    onChanged: (v) => setState(() => _target = v.round()),
-                  ),
-                ),
-                Text(
-                  '$_target/hafta',
-                  style: TextStyle(
-                    color: c.ink,
-                    fontSize: T.body,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
       actions: [
@@ -423,7 +419,6 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
               Habit(
                 title: title,
                 color: _color,
-                cadence: _cadence,
                 targetPerWeek: _target,
               ),
             );
