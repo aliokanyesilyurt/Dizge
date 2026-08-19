@@ -119,6 +119,9 @@ void main() {
         'lib/screens/week/daily_habit_strip.dart',
         'lib/screens/week/pool_panel.dart',
         'lib/screens/week_view_screen.dart',
+        // Aynı hafta yüzeyi; M4'te dosyalara bölündü.
+        'lib/screens/week/day_headers.dart',
+        'lib/screens/week/untimed_row.dart',
         // Kademenin tanımlandığı yer.
         'lib/theme.dart',
       };

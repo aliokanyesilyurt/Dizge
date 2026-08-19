@@ -1,6 +1,6 @@
 # Modülerlik planı — şişmiş dosyaları sökmek
 
-> Durum: **uygulanıyor**. M1–M3 bitti; M4 sırada.
+> Durum: **bitti**. M1–M4 uygulandı (19 Ağustos 2026).
 
 ## 1. İstenen
 
@@ -118,11 +118,30 @@ bir dosya olarak kalıyor.
 Klasör zaten vardı (`theme/shad_bridge.dart`), üçü onun yanına oturdu. Tek
 `import` satırı değişmedi, 567 test geçiyor.
 
-### M4 — `account_screen.dart` ve `week_view_screen.dart`
+### M4 — `account_screen.dart` ve `week_view_screen.dart` — **bitti**
 
-M1–M3'ten sonra yeniden ölçülür. İkisi de bölüm bölüm yazılmış; bölümler
-`lib/screens/account/` ve `lib/screens/week/` altına iniyor. Bu dilim
-**şartlı**: ilk üçü bittiğinde hâlâ can sıkıyorlarsa yapılır.
+M1–M3'ten sonra yeniden ölçüldü: ikisi de yerinde duruyordu (1113 ve 1055) ve
+şart karşılandı, dilim yapıldı.
+
+| yeni dosya | içerik | satır |
+|---|---|---|
+| `screens/account/account_tiles.dart` | `AccountCard`, `StatusTile`, `Notice`, `GroupLabel`, `ActionTile`, `AccountTile` | 255 |
+| `screens/account/appearance_section.dart` | tema ve kullanım kipi kartları | 222 |
+| `screens/account/profile_section.dart` | avatar ve görünen ad | 210 |
+| `screens/account/session_section.dart` | oturum, parola, çıkış | 174 |
+| `screens/account/privacy_section.dart` | telemetri rızası, veriyi silme | 173 |
+| `account_screen.dart` (kalan) | ekran kabuğu ve senkron başlığı | 128 |
+| `screens/week/day_headers.dart` | gün başlığı satırı ve hücresi | 215 |
+| `screens/week/untimed_row.dart` | saatsiz işler şeridi ve çipleri | 173 |
+| `screens/week/week_chrome.dart` | başlıkları taşıyan yüzey | 25 |
+| `week_view_screen.dart` (kalan) | ekran durumu, olaylar, yerleşim | 663 |
+
+Adlandırmada tek sapma: `_Card` ve `_Tile` herkese açık olunca Material'ın
+`Card`'ıyla çakışacaktı — `AccountCard` ve `AccountTile` oldular. `_Chrome`
+da tek başına fazla genel bir ad olacağından `WeekChrome`.
+
+`test/layout_test.dart`'ın yol listesine yine iki satır eklendi (aynı sebep:
+liste dosya yolu sayıyor). Analiz temiz, 567 test geçiyor.
 
 ## 7. Kapsam dışı
 
@@ -141,8 +160,23 @@ sorumluluk: depo), test dosyalarını bölmek, adlandırma iyileştirmeleri.
 
 ## 9. Sıra
 
-M1 → M2 → M3 → (M4 şartlı).
+M1 → M2 → M3 → M4 (dördü de yapıldı).
 
 M1 önde: en büyük dosya, en net sınırlar (`EventBlock` kendi state'iyle zaten
 ayrı bir dünya) ve az önce oradaki bir hatayı ararken dosyanın büyüklüğünün
 maliyeti görüldü.
+
+## 10. Sonuç
+
+Beş şişmiş dosya (6388 satır) yirmi dosyaya dağıldı; en büyüğü artık 780
+satır. Hiçbir giriş yolu, imza ya da `import` satırı değişmedi; testlerin
+mantığı da değişmedi — yalnız `layout_test.dart`'ın **yol** listesi bölünen
+yüzeylerin yeni adlarıyla güncellendi.
+
+| dosya | önce | sonra |
+|---|---|---|
+| `widgets/week_time_grid.dart` | 1581 | 714 |
+| `widgets/task_editor_sheet.dart` | 1454 | 780 |
+| `theme.dart` | 1185 | 36 |
+| `screens/account_screen.dart` | 1113 | 128 |
+| `screens/week_view_screen.dart` | 1055 | 663 |
