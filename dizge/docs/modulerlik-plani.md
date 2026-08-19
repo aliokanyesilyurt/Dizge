@@ -1,6 +1,6 @@
 # Modülerlik planı — şişmiş dosyaları sökmek
 
-> Durum: **uygulanıyor**. M1–M2 bitti; M3–M4 sırada.
+> Durum: **uygulanıyor**. M1–M3 bitti; M4 sırada.
 
 ## 1. İstenen
 
@@ -105,13 +105,18 @@ geçiyor.
 Yan kazanç: `_fixedRow`'un belge yorumu yanlışlıkla `_timesRow`'un üstünde
 kalmıştı; satır taşınınca yorum kendi metodunun başına oturdu.
 
-### M3 — `lib/theme.dart` → `lib/theme/`
+### M3 — `lib/theme.dart` → `lib/theme/` — **bitti**
 
 Jetonlar (`S`, `T`, `R`, `I`, `Motion`), palet (`AppPalette`, renkler) ve
 `ThemeData` kurulumu üç dosyaya ayrılıyor; `theme.dart` üçünü dışa açan ince
 bir dosya olarak kalıyor.
 
 **Bitti sayılır:** `import '../theme.dart';` yazan hiçbir dosya değişmiyor.
+
+**Sonuç:** `theme.dart` 36 satır — tasarım yönünü anlatan belge yorumu ve üç
+`export`. `palette.dart` 649, `app_theme.dart` 316, `tokens.dart` 210.
+Klasör zaten vardı (`theme/shad_bridge.dart`), üçü onun yanına oturdu. Tek
+`import` satırı değişmedi, 567 test geçiyor.
 
 ### M4 — `account_screen.dart` ve `week_view_screen.dart`
 
