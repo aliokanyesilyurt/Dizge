@@ -6,6 +6,10 @@ import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
 import 'drawing_canvas.dart';
+import 'editor/editor_controls.dart';
+import 'editor/property_row.dart';
+import 'editor/repeat_row.dart';
+import 'editor/time_rows.dart';
 import 'owner_avatar.dart';
 
 /// İş editörü. Kaydedildiyse/silindiyse true döner.
@@ -243,20 +247,66 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 children: [
                   _ownerRow(c),
                   _kindRow(c),
-                  if (_isRoutine) _repeatRow(c),
+                  if (_isRoutine)
+                    RepeatRow(
+                      date: _date,
+                      repeat: Repeat(
+                        _repeatType,
+                        weekdays: _weekdays,
+                        until: _until,
+                      ),
+                      open: _open == 'repeat',
+                      onTap: () => _toggle('repeat'),
+                      onChanged: (r) => setState(() {
+                        _repeatType = r.type;
+                        _weekdays = {...r.weekdays};
+                        _until = r.until;
+                      }),
+                    ),
                   _dateRow(),
-                  _timeRow(c),
+                  TimeRow(
+                    start: _start,
+                    duration: _duration,
+                    open: _open == 'time',
+                    onTap: () => _toggle('time'),
+                    onChanged: (v) => setState(() => _start = v),
+                  ),
                   // Çoklu saat yalnız saatli işte anlamlı: saatsiz bir işin
                   // "birkaç kez"i tutunacak bir yer bulamaz.
-                  if (_start != null) _timesRow(c),
-                  if (_start != null) _durationRow(c),
+                  if (_start != null)
+                    TimesRow(
+                      times: _times,
+                      start: _start,
+                      open: _open == 'times',
+                      onTap: () => _toggle('times'),
+                      onChanged: (v) => setState(() => _times = [...v]),
+                    ),
+                  if (_start != null)
+                    DurationRow(
+                      duration: _duration,
+                      open: _open == 'duration',
+                      onTap: () => _toggle('duration'),
+                      onChanged: (v) => setState(() => _duration = v),
+                    ),
                   _categoryRow(c),
                   _energyRow(c),
                   _fixedRow(c),
                   // Pencere yalnız esnek işte var: kımıldatılamaz işin zaten
                   // çivili bir saati vardır, orada aralık sormak anlamsız
                   // (plan §Zb).
-                  if (!_isFixed) _windowRow(c),
+                  if (!_isFixed)
+                    WindowRow(
+                      window: _windowStart != null && _windowEnd != null
+                          ? (_windowStart!, _windowEnd!)
+                          : null,
+                      duration: _duration,
+                      open: _open == 'window',
+                      onTap: () => _toggle('window'),
+                      onChanged: (w) => setState(() {
+                        _windowStart = w?.$1;
+                        _windowEnd = w?.$2;
+                      }),
+                    ),
                   _placeRow(c),
                   _noteRow(c),
                 ],
@@ -357,7 +407,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   // ---- Özellik satırları ---------------------------------------------------
 
   Widget _kindRow(AppPalette c) {
-    return _PropertyRow(
+    return PropertyRow(
       icon: _isRoutine ? Icons.repeat_rounded : Icons.today_rounded,
       label: 'Tür',
       value: _isRoutine ? 'Rutin' : 'Tek Günlük',
@@ -367,7 +417,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       child: Row(
         children: [
           Expanded(
-            child: _BigChoice(
+            child: BigChoice(
               icon: Icons.today_rounded,
               title: 'Tek Günlük',
               subtitle: 'Sadece seçilen günde',
@@ -377,7 +427,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
           ),
           const SizedBox(width: S.sm),
           Expanded(
-            child: _BigChoice(
+            child: BigChoice(
               icon: Icons.repeat_rounded,
               title: 'Rutin',
               subtitle: 'Tekrar ederek gelir',
@@ -395,119 +445,13 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     );
   }
 
-  Widget _repeatRow(AppPalette c) {
-    final repeat = Repeat(_repeatType, weekdays: _weekdays, until: _until);
-    return _PropertyRow(
-      icon: Icons.autorenew_rounded,
-      label: 'Tekrar',
-      value: repeat.describe(_date),
-      open: _open == 'repeat',
-      onTap: () => _toggle('repeat'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _chip(
-                'Her Gün',
-                _repeatType == RepeatType.daily,
-                () => setState(() => _repeatType = RepeatType.daily),
-              ),
-              _chip('Haftanın Günleri', _repeatType == RepeatType.weekly, () {
-                setState(() {
-                  _repeatType = RepeatType.weekly;
-                  if (_weekdays.isEmpty) _weekdays = {_date.weekday};
-                });
-              }),
-              _chip(
-                'Her Ay',
-                _repeatType == RepeatType.monthly,
-                () => setState(() => _repeatType = RepeatType.monthly),
-              ),
-            ],
-          ),
-          if (_repeatType == RepeatType.weekly) ...[
-            const SizedBox(height: S.md),
-            Row(
-              spacing: 6,
-              children: List.generate(7, (i) {
-                final day = i + 1;
-                final sel = _weekdays.contains(day);
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() {
-                      sel ? _weekdays.remove(day) : _weekdays.add(day);
-                    }),
-                    child: AnimatedContainer(
-                      duration: Motion.fast,
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: sel ? c.accentSoft : c.surface,
-                        borderRadius: R.radiusSm,
-                        border: Border.all(color: sel ? c.accent : c.line),
-                      ),
-                      child: Text(
-                        Repeat.weekdayShort[i],
-                        style: TextStyle(
-                          fontSize: T.caption,
-                          fontWeight: FontWeight.w600,
-                          color: sel ? c.navActiveInk : c.inkDim,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ],
-          const SizedBox(height: S.md),
-          Row(
-            children: [
-              Icon(Icons.event_busy_rounded, size: I.sm, color: c.inkFaint),
-              const SizedBox(width: S.sm),
-              Expanded(
-                child: Text(
-                  _until == null
-                      ? 'Bitiş yok — süresiz tekrar eder'
-                      : 'Bitiş: ${_fmtDate(_until!)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: c.inkDim, fontSize: T.body),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  if (_until != null) {
-                    setState(() => _until = null);
-                    return;
-                  }
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _date.add(const Duration(days: 30)),
-                    firstDate: _date,
-                    lastDate: DateTime(_date.year + 5),
-                  );
-                  if (picked != null) setState(() => _until = picked);
-                },
-                child: Text(_until == null ? 'Bitiş ekle' : 'Kaldır'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _dateRow() {
     final today = Task.dayKey(DateTime.now());
     final tomorrow = today.add(const Duration(days: 1));
-    return _PropertyRow(
+    return PropertyRow(
       icon: Icons.calendar_today_rounded,
       label: _isRoutine ? 'Başlangıç' : 'Tarih',
-      value: _fmtDate(_date),
+      value: fmtDate(_date),
       open: _open == 'date',
       onTap: () => _toggle('date'),
       child: Wrap(
@@ -538,136 +482,11 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     );
   }
 
-  static const List<double> _hourPresets = [7.0, 9.0, 12.0, 14.0, 18.0, 20.0];
-
-  /// Hazır aralıklar: sabah / öğleden sonra / akşam.
-  ///
-  /// Günün kaba dilimleri; ince ayar "Seç…" ile yapılıyor. Amaç iki uç için
-  /// iki ayrı saat seçtirmeden en sık istenen üç aralığı tek dokunuşa
-  /// indirmek.
-  static const List<(double, double)> _windowPresets = [
-    (9.0, 12.0),
-    (13.0, 18.0),
-    (18.0, 22.0),
-  ];
-
-  Widget _timeRow(AppPalette c) {
-    return _PropertyRow(
-      icon: Icons.schedule_rounded,
-      label: 'Saat',
-      value: _start == null ? 'Saatsiz' : Task.formatTime(_start!),
-      valueColor: _start == null ? c.inkFaint : null,
-      open: _open == 'time',
-      onTap: () => _toggle('time'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _chip(
-                'Saatsiz',
-                _start == null,
-                () => setState(() => _start = null),
-              ),
-              for (final h in _hourPresets)
-                _chip(
-                  Task.formatTime(h),
-                  _start == h,
-                  () => setState(() => _start = h),
-                ),
-              _chip(
-                'Seç…',
-                _start != null && !_hourPresets.contains(_start),
-                () async {
-                  final s = _start;
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: s == null
-                        ? const TimeOfDay(hour: 9, minute: 0)
-                        : TimeOfDay(
-                            hour: s.floor() % 24,
-                            minute: ((s % 1) * 60).round() % 60,
-                          ),
-                    builder: (ctx, child) => MediaQuery(
-                      data: MediaQuery.of(
-                        ctx,
-                      ).copyWith(alwaysUse24HourFormat: true),
-                      child: child!,
-                    ),
-                  );
-                  if (picked != null) {
-                    setState(() => _start = picked.hour + picked.minute / 60);
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: S.md),
-          Text(
-            _start == null
-                ? 'Saatsiz işler günün listesinde en altta durur.'
-                : 'Bitiş: ${Task.formatTime((_start! + _duration).clamp(0.0, 24.0))}  ·  süre ${Task.formatDuration(_duration)}',
-            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _durationRow(AppPalette c) {
-    const presets = [0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0];
-    return _PropertyRow(
-      icon: Icons.timelapse_rounded,
-      label: 'Süre',
-      value: Task.formatDuration(_duration),
-      open: _open == 'duration',
-      onTap: () => _toggle('duration'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final d in presets)
-                _chip(
-                  Task.formatDuration(d),
-                  _duration == d,
-                  () => setState(() => _duration = d),
-                ),
-            ],
-          ),
-          const SizedBox(height: S.xs),
-          Row(
-            children: [
-              Text(
-                'İnce ayar',
-                style: TextStyle(color: c.inkFaint, fontSize: T.caption),
-              ),
-              Expanded(
-                child: Slider(
-                  value: _duration.clamp(0.25, 12.0),
-                  min: 0.25,
-                  max: 12,
-                  divisions: 47, // 15 dakikalık adımlar
-                  label: Task.formatDuration(_duration),
-                  onChanged: (v) => setState(() => _duration = v),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _categoryRow(AppPalette c) {
-    return _PropertyRow(
+    return PropertyRow(
       icon: Icons.sell_rounded,
       label: 'Kategori',
-      valueWidget: _Tag(text: categoryLabel(_categoryName), color: _color),
+      valueWidget: Tag(text: categoryLabel(_categoryName), color: _color),
       open: _open == 'category',
       onTap: () => _toggle('category'),
       child: Wrap(
@@ -681,7 +500,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 _color = cat.color;
                 _categoryName = cat.name;
               }),
-              child: _Tag(text: cat.label, color: cat.color, selected: sel),
+              child: Tag(text: cat.label, color: cat.color, selected: sel),
             );
           }),
           GestureDetector(
@@ -719,7 +538,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   /// sorusunun parçası. Saat/süre satırlarının arasına girseydi zaman kararıyla
   /// karışırdı.
   Widget _energyRow(AppPalette c) {
-    return _PropertyRow(
+    return PropertyRow(
       icon: Icons.bolt_rounded,
       label: 'Efor',
       value: _energy?.label ?? 'Belirtilmemiş',
@@ -750,166 +569,8 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   ///
   /// Eforun hemen altında, çünkü ikisi de aynı soruyu ayrı eksenlerden
   /// soruyor: efor "ne kadar yorar", sabitlik "kımıldatılabilir mi". Öncelikle
-  /// karıştırılmaması için bilerek ayrı bir satır (bkz. plan K3).
-  /// Günde birden çok tekrar: 08:00 / 14:00 / 20:00 gibi.
-  ///
-  /// Pencereyle karışmasın diye ayrı satır ve ayrı dil: burada iş **birkaç
-  /// kez** olur, orada bir kez olur ama yeri serbesttir (§Za).
-  Widget _timesRow(AppPalette c) {
-    final many = _times.length > 1;
-    return _PropertyRow(
-      icon: Icons.repeat_one_rounded,
-      label: 'Gün içinde tekrar',
-      value: many
-          ? '${_times.length} kez'
-          : 'Tek sefer',
-      valueColor: many ? null : c.inkFaint,
-      open: _open == 'times',
-      onTap: () => _toggle('times'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _chip('Tek sefer', !many, () => setState(_times.clear)),
-              for (final h in [..._times]..sort())
-                _chip(
-                  '${Task.formatTime(h)}  ×',
-                  true,
-                  () => setState(() => _times.remove(h)),
-                ),
-              _chip('Saat ekle…', false, _addTime),
-            ],
-          ),
-          const SizedBox(height: S.md),
-          Text(
-            many
-                ? 'Her tekrar ayrı işaretlenir; gün ancak hepsi bitince '
-                      'tamamlanmış sayılır.'
-                : 'İlaç, su içme, kontrol turu gibi gün içinde tekrarlayan '
-                      'işler için saat ekle.',
-            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Listeye bir saat ekler.
-  ///
-  /// İlk eklemede işin kendi saati de listeye giriyor: kullanıcı "14:00 da
-  /// olsun" derken 08:00'i silmek istememiştir.
-  Future<void> _addTime() async {
-    final picked = await _askHour(helpText: 'Tekrar saati', initial: _start ?? 9);
-    if (picked == null || !mounted) return;
-    setState(() {
-      if (_times.isEmpty && _start != null) _times.add(_start!);
-      if (!_times.contains(picked)) _times.add(picked);
-      _times.sort();
-    });
-  }
-
-  /// Saat penceresi: işin içinde kalması istenen aralık.
-  ///
-  /// Süre alanı değil — "09:00–12:00 arasında" demek "üç saat sürecek" demek
-  /// değil. Alt yazı bu ikisini yan yana gösteriyor ki karışmasın.
-  Widget _windowRow(AppPalette c) {
-    final has = _windowStart != null && _windowEnd != null;
-    return _PropertyRow(
-      icon: Icons.compress_rounded,
-      label: 'Saat aralığı',
-      value: has
-          ? '${Task.formatTime(_windowStart!)} – ${Task.formatTime(_windowEnd!)}'
-          : 'Yok',
-      valueColor: has ? null : c.inkFaint,
-      open: _open == 'window',
-      onTap: () => _toggle('window'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _chip('Yok', !has, () {
-                setState(() {
-                  _windowStart = null;
-                  _windowEnd = null;
-                });
-              }),
-              for (final w in _windowPresets)
-                _chip(
-                  '${Task.formatTime(w.$1)} – ${Task.formatTime(w.$2)}',
-                  _windowStart == w.$1 && _windowEnd == w.$2,
-                  () => setState(() {
-                    _windowStart = w.$1;
-                    _windowEnd = w.$2;
-                  }),
-                ),
-              _chip('Seç…', has && !_windowPresets.contains((_windowStart!, _windowEnd!)), _pickWindow),
-            ],
-          ),
-          const SizedBox(height: S.md),
-          Text(
-            has
-                ? 'İş bu aralıkta kalır; "Günü kurtar" dışına taşıyamaz. '
-                      'Süre ayrı: ${Task.formatDuration(_duration)}.'
-                : 'Aralık seçilirse iş yalnız o saatler arasında yer alır.',
-            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Aralığın iki ucunu sırayla sorar.
-  ///
-  /// Ters ya da sıfır genişlikli seçim **yazılmıyor**: modelde de okunmuyor
-  /// (bkz. `_readWindow`), burada sessizce düzeltmek yerine hiç uygulamamak
-  /// kullanıcıya ne olduğunu gösteriyor — seçtiği aralık olduğu gibi duruyor.
-  Future<void> _pickWindow() async {
-    final start = await _askHour(
-      helpText: 'Aralığın başlangıcı',
-      initial: _windowStart ?? 9,
-    );
-    if (start == null || !mounted) return;
-
-    final end = await _askHour(
-      helpText: 'Aralığın bitişi',
-      initial: _windowEnd ?? (start + 3).clamp(0.0, 24.0),
-    );
-    if (end == null || !mounted) return;
-
-    if (end <= start) return;
-    setState(() {
-      _windowStart = start;
-      _windowEnd = end;
-    });
-  }
-
-  Future<double?> _askHour({
-    required String helpText,
-    required double initial,
-  }) async {
-    final picked = await showTimePicker(
-      context: context,
-      helpText: helpText,
-      initialTime: TimeOfDay(
-        hour: initial.floor() % 24,
-        minute: ((initial % 1) * 60).round() % 60,
-      ),
-      builder: (ctx, child) => MediaQuery(
-        data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
-    );
-    return picked == null ? null : picked.hour + picked.minute / 60;
-  }
-
   Widget _fixedRow(AppPalette c) {
-    return _PropertyRow(
+    return PropertyRow(
       icon: _isFixed ? Icons.push_pin_rounded : Icons.push_pin_outlined,
       label: 'Sabit',
       value: _isFixed ? 'Kımıldatılamaz' : 'Esnek',
@@ -941,7 +602,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   }
 
   Widget _placeRow(AppPalette c) {
-    return _PropertyRow(
+    return PropertyRow(
       icon: Icons.place_rounded,
       label: 'Yer',
       value: _place.text.trim().isEmpty ? 'Boş' : _place.text.trim(),
@@ -959,7 +620,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
 
   Widget _noteRow(AppPalette c) {
     final hasNote = _drawMode ? !_sketch.isEmpty : _note.text.trim().isNotEmpty;
-    return _PropertyRow(
+    return PropertyRow(
       icon: Icons.notes_rounded,
       label: 'Açıklama',
       value: hasNote ? (_drawMode ? 'Çizim' : _note.text.trim()) : 'Boş',
@@ -968,7 +629,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SegToggle(
+          SegToggle(
             drawMode: _drawMode,
             onChanged: (v) => setState(() => _drawMode = v),
           ),
@@ -1026,7 +687,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     final parts = <String>[
       _isRoutine
           ? Repeat(_repeatType, weekdays: _weekdays).describe(_date)
-          : _fmtDate(_date),
+          : fmtDate(_date),
       if (_start != null)
         '${Task.formatTime(_start!)} · ${Task.formatDuration(_duration)}',
       if (_place.text.trim().isNotEmpty) _place.text.trim(),
@@ -1115,340 +776,5 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   }
 
   Widget _chip(String text, bool selected, VoidCallback onTap) =>
-      _ChoiceChipTile(text: text, selected: selected, onTap: onTap);
-
-  static const List<String> _months = [
-    'Oca',
-    'Şub',
-    'Mar',
-    'Nis',
-    'May',
-    'Haz',
-    'Tem',
-    'Ağu',
-    'Eyl',
-    'Eki',
-    'Kas',
-    'Ara',
-  ];
-
-  static String _fmtDate(DateTime d) =>
-      '${d.day} ${_months[d.month - 1]} ${d.year}';
-}
-
-/// Özellik satırı: ikon + etiket + değer; dokununca altı açılır.
-class _PropertyRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String? value;
-  final Widget? valueWidget;
-  final Color? valueColor;
-  final bool open;
-  final VoidCallback onTap;
-  final Widget child;
-
-  const _PropertyRow({
-    required this.icon,
-    required this.label,
-    this.value,
-    this.valueWidget,
-    this.valueColor,
-    required this.open,
-    required this.onTap,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.hair),
-      child: AnimatedContainer(
-        duration: Motion.base,
-        curve: Motion.curve,
-        decoration: BoxDecoration(
-          color: open ? c.hover : Colors.transparent,
-          borderRadius: R.radiusMd,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            InkWell(
-              onTap: onTap,
-              borderRadius: R.radiusMd,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: S.md,
-                  vertical: S.md,
-                ),
-                child: Row(
-                  children: [
-                    Icon(icon, size: I.sm, color: c.inkDim),
-                    const SizedBox(width: S.md),
-                    SizedBox(
-                      width: 76,
-                      child: Text(
-                        label,
-                        style: TextStyle(color: c.inkDim, fontSize: T.body),
-                      ),
-                    ),
-                    Expanded(
-                      child: valueWidget != null
-                          ? Align(
-                              alignment: Alignment.centerLeft,
-                              child: valueWidget!,
-                            )
-                          : Text(
-                              value ?? '',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: (value == 'Boş')
-                                    ? c.inkFaint
-                                    : (valueColor ?? c.ink),
-                                fontSize: T.strong,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                    ),
-                    AnimatedRotation(
-                      turns: open ? 0.25 : 0,
-                      duration: Motion.base,
-                      curve: Motion.curve,
-                      child: Icon(
-                        Icons.chevron_right_rounded,
-                        size: I.md,
-                        color: c.inkFaint,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            AnimatedSize(
-              duration: Motion.base,
-              curve: Motion.curve,
-              alignment: Alignment.topCenter,
-              child: open
-                  ? Padding(
-                      padding: const EdgeInsets.fromLTRB(S.md, 0, S.md, S.lg),
-                      child: child,
-                    )
-                  : const SizedBox(width: double.infinity),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Tür seçimindeki büyük kart (Tek günlük / Rutin).
-class _BigChoice extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _BigChoice({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: AnimatedContainer(
-          duration: Motion.base,
-          curve: Motion.curve,
-          padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.md),
-          decoration: BoxDecoration(
-            color: selected ? c.accentSoft : c.surface,
-            borderRadius: R.radiusSm,
-            border: Border.all(
-              color: selected ? c.accent : c.line,
-              width: selected ? 1.5 : 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                icon,
-                size: I.md,
-                color: selected ? c.navActiveInk : c.inkDim,
-              ),
-              const SizedBox(height: S.sm),
-              Text(
-                title,
-                style: TextStyle(
-                  color: selected ? c.navActiveInk : c.ink,
-                  fontSize: T.strong,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: S.hair),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: c.inkFaint,
-                  fontSize: T.micro,
-                  height: 1.25,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChoiceChipTile extends StatelessWidget {
-  final String text;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ChoiceChipTile({
-    required this.text,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: AnimatedContainer(
-          duration: Motion.fast,
-          padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.sm),
-          decoration: BoxDecoration(
-            color: selected ? c.accentSoft : c.surface,
-            borderRadius: R.radiusPill,
-            border: Border.all(color: selected ? c.accent : c.line),
-          ),
-          child: Text(
-            text,
-            style: TextStyle(
-              color: selected ? c.navActiveInk : c.inkDim,
-              fontSize: T.body,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Kategori etiketi.
-class _Tag extends StatelessWidget {
-  final String text;
-  final Color color;
-  final bool selected;
-
-  const _Tag({required this.text, required this.color, this.selected = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final style = context.colors.tag(color, selected: selected);
-    return AnimatedContainer(
-      duration: Motion.fast,
-      padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.sm),
-      decoration: BoxDecoration(
-        color: style.fill,
-        borderRadius: R.radiusPill,
-        border: Border.all(
-          color: selected ? color : Colors.transparent,
-          width: 1,
-        ),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: style.text,
-          fontSize: T.body,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-/// Yaz / Çiz geçiş düğmesi.
-class _SegToggle extends StatelessWidget {
-  final bool drawMode;
-  final ValueChanged<bool> onChanged;
-
-  const _SegToggle({required this.drawMode, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-
-    Widget seg(String label, IconData icon, bool active, VoidCallback onTap) {
-      return GestureDetector(
-        onTap: onTap,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: AnimatedContainer(
-            duration: Motion.fast,
-            padding: const EdgeInsets.symmetric(
-              horizontal: S.md,
-              vertical: S.sm,
-            ),
-            decoration: BoxDecoration(
-              color: active ? c.surfaceAlt : Colors.transparent,
-              borderRadius: R.radiusPill,
-              boxShadow: active ? c.shadowSm : null,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: I.xs, color: active ? c.ink : c.inkFaint),
-                const SizedBox(width: S.xs),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: active ? c.ink : c.inkFaint,
-                    fontSize: T.body,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(S.xs),
-      decoration: BoxDecoration(
-        color: c.isDark ? c.bg : c.hover,
-        borderRadius: R.radiusPill,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          seg('Yaz', Icons.keyboard_rounded, !drawMode, () => onChanged(false)),
-          seg('Çiz', Icons.gesture_rounded, drawMode, () => onChanged(true)),
-        ],
-      ),
-    );
-  }
+      ChoiceChipTile(text: text, selected: selected, onTap: onTap);
 }

@@ -1,6 +1,6 @@
 # Modülerlik planı — şişmiş dosyaları sökmek
 
-> Durum: **uygulanıyor**. M1 bitti; M2–M4 sırada.
+> Durum: **uygulanıyor**. M1–M2 bitti; M3–M4 sırada.
 
 ## 1. İstenen
 
@@ -75,7 +75,7 @@ geçiyor. Tek istisna `test/layout_test.dart`: `T.dense` beyaz listesi **dosya
 yolu** sayıyor, davranış değil — bölünen yüzeyin iki yeni yolu listeye eklendi.
 Mantık testi değişmedi.
 
-### M2 — `task_editor_sheet.dart` → `lib/widgets/editor/`
+### M2 — `task_editor_sheet.dart` → `lib/widgets/editor/` — **bitti**
 
 Önce ortak sunum parçaları (durum tutmuyorlar, en temiz kesik):
 
@@ -95,6 +95,15 @@ küçük bir widget'a dönüşüyor:
 **Bitti sayılır:** giriş dosyası 800 satırın altında, testler dokunulmadan
 geçiyor. Satırların durumu hâlâ sayfada; widget'lar `value` + `onChanged`
 alıyor, kendi `setState`'ini tutmuyor.
+
+**Sonuç:** giriş dosyası 780 satır; `time_rows.dart` 391, `editor_controls.dart`
+246 (ortak parçalar + `fmtDate`), `repeat_row.dart` 147, `property_row.dart`
+115. Dört satır da durumsuz: `RepeatRow` bir `Repeat` alıp `Repeat` döndürüyor,
+`WindowRow` `(başlangıç, bitiş)` demeti alıyor. Testler değişmedi, 567'si
+geçiyor.
+
+Yan kazanç: `_fixedRow`'un belge yorumu yanlışlıkla `_timesRow`'un üstünde
+kalmıştı; satır taşınınca yorum kendi metodunun başına oturdu.
 
 ### M3 — `lib/theme.dart` → `lib/theme/`
 
