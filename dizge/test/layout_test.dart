@@ -108,6 +108,9 @@ void main() {
       // Sıradan bir ekranda kullanılırsa okunabilirlik sessizce düşer.
       const allowed = {
         'lib/widgets/week_time_grid.dart',
+        // Izgaranın kendisi; M1'de aynı yüzey dosyalara bölündü.
+        'lib/widgets/week_grid/event_block.dart',
+        'lib/widgets/week_grid/grid_chrome.dart',
         'lib/widgets/habit_heatmap.dart',
         'lib/widgets/day_pie_chart.dart',
         'lib/widgets/report_charts.dart',

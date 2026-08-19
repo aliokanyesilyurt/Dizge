@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../core/time_grid.dart';
 import '../models/task.dart';
 import '../theme.dart';
-import 'owner_avatar.dart';
+import 'week_grid/block_preview.dart';
+import 'week_grid/event_block.dart';
+import 'week_grid/grid_chrome.dart';
+import 'week_grid/interaction.dart';
 
 /// Google Takvim tarzı haftalık zaman ızgarası.
 ///
@@ -106,42 +106,6 @@ class WeekTimeGrid extends StatefulWidget {
   State<WeekTimeGrid> createState() => _WeekTimeGridState();
 }
 
-/// Sürükleme sırasında taşınan bloğun geçici durumu.
-class _DragState {
-  _DragState({
-    required this.task,
-    required this.sourceDayIndex,
-    required this.grabDy,
-    required this.dayIndex,
-    required this.startHour,
-  });
-
-  final Task task;
-  final int sourceDayIndex;
-
-  /// Parmağın blok içindeki dikey konumu — blok parmağın altından kaymasın.
-  final double grabDy;
-
-  int dayIndex;
-  double startHour;
-
-  /// Parmağın en son bulunduğu küresel nokta. Bırakma anında "ızgaranın
-  /// içinde mi, havuzun üstünde mi" sorusunu cevaplayan tek bilgi;
-  /// `LongPressEndDetails` bunu güvenilir biçimde vermiyor.
-  Offset lastGlobal = Offset.zero;
-
-  /// Havuzun üstünde mi (görsel geri bildirim ve bırakma kararı için).
-  bool overPool = false;
-}
-
-/// Alt kenardan süre değiştirme durumu.
-class _ResizeState {
-  _ResizeState({required this.task, required this.duration});
-
-  final Task task;
-  double duration;
-}
-
 class _WeekTimeGridState extends State<WeekTimeGrid> {
   late final ScrollController _scroll = ScrollController(
     initialScrollOffset: _initialOffset(),
@@ -149,8 +113,8 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
 
   final GlobalKey _canvasKey = GlobalKey();
 
-  _DragState? _drag;
-  _ResizeState? _resize;
+  DragState? _drag;
+  ResizeState? _resize;
 
   /// Havuzdan sürüklenen iş şu an hangi gün sütununun üstünde (yoksa null).
   int? _poolDropDay;
@@ -231,7 +195,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     HapticFeedback.mediumImpact();
 
     setState(() {
-      _drag = _DragState(
+      _drag = DragState(
         task: task,
         sourceDayIndex: dayIndex,
         grabDy: (local.dy - blockTop).clamp(
@@ -356,7 +320,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
   void _onResizeStart(Task task) {
     HapticFeedback.selectionClick();
     setState(
-      () => _resize = _ResizeState(task: task, duration: task.durationHours),
+      () => _resize = ResizeState(task: task, duration: task.durationHours),
     );
   }
 
@@ -409,7 +373,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
           children: [
             SizedBox(
               width: kTimeGutterWidth,
-              child: _HourGutter(metrics: _m),
+              child: HourGutter(metrics: _m),
             ),
             Expanded(
               child: LayoutBuilder(
@@ -472,7 +436,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       // 1) Zemin: saat çizgileri, gün ayraçları, bugün tonu.
       Positioned.fill(
         child: CustomPaint(
-          painter: _GridPainter(
+          painter: GridPainter(
             metrics: _m,
             palette: c,
             todayIndex: _todayIndex,
@@ -551,9 +515,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                 decoration: BoxDecoration(
                   color: task.color.withValues(alpha: 0.10),
                   borderRadius: R.radiusXs,
-                  border: Border.all(
-                    color: task.color.withValues(alpha: 0.28),
-                  ),
+                  border: Border.all(color: task.color.withValues(alpha: 0.28)),
                 ),
               ),
             ),
@@ -641,7 +603,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
               opacity: dragging
                   ? 0.28
                   : ((dimmed || skipped) ? _dimmedOpacity : 1),
-              child: _EventBlock(
+              child: EventBlock(
                 task: task,
                 day: day,
                 // Çoklu saatte tik o **tekrarın** kendisi: sabah dozu
@@ -680,7 +642,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     return blocks;
   }
 
-  Widget _dragGhost(double canvasWidth, _DragState drag) {
+  Widget _dragGhost(double canvasWidth, DragState drag) {
     final columnWidth = _columnWidth(canvasWidth);
     final end = drag.startHour + drag.task.durationHours;
     return Positioned(
@@ -689,7 +651,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       width: columnWidth - 4,
       height: math.max(30.0, drag.task.durationHours * _m.hourHeight - 1),
       child: IgnorePointer(
-        child: _DragPreview(
+        child: DragPreview(
           task: drag.task,
           label: '${Task.formatTime(drag.startHour)} – ${Task.formatTime(end)}',
         ),
@@ -743,837 +705,6 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// --- Saat sütunu -------------------------------------------------------------
-
-class _HourGutter extends StatelessWidget {
-  const _HourGutter({required this.metrics});
-
-  final GridMetrics metrics;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final first = metrics.dayStart.ceil();
-    final last = metrics.dayEnd.floor();
-
-    return Stack(
-      children: [
-        for (var h = first; h <= last; h++)
-          Positioned(
-            // Etiket kendi çizgisinin biraz üstünde durur (Google Takvim'de
-            // olduğu gibi) — böylece saat, altındaki dilimi adlandırır.
-            top: metrics.yFor(h.toDouble()) - 6,
-            right: 10,
-            child: Text(
-              // İlk ve son etiket kenara yapışıp kırpılır; Google da onları
-              // gizler.
-              (h >= 24 || h == 0) ? '' : '${h.toString().padLeft(2, '0')}:00',
-              style: TextStyle(
-                // `inkFaint` değil: 10.5px'te zemine karşı 3.2:1 kalıyordu ve
-                // saat sütunu dekorasyon değil, saati oradan okuyorsun.
-                // `inkDim` hâlâ ikincil ama AA'yı iki temada da geçiyor.
-                color: c.inkDim,
-                fontSize: T.dense,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-// --- Izgara zemini -----------------------------------------------------------
-
-class _GridPainter extends CustomPainter {
-  const _GridPainter({
-    required this.metrics,
-    required this.palette,
-    required this.todayIndex,
-    required this.dropDayIndex,
-  });
-
-  final GridMetrics metrics;
-  final AppPalette palette;
-  final int? todayIndex;
-
-  /// Sürükleme sırasında hedeflenen gün — sütunu hafifçe aydınlanır.
-  final int? dropDayIndex;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final columnWidth = size.width / 7;
-
-    // Bugünün ve bırakma hedefinin sütun zemini.
-    if (todayIndex != null) {
-      canvas.drawRect(
-        Rect.fromLTWH(todayIndex! * columnWidth, 0, columnWidth, size.height),
-        Paint()..color = palette.gridTodayWash,
-      );
-    }
-    if (dropDayIndex != null) {
-      canvas.drawRect(
-        Rect.fromLTWH(dropDayIndex! * columnWidth, 0, columnWidth, size.height),
-        Paint()..color = palette.dropTarget.withValues(alpha: 0.10),
-      );
-    }
-
-    final hourPaint = Paint()
-      ..color = palette.gridHourLine
-      ..strokeWidth = 1;
-    final halfPaint = Paint()
-      ..color = palette.gridHalfLine
-      ..strokeWidth = 1;
-    final columnPaint = Paint()
-      ..color = palette.gridColumnLine
-      ..strokeWidth = 1;
-
-    // Yatay: tam saatler belirgin, yarım saatler soluk. Yarım saat çizgileri
-    // yalnızca yeterince yer varken çizilir; sıkışıkken görsel gürültü olur.
-    final drawHalf = metrics.hourHeight >= 64;
-    for (var h = metrics.dayStart; h <= metrics.dayEnd; h += 1) {
-      final y = metrics.yFor(h);
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), hourPaint);
-      if (drawHalf && h + 0.5 < metrics.dayEnd) {
-        final yh = metrics.yFor(h + 0.5);
-        canvas.drawLine(Offset(0, yh), Offset(size.width, yh), halfPaint);
-      }
-    }
-
-    // Dikey: gün ayraçları.
-    for (var i = 1; i < 7; i++) {
-      final x = i * columnWidth;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), columnPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_GridPainter old) =>
-      old.metrics.hourHeight != metrics.hourHeight ||
-      old.palette != palette ||
-      old.todayIndex != todayIndex ||
-      old.dropDayIndex != dropDayIndex;
-}
-
-// --- Etkinlik bloğu ----------------------------------------------------------
-
-class _EventBlock extends StatefulWidget {
-  const _EventBlock({
-    required this.task,
-    required this.day,
-    required this.done,
-    required this.skipped,
-    required this.compact,
-    this.dimmed = false,
-    this.onMoveToPool,
-    this.onToggleSkip,
-    required this.onEdit,
-    required this.onDuplicate,
-    required this.onDelete,
-    required this.onLongPressStart,
-    required this.onLongPressMoveUpdate,
-    required this.onLongPressEnd,
-    required this.onResizeStart,
-    required this.onResizeUpdate,
-    required this.onResizeEnd,
-  });
-
-  final Task task;
-  final DateTime day;
-  final bool done;
-
-  /// Rutin bugünlüğüne atlandı mı? Tamamlanmadan ayrı bir durum: ikisi de üstü
-  /// çizili görünür ama atlanan iş **yapılmadı**, yalnız bugünlüğüne geçildi.
-  /// Ayrımı yalnız ekran okuyucu cümlesi ve [Task.completedOn] taşıyor.
-  final bool skipped;
-
-  /// Blok kısaysa başlık ve saat tek satırda birleşir.
-  final bool compact;
-
-  /// Enerji filtresi bu bloğu eledi mi? Solgunluğu üstteki [Opacity] veriyor;
-  /// burada yalnızca ekran okuyucuya söylemek için duruyor — solgunluk göze
-  /// görünüyorsa kulağa da görünmeli.
-  final bool dimmed;
-
-  /// İşi havuza alır. Rutinlerde ve havuz bağlanmamışken null.
-  final VoidCallback? onMoveToPool;
-
-  /// Rutinin bu gününü atlar / atlamayı kaldırır. Havuzun rutindeki karşılığı:
-  /// tek günlük işin "Kenara al"ı neyse, rutinin "Bugün atla"sı o (plan K2/K4).
-  /// Tek günlük işlerde null.
-  final VoidCallback? onToggleSkip;
-
-  /// Tam düzenleyiciyi açar. Bloğa tıklamak artık doğrudan buraya gitmiyor —
-  /// önce hafif bir önizleme açılıyor, "Düzenle" oradan çağırıyor.
-  final VoidCallback onEdit;
-  final VoidCallback onDuplicate;
-  final VoidCallback onDelete;
-
-  final void Function(LongPressStartDetails) onLongPressStart;
-  final void Function(LongPressMoveUpdateDetails) onLongPressMoveUpdate;
-  final void Function(LongPressEndDetails) onLongPressEnd;
-  final VoidCallback onResizeStart;
-  final void Function(DragUpdateDetails) onResizeUpdate;
-  final VoidCallback onResizeEnd;
-
-  @override
-  State<_EventBlock> createState() => _EventBlockState();
-}
-
-class _EventBlockState extends State<_EventBlock> {
-  /// Bloğa tıklayınca açılan önizleme. Her blok kendi denetleyicisini tutuyor;
-  /// ızgara ortak bir tane taşısaydı hangi bloğun açık olduğunu ayrıca
-  /// izlemek gerekirdi.
-  final _preview = ShadPopoverController();
-
-  /// Klavye odağı. Düğüm açıkça tutuluyor: `Focus`'un kendi ürettiği düğüme
-  /// dışarıdan erişilemiyor ve blok, ızgaranın tek klavye hedefi.
-  late final FocusNode _focusNode = FocusNode(
-    debugLabel: 'blok-${widget.task.id}',
-  );
-
-  bool _focused = false;
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    _preview.dispose();
-    super.dispose();
-  }
-
-  /// Odaklıyken Enter düzenler, Delete/Backspace siler.
-  ///
-  /// Fare olmadan bir bloğa erişmenin başka yolu yoktu: ızgara tamamen jest
-  /// üzerine kuruluydu ve klavyeyle yalnız başlık çubuğuna ulaşılabiliyordu.
-  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    switch (event.logicalKey) {
-      case LogicalKeyboardKey.enter:
-      case LogicalKeyboardKey.numpadEnter:
-        widget.onEdit();
-        return KeyEventResult.handled;
-      case LogicalKeyboardKey.delete:
-      case LogicalKeyboardKey.backspace:
-        widget.onDelete();
-        return KeyEventResult.handled;
-      case LogicalKeyboardKey.space:
-        _preview.toggle();
-        return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  /// Ekran okuyucunun duyduğu cümle: "Toplantı, Salı 14:00 – 15:30, Ali Okan,
-  /// tamamlandı".
-  ///
-  /// Blok içindeki parçalar `excludeSemantics` ile susturuluyor; yoksa okuyucu
-  /// başlığı, saati ve ikonları ayrı ayrı, bağlamsız okurdu.
-  ///
-  /// [ownerName] grup bağlamında dolu, kişiselde null (Y4.4f): rozet göze
-  /// görünüyorsa kulağa da görünmeli — tersi, gören kullanıcının bildiği bir
-  /// şeyi görmeyenden saklamak olurdu.
-  String _semanticLabelWith(String? ownerName) {
-    final task = widget.task;
-    final parts = <String>[
-      task.title.isEmpty ? 'Başlıksız' : task.title,
-      '${_weekdayNames[widget.day.weekday - 1]} ${task.timeString}',
-      ?ownerName,
-      if (task.isRoutine) 'rutin',
-      if (widget.done) 'tamamlandı',
-      // Üstü çizili iki farklı sebeple olabiliyor; ekranda ikisi de aynı
-      // görünüyorsa kulağa ayrı gelmeli.
-      if (widget.skipped) 'bugünlük atlandı',
-      if (widget.dimmed) 'bugünkü enerjinin üstünde',
-    ];
-    return parts.join(', ');
-  }
-
-  static const _weekdayNames = [
-    'Pazartesi',
-    'Salı',
-    'Çarşamba',
-    'Perşembe',
-    'Cuma',
-    'Cumartesi',
-    'Pazar',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final task = widget.task;
-    final done = widget.done;
-    final compact = widget.compact;
-    final c = context.colors;
-    final style = c.event(task.color, done: done);
-    final title = task.title.isEmpty ? 'Başlıksız' : task.title;
-
-    final titleStyle = TextStyle(
-      color: style.ink,
-      fontSize: T.micro,
-      height: 1.2,
-      fontWeight: FontWeight.w600,
-      decoration: (done || widget.skipped) ? TextDecoration.lineThrough : null,
-      decorationColor: style.ink.withValues(alpha: 0.7),
-    );
-    final timeStyle = TextStyle(
-      color: style.ink.withValues(alpha: 0.82),
-      fontSize: T.dense,
-      height: 1.2,
-      fontWeight: FontWeight.w500,
-    );
-
-    // Tamamlandı yalnız renge/çizgiye dayanmaz: ✓ ikonu da var (WCAG 1.4.1).
-    final marks = <Widget>[
-      if (done) Icon(Icons.check, size: compact ? 10 : 11, color: style.ink),
-      // Atlanan gün de kendi işaretini taşıyor. ✓ ile aynı ikonu paylaşsaydı
-      // "yaptım" ile "geçtim" ekranda ayırt edilemezdi.
-      if (widget.skipped && !done)
-        Icon(
-          Icons.redo_rounded,
-          size: compact ? 10 : 11,
-          color: style.ink.withValues(alpha: 0.85),
-        ),
-      if (task.isRoutine)
-        Icon(
-          Icons.repeat,
-          size: compact ? 9.5 : 10,
-          color: style.ink.withValues(alpha: 0.85),
-        ),
-    ];
-
-    // Sahiplik rozeti sağ üstte (Y4.4d). Kişisel bağlamda [OwnerAvatar]
-    // kendini gizliyor, yani bu satır orada boş bir `SizedBox`tan ibaret.
-    //
-    // Başlığın **sonuna** konuyor, başına değil: baştaki her piksel başlığın
-    // okunabilir uzunluğundan gidiyor ve 15 dakikalık blokta o pikseller
-    // "Kahve"yi "Kah…" yapardı.
-    final owner = <Widget>[
-      if (task.ownerId != null) ...[
-        const SizedBox(width: S.xs),
-        OwnerAvatar(ownerId: task.ownerId, size: compact ? 12 : 14),
-      ],
-    ];
-
-    final body = Container(
-      padding: EdgeInsets.fromLTRB(S.xs, compact ? S.hair : S.xs, S.xs, S.hair),
-      child: compact
-          // Kısa blok: "Başlık · 09:00" tek satır.
-          ? Row(
-              children: [
-                for (final mark in marks) ...[
-                  mark,
-                  const SizedBox(width: S.xs),
-                ],
-                Flexible(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: titleStyle,
-                  ),
-                ),
-                const SizedBox(width: S.xs),
-                Text(task.startString, maxLines: 1, style: timeStyle),
-                ...owner,
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    for (final mark in marks) ...[
-                      mark,
-                      const SizedBox(width: S.xs),
-                    ],
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: titleStyle,
-                      ),
-                    ),
-                    ...owner,
-                  ],
-                ),
-                Text(
-                  task.timeString,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: timeStyle,
-                ),
-              ],
-            ),
-    );
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned.fill(
-          // Sahip adı cümlenin içine `Consumer` üzerinden giriyor: bloğun geri
-          // kalanı bir provider'a bağlı değil ve öyle kalsın — burada uyanan
-          // tek şey etiket.
-          child: Consumer(
-            builder: (context, ref, child) => Semantics(
-              button: true,
-              label: _semanticLabelWith(ownerNameFor(ref, task.ownerId)),
-              excludeSemantics: true,
-              onTap: widget.onEdit,
-              child: child,
-            ),
-            child: Focus(
-              key: ValueKey('focus-${task.id}'),
-              focusNode: _focusNode,
-              onKeyEvent: _onKey,
-              onFocusChange: (has) => setState(() => _focused = has),
-              child: DecoratedBox(
-                // Odak halkası bloğun *dışına* çiziliyor: içeri çizilseydi
-                // 15 dakikalık bir blokta yazının üstüne binerdi.
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(R.xs + 2),
-                  border: Border.all(
-                    color: _focused ? c.accent : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-                position: DecorationPosition.foreground,
-                // Önizleme burada: bloğun tamamına çapalanır, böylece açılan
-                // kart bloğun kenarından çıkar, içindeki bir metnin yanından
-                // değil.
-                child: ShadPopover(
-                  controller: _preview,
-                  popover: (context) => _Preview(
-                    task: task,
-                    day: widget.day,
-                    done: done,
-                    onEdit: () {
-                      _preview.hide();
-                      widget.onEdit();
-                    },
-                    onMoveToPool: widget.onMoveToPool == null
-                        ? null
-                        : () {
-                            _preview.hide();
-                            widget.onMoveToPool!();
-                          },
-                    skipped: widget.skipped,
-                    onToggleSkip: widget.onToggleSkip == null
-                        ? null
-                        : () {
-                            _preview.hide();
-                            widget.onToggleSkip!();
-                          },
-                  ),
-                  // Sağ tık menüsü: içerideki uzun basma sürükleme başlatıyor ve
-                  // `longPressEnabled` açık olsaydı taşımaya çalışan her el hareketi
-                  // menüyü açardı. Menü yalnız sağ tıkla gelir.
-                  child: ShadContextMenuRegion(
-                    longPressEnabled: false,
-                    items: [
-                      ShadContextMenuItem(
-                        leading: const Icon(Icons.edit_outlined, size: I.sm),
-                        onPressed: widget.onEdit,
-                        child: const Text('Düzenle'),
-                      ),
-                      ShadContextMenuItem(
-                        leading: const Icon(Icons.copy_outlined, size: I.sm),
-                        onPressed: widget.onDuplicate,
-                        child: const Text('Kopyala'),
-                      ),
-                      // Rutinde bu eylem hiç görünmüyor: "her gün tekrarlayan
-                      // ama hiçbir gün görünmeyen iş" tanımsız (plan K2).
-                      if (widget.onMoveToPool != null)
-                        ShadContextMenuItem(
-                          leading: const Icon(Icons.inbox_rounded, size: I.sm),
-                          onPressed: widget.onMoveToPool,
-                          child: const Text('Kenara al'),
-                        ),
-                      // Rutinde havuzun yerini bu alıyor (K4).
-                      if (widget.onToggleSkip != null)
-                        ShadContextMenuItem(
-                          leading: Icon(
-                            widget.skipped
-                                ? Icons.undo_rounded
-                                : Icons.redo_rounded,
-                            size: I.sm,
-                          ),
-                          onPressed: widget.onToggleSkip,
-                          child: Text(
-                            widget.skipped ? 'Atlamayı kaldır' : 'Bugün atla',
-                          ),
-                        ),
-                      ShadContextMenuItem(
-                        leading: const Icon(Icons.delete_outline, size: I.sm),
-                        onPressed: widget.onDelete,
-                        child: const Text('Sil'),
-                      ),
-                    ],
-                    child: GestureDetector(
-                      onTap: _preview.toggle,
-                      onLongPressStart: widget.onLongPressStart,
-                      onLongPressMoveUpdate: widget.onLongPressMoveUpdate,
-                      onLongPressEnd: widget.onLongPressEnd,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: style.fill,
-                            borderRadius: R.radiusXs,
-                            // Yan yana aynı renkli iki blok birbirine karışmasın.
-                            border: Border.all(color: style.edge, width: 0.8),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: R.radiusXs,
-                            child: Row(
-                              // Şerit bloğun tam boyunca inmeli; stretch olmazsa
-                              // içeriğin yüksekliği kadar kalıp yarım şerit gibi durur.
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                SizedBox(
-                                  width: 3,
-                                  child: ColoredBox(color: style.stripe),
-                                ),
-                                Expanded(
-                                  child: compact
-                                      // Kısa blokta başlık kırpılıyor; tam adı yalnız
-                                      // burada tooltip veriyor. Uzun blokta zaten
-                                      // görünüyor, orada tooltip gürültü olurdu.
-                                      ? ShadTooltip(
-                                          builder: (context) => Text(title),
-                                          child: body,
-                                        )
-                                      : body,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // Alt kenardaki süre tutamacı. Dikey sürükleme bu çocukta başladığı
-        // için jest arenasında bloğun uzun basmasından önce gelir.
-        //
-        // Şerit bloğun İÇİNDE kalır: Stack sınırının dışına taşan piksel
-        // dokunuş almaz, yani "bottom: -2" gibi bir taşma tutamağı sessizce
-        // küçültürdü.
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 12,
-          child: RawGestureDetector(
-            key: ValueKey('resize-${task.id}'),
-            behavior: HitTestBehavior.translucent,
-            gestures: {
-              _EagerVerticalDragRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                    _EagerVerticalDragRecognizer
-                  >(_EagerVerticalDragRecognizer.new, (recognizer) {
-                    // Not: burada cascade (`..`) kullanılamaz — ok gövdeli
-                    // lambda içinde cascade geri çağırıma bağlanır.
-                    recognizer.onStart = (_) => widget.onResizeStart();
-                    recognizer.onUpdate = widget.onResizeUpdate;
-                    recognizer.onEnd = (_) => widget.onResizeEnd();
-                    recognizer.onCancel = widget.onResizeEnd;
-                  }),
-            },
-            child: MouseRegion(
-              cursor: SystemMouseCursors.resizeUpDown,
-              child: Center(
-                child: Container(
-                  width: 20,
-                  height: 2.5,
-                  decoration: BoxDecoration(
-                    color: style.ink.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Bloğa tıklayınca açılan hafif önizleme.
-///
-/// Neden doğrudan düzenleyici değil: bir işin ne olduğuna bakmak, onu
-/// değiştirmekten çok daha sık yapılan bir şey. Tam sheet ekranı kaplayıp
-/// takvimi gizliyordu; burada hafta arkada durmaya devam ediyor. Düzenlemek
-/// isteyen tek tıkla oraya geçiyor.
-class _Preview extends StatelessWidget {
-  const _Preview({
-    required this.task,
-    required this.day,
-    required this.done,
-    required this.onEdit,
-    this.onMoveToPool,
-    this.skipped = false,
-    this.onToggleSkip,
-  });
-
-  final Task task;
-  final DateTime day;
-  final bool done;
-  final VoidCallback onEdit;
-
-  /// Rutinlerde ve havuz kapalıyken null — o zaman düğme hiç çizilmiyor
-  /// (bkz. plan K2).
-  final VoidCallback? onMoveToPool;
-
-  final bool skipped;
-
-  /// Rutinin bu gününü atlar. Tek günlük işte null: onun karşılığı
-  /// [onMoveToPool]. İkisi hiçbir zaman birlikte çizilmiyor, bu yüzden
-  /// önizleme kartı ikinci bir düğme sırası daha büyümüyor.
-  final VoidCallback? onToggleSkip;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final style = c.event(task.color, done: done);
-
-    // Bloğun kendisinde yer yok diye kırpılan alanlar burada tam görünür.
-    final details = <(IconData, String)>[
-      (Icons.schedule, task.timeString),
-      if (task.repeat.type != RepeatType.once)
-        (Icons.repeat, task.repeat.describe(task.date)),
-      if (task.categoryName.isNotEmpty)
-        (Icons.label_outline, task.categoryName),
-      if (task.place.isNotEmpty) (Icons.place_outlined, task.place),
-      if (task.note.isNotEmpty) (Icons.notes, task.note),
-    ];
-
-    return ConstrainedBox(
-      // 260px'ti; "Kenara al" eklenince iki düğme 43 piksel taştı. Düğmelerden
-      // birini ikona indirmek yerine kart genişledi: ikisi de tek kelimeyle
-      // anlaşılmayan eylemler.
-      constraints: const BoxConstraints(maxWidth: 320),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Bloktaki şeridin küçük yankısı: hangi bloğu açtığın belli olsun.
-              Container(
-                width: 3,
-                height: 16,
-                margin: const EdgeInsets.only(top: S.hair, right: S.sm),
-                decoration: BoxDecoration(
-                  color: style.stripe,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  task.title.isEmpty ? 'Başlıksız' : task.title,
-                  style: TextStyle(
-                    color: c.ink,
-                    fontSize: T.strong,
-                    fontWeight: FontWeight.w600,
-                    height: 1.25,
-                    decoration: (done || skipped)
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
-                ),
-              ),
-              if (done)
-                Icon(Icons.check_circle_outline, size: I.sm, color: c.inkDim),
-            ],
-          ),
-          const SizedBox(height: S.sm),
-          // "Kimin işi" satırı (Y4.4f). Detay listesinin **üstünde**: saatten
-          // önce gelen soru, paylaşılan bir takvimde "bu benim mi" sorusu.
-          // Kişisel bağlamda kendini gizliyor.
-          if (task.ownerId != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: S.xs),
-              child: OwnerLine(
-                ownerId: task.ownerId,
-                style: TextStyle(
-                  color: c.inkDim,
-                  fontSize: T.caption,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          for (final (icon, text) in details)
-            Padding(
-              padding: const EdgeInsets.only(bottom: S.xs),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, size: I.xs, color: c.inkFaint),
-                  const SizedBox(width: S.xs),
-                  Expanded(
-                    child: Text(
-                      text,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: c.inkDim,
-                        fontSize: T.caption,
-                        height: 1.3,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: S.sm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // "Kenara al" burada, sağ tık menüsünde olduğu gibi: sağ tık
-              // dokunmatik ekranda hiç yok, menüye orada ulaşılamıyor.
-              // Önizleme her iki girdi türünde de tek dokunuşla açılıyor.
-              if (onMoveToPool != null) ...[
-                ShadButton.ghost(
-                  size: ShadButtonSize.sm,
-                  onPressed: onMoveToPool,
-                  leading: const Icon(Icons.inbox_rounded, size: I.sm),
-                  child: const Text('Kenara al'),
-                ),
-                const SizedBox(width: S.xs),
-              ],
-              // Rutinin karşılığı. [onMoveToPool] ile aynı yerde ve aynı
-              // sessizlikte duruyor çünkü kullanıcı için aynı şey: "bugün
-              // bunu geçiyorum".
-              if (onToggleSkip != null) ...[
-                ShadButton.ghost(
-                  size: ShadButtonSize.sm,
-                  onPressed: onToggleSkip,
-                  leading: Icon(
-                    skipped ? Icons.undo_rounded : Icons.redo_rounded,
-                    size: I.sm,
-                  ),
-                  child: Text(skipped ? 'Atlamayı kaldır' : 'Bugün atla'),
-                ),
-                const SizedBox(width: S.xs),
-              ],
-              ShadButton.outline(
-                size: ShadButtonSize.sm,
-                onPressed: onEdit,
-                child: const Text('Düzenle'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Kaydırılabilir ızgara içindeki süre tutamağı için dikey sürükleme tanıyıcısı.
-///
-/// Neden özel: tutamak, dikey kaydırma yapan [SingleChildScrollView]'ın içinde
-/// duruyor. İkisi de dikey sürüklemeyi tanıdığı için jest arenasında kaydırma
-/// kazanıyor ve tutamak **hiç çalışmıyordu** — parmak tutamaktan aşağı
-/// çekildiğinde blok yerine sayfa kayıyordu.
-///
-/// Çözüm: parmak tutamağa değdiği anda jesti sahiplen. Tutamak zaten 12
-/// piksellik dar ve amacı belli bir hedef; oraya kasten dokunan kullanıcı
-/// sayfayı kaydırmak istemiyordur.
-class _EagerVerticalDragRecognizer extends VerticalDragGestureRecognizer {
-  @override
-  void addAllowedPointer(PointerDownEvent event) {
-    super.addAllowedPointer(event);
-    resolve(GestureDisposition.accepted);
-  }
-
-  @override
-  String get debugDescription => 'süre tutamağı (öncelikli dikey sürükleme)';
-}
-
-/// Sürüklenirken parmağı takip eden yükseltilmiş kopya + canlı saat rozeti.
-class _DragPreview extends StatelessWidget {
-  const _DragPreview({required this.task, required this.label});
-
-  final Task task;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final style = c.event(task.color);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: style.fill,
-        borderRadius: R.radiusXs,
-        border: Border.all(color: c.surface, width: 1.5),
-        // Kendi kategori rengiyle parlıyor: parmağın altındaki şeyin ne olduğu
-        // siyah zeminde gölgeyle anlaşılmıyordu.
-        boxShadow: [...c.shadowLg, ...c.glowOf(task.color)],
-      ),
-      // Sürüklenen kopya da yerdeki blokla aynı dili konuşur: solda şerit,
-      // gövdede aynı soluk zemin. Farklı görünseydi parmağın altındaki şeyin
-      // bırakılınca neye dönüşeceği belirsiz kalırdı.
-      child: ClipRRect(
-        borderRadius: R.radiusXs,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(width: 3, child: ColoredBox(color: style.stripe)),
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.xs),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: style.ink,
-                          fontSize: T.micro,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      const SizedBox(height: S.hair),
-                      Flexible(
-                        child: Text(
-                          task.title.isEmpty ? 'Başlıksız' : task.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: style.ink.withValues(alpha: 0.9),
-                            fontSize: T.micro,
-                            height: 1.15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
