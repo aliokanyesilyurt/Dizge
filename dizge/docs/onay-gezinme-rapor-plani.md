@@ -1,6 +1,6 @@
 # Onay · Gezinme · Rapor · Havuz Planı
 
-**Durum:** taslak — onay bekliyor
+**Durum:** D1–D4 tamam · D5 (canlı konum) isteğe bağlı, beklemede
 **Tarih:** 21 Ağustos 2026
 **Kaynak:** kullanıcının beş maddelik geri bildirimi (21 Ağustos)
 
@@ -303,6 +303,47 @@ ve `formatDuration` "1 sa" yazıyor "1s" değil.
 iptal edilen tek günlük iş kenar çubuğundaki Havuz ekranında görünür; "Geri
 al" ikisini de eski hâline döndürür.
 **Test:** `test/cancel_on_test.dart` — iki tür iş, iptal + geri alma.
+
+#### D4 kapanış notu (21 Ağustos) — **tamamlandı**
+
+Plan "menüde tek satır görünsün" diyordu; uygulamada görüldü ki **etiketi
+birleştirmek yetmiyor**, geri çağrıyı da birleştirmek gerekiyor. Blok iki ayrı
+alan (`onMoveToPool`, `onToggleSkip`) taşımaya devam etseydi, hangisinin
+çizileceğine yine widget karar verecekti — yani ayrım ekrandan silinip koda
+gömülecekti. İkisi tek bir `onCancel`'a indi; `EventBlock` bir alan kaybetti.
+
+`cancelOn` bir **cümle döndürüyor** ("kenara alındı" / "bugünlük atlandı").
+Önce `void` idi ve bildirimi ekran kuruyordu; ama o zaman her çağrı yerinin
+`task.isRoutine`'e bakması gerekiyordu — kapının tek olmasının anlamı da
+kalmıyordu. Mekanizmayı bilen tek yer mağaza, cümleyi de o kuruyor.
+
+**Önizleme kartındaki sıra `Row` değil `Wrap` oldu.** Etiket duruma göre
+uzuyor ("Bugün iptal" → "İptali geri al") ve 320 pikselde taşıyordu. Kart bir
+kez genişlemişti (260 → 320); üçüncü kez genişletmek yerine sıra kırılabilir
+oldu. Yan kazanç: yazı tipi büyütülmüş bir ekranda da taşmıyor.
+
+Aylık hücrede iptal **uzun basış**: kısa dokunuş zaten en sık istenen şeyi
+(tamamlama) yapıyor ve hücrede menü açacak yer yok. Atlanan gün orada da
+solgun + üstü çizili, işareti ✓ değil ↷ — "yapıldı" ile "bugünlük geçildi"
+aynı simgeyle anlatılamaz.
+
+`TaskListScaffold` iki şey kazandı: satır sonunda tek bir `TaskRowAction` ve
+**isteğe bağlı** kayan ekleme düğmesi. Havuz ekranında "Yeni" yok — havuz iş
+kurulan yer değil, var olan işin bekleme yeri. Onay kutusu da yok: kenara
+alınmış bir işi "yaptım" diye işaretlemek, önce takvime dönmesi gereken bir
+işi atlamak olurdu.
+
+Geri alma bildirimi (`_offerUndo`) haftalık ekranın özel metoduydu; iptal dört
+ekrana yayılınca `widgets/undo_toast.dart`'a çıktı. Kenar çubuğundaki rozet
+daraltılmış halde sayı yerine nokta gösteriyor, sayıyı ipucuna veriyor; ekran
+okuyucuya da "2 iş bekliyor" diye okunuyor — çıplak bir "2" neyin ikisi
+olduğunu söylemiyordu.
+
+Test yazarken bir kendi hatam çıktı: günlük rutin aylık ızgaranın **her**
+hücresinde duruyor, yani `find.text('↻ Koşu').first` atlanan güne değil ayın
+birine denk geliyordu. Doğru soru "hangisi çizili" değil, "kaç tanesi çizili".
+
+**Durum:** 13 yeni test, toplam 607 test geçiyor, `flutter analyze` temiz.
 
 ### D5 — Canlı konum (K7) · **isteğe bağlı**
 

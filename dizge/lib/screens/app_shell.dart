@@ -11,6 +11,7 @@ import '../core/profile_directory.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
 import '../core/usage_mode_controller.dart';
+import '../data/app_store.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/group_switcher.dart';
@@ -21,6 +22,7 @@ import 'day_view_screen.dart';
 import 'habits_screen.dart';
 import 'monthly_view_screen.dart';
 import 'notes_screen.dart';
+import 'pool_screen.dart';
 import 'reports_screen.dart';
 import 'routines_screen.dart';
 import 'todos_screen.dart';
@@ -49,6 +51,9 @@ const _calendarItems = [
 const _listItems = [
   _NavItem(AppSection.routines, Icons.repeat_rounded, 'Rutinler'),
   _NavItem(AppSection.todos, Icons.checklist_rounded, 'Yapılacaklar'),
+  // Havuzun ikinci kapısı. Haftalık şerit boşken hiç görünmüyor; burası
+  // her zaman duruyor ki özellik keşfedilebilsin (plan K4).
+  _NavItem(AppSection.pool, Icons.inbox_rounded, 'Kenarda Bekleyenler'),
 ];
 
 const _knowledgeItems = [
@@ -118,6 +123,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         return const RoutinesScreen();
       case AppSection.todos:
         return const TodosScreen();
+      case AppSection.pool:
+        return const PoolScreen();
       case AppSection.notes:
         return const NotesScreen();
       case AppSection.habits:
@@ -278,6 +285,9 @@ class _Sidebar extends ConsumerWidget {
     // Ajanda sekmesi klasik modda hiç çizilmez: klavyeyle çalışan biri için
     // orada bir defter durması gürültüdür.
     final showAgenda = ref.watch(usageModeProvider).showsAgenda;
+    // Havuz rozeti: sayı canlı, çünkü iş haftalık ızgaradan sürüklenerek de
+    // havuza düşebiliyor.
+    final pooled = ref.watch(poolProvider).length;
 
     return AnimatedContainer(
       duration: Motion.base,
@@ -328,6 +338,11 @@ class _Sidebar extends ConsumerWidget {
                           selected: selected == item.section,
                           collapsed: collapsed,
                           onTap: () => onSelect(item.section),
+                          // Rozet yalnız havuzda: orada bekleyen iş sayısı,
+                          // ekrana girmeden bilinmesi gereken tek sayı.
+                          // Ötekiler "kaç işim var" sorusunu zaten başlıkta
+                          // cevaplıyor.
+                          badge: item.section == AppSection.pool ? pooled : 0,
                         ),
                       const SizedBox(height: S.lg),
                       if (!collapsed) const _SectionLabel('Bilgi & Analiz'),
@@ -443,11 +458,16 @@ class _NavTile extends StatefulWidget {
   final bool collapsed;
   final VoidCallback onTap;
 
+  /// Satırın sonundaki sayı. 0 ise çizilmez — "0 iş bekliyor" bilgisi
+  /// kimsenin aradığı bir şey değil, yalnız yer kaplar.
+  final int badge;
+
   const _NavTile({
     required this.item,
     required this.selected,
     required this.collapsed,
     required this.onTap,
+    this.badge = 0,
   });
 
   @override
@@ -489,7 +509,14 @@ class _NavTileState extends State<_NavTile> {
           ),
           child: collapsed
               ? Center(
-                  child: Icon(widget.item.icon, size: I.md, color: ink),
+                  // Daraltılmışken sayı sığmaz; rozet ikonun köşesine
+                  // iliştirilmiş bir noktaya iner. Bilgi kaybolmuyor: kaç
+                  // olduğu ipucunda yazıyor.
+                  child: _BadgedIcon(
+                    icon: widget.item.icon,
+                    color: ink,
+                    badge: widget.badge,
+                  ),
                 )
               : Row(
                   children: [
@@ -510,14 +537,90 @@ class _NavTileState extends State<_NavTile> {
                         ),
                       ),
                     ),
+                    if (widget.badge > 0) _CountBadge(count: widget.badge),
                   ],
                 ),
         ),
       ),
     );
 
-    // Daraltılmışken etiket görünmediği için adı ipucu olarak ver.
-    return collapsed ? Tooltip(message: widget.item.label, child: tile) : tile;
+    // Daraltılmışken etiket görünmediği için adı ipucu olarak ver. Rozet
+    // varsa sayı da ipucuna giriyor: nokta "bir şey var" der, kaç olduğunu
+    // demez.
+    if (!collapsed) return tile;
+    final message = widget.badge > 0
+        ? '${widget.item.label} · ${widget.badge}'
+        : widget.item.label;
+    return Tooltip(message: message, child: tile);
+  }
+}
+
+/// Kenar çubuğu satırının sonundaki sayı hapı.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return Semantics(
+      // Çıplak bir sayı ekran okuyucuda "iki" diye okunur ve neyin ikisi
+      // olduğunu söylemez.
+      label: '$count iş bekliyor',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: S.sm, vertical: S.hair),
+        decoration: BoxDecoration(
+          color: c.accentSoft,
+          borderRadius: R.radiusPill,
+        ),
+        child: Text(
+          '$count',
+          style: TextStyle(
+            color: c.accent,
+            fontSize: T.micro,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Daraltılmış satırın ikonu; rozet varsa sağ üst köşesinde bir nokta.
+class _BadgedIcon extends StatelessWidget {
+  const _BadgedIcon({
+    required this.icon,
+    required this.color,
+    required this.badge,
+  });
+
+  final IconData icon;
+  final Color color;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final dot = Icon(icon, size: I.md, color: color);
+    if (badge == 0) return dot;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        dot,
+        Positioned(
+          right: -2,
+          top: -2,
+          child: Container(
+            width: S.sm,
+            height: S.sm,
+            decoration: BoxDecoration(color: c.accent, shape: BoxShape.circle),
+          ),
+        ),
+      ],
+    );
   }
 }
 

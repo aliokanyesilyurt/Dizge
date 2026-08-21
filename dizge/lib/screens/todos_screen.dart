@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_store.dart';
 import '../models/task.dart';
+import '../widgets/cancel_action.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
 import 'task_list_scaffold.dart';
@@ -47,6 +48,18 @@ class TodosScreen extends ConsumerWidget {
       // gerek yok (bkz. [TaskListScaffold.checkScopeLabel]).
       isDone: (t) => t.isDoneOn(t.date),
       onToggleDone: (t) => store.setTaskDone(t, t.date, !t.isDoneOn(t.date)),
+      // Satırın ikinci hareketi: işi o gün için iptal etmek. Tek günlük işte
+      // bu "havuza al" demek ama etiket her ekranda aynı (plan K3) —
+      // kullanıcı rutin/tek-günlük ayrımını bilmek zorunda değil.
+      actionFor: (t) {
+        final cancelled = store.isCancelledOn(t, t.date);
+        return TaskRowAction(
+          icon: cancelIcon(cancelled),
+          label: cancelLabel(cancelled),
+          onPressed: () =>
+              toggleCancelOn(context, store, t, t.date, source: 'list'),
+        );
+      },
       onTap: (t) => showTaskEditor(context, date: t.date, existing: t),
       onAdd: () => showQuickAdd(context, date: Task.dayKey(DateTime.now())),
     );

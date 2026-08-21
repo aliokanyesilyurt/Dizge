@@ -6,6 +6,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../models/task.dart';
 import '../../theme.dart';
+import '../cancel_action.dart';
 import '../owner_avatar.dart';
 import '../task_check.dart';
 
@@ -23,9 +24,8 @@ class Preview extends StatelessWidget {
     required this.done,
     required this.onEdit,
     required this.onToggleDone,
-    this.onMoveToPool,
-    this.skipped = false,
-    this.onToggleSkip,
+    this.cancelled = false,
+    this.onCancel,
   });
 
   final Task task;
@@ -40,16 +40,14 @@ class Preview extends StatelessWidget {
   /// yaptım demenin hiçbir yolu yoktu, tek yer gün görünümüydü.
   final VoidCallback onToggleDone;
 
-  /// Rutinlerde ve havuz kapalıyken null — o zaman düğme hiç çizilmiyor
-  /// (bkz. plan K2).
-  final VoidCallback? onMoveToPool;
+  /// İş bu gün için iptal edilmiş mi? Başlığın üstü çizili görünmesini de bu
+  /// belirliyor: iptal edilen iş, tamamlanan iş gibi "bugünkü listeden düştü".
+  final bool cancelled;
 
-  final bool skipped;
-
-  /// Rutinin bu gününü atlar. Tek günlük işte null: onun karşılığı
-  /// [onMoveToPool]. İkisi hiçbir zaman birlikte çizilmiyor, bu yüzden
-  /// önizleme kartı ikinci bir düğme sırası daha büyümüyor.
-  final VoidCallback? onToggleSkip;
+  /// İşin bu gününü iptal eder / iptali geri alır. Tek düğme, tek etiket:
+  /// rutinde günü atlamak, tek günlük işte havuza almak demek ama kart bunu
+  /// bilmiyor (plan K3). Havuz bağlanmamışken null.
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +95,7 @@ class Preview extends StatelessWidget {
                     fontSize: T.strong,
                     fontWeight: FontWeight.w600,
                     height: 1.25,
-                    decoration: (done || skipped)
+                    decoration: (done || cancelled)
                         ? TextDecoration.lineThrough
                         : null,
                   ),
@@ -152,36 +150,31 @@ class Preview extends StatelessWidget {
               ),
             ),
           const SizedBox(height: S.sm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          // `Row` değil `Wrap`: etiket "Bugün iptal" iken sığan sıra, "İptali
+          // geri al" olunca 320 pikseli taşıyordu. Kartı üçüncü kez
+          // genişletmek yerine sıranın kendisi kırılabilir oldu — yazı tipi
+          // büyütülmüş bir ekranda da (metin ölçeği) aynı sorun çıkardı.
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: S.xs,
+            runSpacing: S.xs,
             children: [
-              // "Kenara al" burada, sağ tık menüsünde olduğu gibi: sağ tık
+              // "Bugün iptal" burada, sağ tık menüsünde olduğu gibi: sağ tık
               // dokunmatik ekranda hiç yok, menüye orada ulaşılamıyor.
               // Önizleme her iki girdi türünde de tek dokunuşla açılıyor.
-              if (onMoveToPool != null) ...[
+              //
+              // Tek düğme: eskiden rutin "Bugün atla", tek günlük iş "Kenara
+              // al" diyordu ve kart hangisini çizeceğine kendisi karar
+              // veriyordu. İki etiket aynı niyetin iki adıydı.
+              //
+              // İkonsuz: iki kelimelik etiketin yanında ikon, sıranın
+              // kırılma eşiğini boş yere aşağı çekiyordu.
+              if (onCancel != null)
                 ShadButton.ghost(
                   size: ShadButtonSize.sm,
-                  onPressed: onMoveToPool,
-                  leading: const Icon(Icons.inbox_rounded, size: I.sm),
-                  child: const Text('Kenara al'),
+                  onPressed: onCancel,
+                  child: Text(cancelLabel(cancelled)),
                 ),
-                const SizedBox(width: S.xs),
-              ],
-              // Rutinin karşılığı. [onMoveToPool] ile aynı yerde ve aynı
-              // sessizlikte duruyor çünkü kullanıcı için aynı şey: "bugün
-              // bunu geçiyorum".
-              if (onToggleSkip != null) ...[
-                ShadButton.ghost(
-                  size: ShadButtonSize.sm,
-                  onPressed: onToggleSkip,
-                  leading: Icon(
-                    skipped ? Icons.undo_rounded : Icons.redo_rounded,
-                    size: I.sm,
-                  ),
-                  child: Text(skipped ? 'Atlamayı kaldır' : 'Bugün atla'),
-                ),
-                const SizedBox(width: S.xs),
-              ],
               ShadButton.outline(
                 size: ShadButtonSize.sm,
                 onPressed: onEdit,

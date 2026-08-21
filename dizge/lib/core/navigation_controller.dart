@@ -13,6 +13,11 @@ enum AppSection {
   hour,
   routines,
   todos,
+
+  /// Kenarda bekleyenler (havuz). Haftalık ızgaranın şeridiyle aynı listeye
+  /// bakar; ayrı bir bölüm olmasının sebebi şeridin **boşken görünmemesi**
+  /// (plan K4).
+  pool,
   notes,
   habits,
   reports,

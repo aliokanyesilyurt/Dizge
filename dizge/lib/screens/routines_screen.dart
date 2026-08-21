@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_store.dart';
 import '../models/task.dart';
+import '../widgets/cancel_action.dart';
 import '../widgets/task_editor_sheet.dart';
 import 'task_list_scaffold.dart';
 
@@ -36,6 +37,18 @@ class RoutinesScreen extends ConsumerWidget {
       onToggleDone: (t) => store.setTaskDone(t, today, !t.isDoneOn(today)),
       // Kutunun kapsamı satırda yazsın: "bugün açık" / "bugün tamam".
       checkScopeLabel: 'bugün',
+      // Rutinde iptal = bugünü atlamak. Yapılacaklar ekranındaki satırla
+      // aynı ikon, aynı etiket: iki listede aynı düğmenin iki farklı adı
+      // olsaydı, ayrımı öğrenmek kullanıcının işi olurdu (plan K3).
+      actionFor: (t) {
+        final cancelled = store.isCancelledOn(t, today);
+        return TaskRowAction(
+          icon: cancelIcon(cancelled),
+          label: cancelLabel(cancelled),
+          onPressed: () =>
+              toggleCancelOn(context, store, t, today, source: 'list'),
+        );
+      },
       onTap: (t) => showTaskEditor(context, date: t.date, existing: t),
       // Rutin, hızlı eklemede değil tam editörde kurulur (tekrar kuralı seçimi
       // gerekir), bu yüzden buradan doğrudan editör açılıyor.

@@ -132,7 +132,9 @@ void main() {
   });
 
   group('takvimden havuza', () {
-    testWidgets('önizlemedeki "Kenara al" işi takvimden çeker', (tester) async {
+    testWidgets('önizlemedeki "Bugün iptal" işi takvimden çeker', (
+      tester,
+    ) async {
       wide(tester);
       final job = task('Tez');
 
@@ -146,7 +148,7 @@ void main() {
       await tester.tap(find.text('Tez'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Kenara al'));
+      await tester.tap(find.text('Bugün iptal'));
       await tester.pumpAndSettle();
 
       expect(job.inPool, isTrue);
@@ -156,22 +158,29 @@ void main() {
       expect(find.byType(PoolRail), findsOneWidget);
     });
 
-    testWidgets('rutinde "Kenara al" hiç görünmez', (tester) async {
-      // Plan K2: "her gün tekrarlayan ama hiçbir gün görünmeyen iş" tanımsız.
+    testWidgets('rutinde aynı etiket çıkar ama iş havuza girmez', (
+      tester,
+    ) async {
+      // Plan K3: menüde tek satır. Rutin havuza giremez ("her gün tekrarlayan
+      // ama hiçbir gün görünmeyen iş" tanımsız — K2), ama kullanıcı bu ayrımı
+      // etiketten öğrenmiyor: aynı düğme, arkada başka mekanizma.
       wide(tester);
+      late Task routine;
+      final day = Task.dayKey(DateTime.now());
 
-      await pumpApp(
+      final container = await pumpApp(
         tester,
         const WeekViewScreen(),
-        seed: (s) => s.addTask(
-          Task(
+        seed: (s) {
+          routine = Task(
             title: 'Koşu',
             color: const Color(0xFF34E39B),
-            date: DateTime.now(),
+            date: day,
             startHour: visibleHour(),
             repeat: const Repeat(RepeatType.daily),
-          ),
-        ),
+          );
+          s.addTask(routine);
+        },
       );
 
       // Günlük rutin haftanın her gününde duruyor; herhangi biri yeter.
@@ -179,10 +188,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Düzenle'), findsOneWidget, reason: 'önizleme açılmalı');
-      expect(find.text('Kenara al'), findsNothing);
+      expect(find.text('Bugün iptal'), findsOneWidget);
+
+      await tester.tap(find.text('Bugün iptal'));
+      await tester.pumpAndSettle();
+
+      // Rutin bugün başlıyor, yani ızgaradaki ilk bloğu bugünün sütununda:
+      // atlanan gün de bugün olmalı.
+      expect(routine.isSkippedOn(day), isTrue);
+      expect(routine.inPool, isFalse, reason: 'rutin havuza girmez');
+      expect(container.read(poolProvider), isEmpty);
     });
 
-    testWidgets('kenara almak geri alınabilir', (tester) async {
+    testWidgets('iptal geri alınabilir', (tester) async {
       wide(tester);
       final job = task('Tez');
 
@@ -194,7 +212,7 @@ void main() {
 
       await tester.tap(find.text('Tez'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Kenara al'));
+      await tester.tap(find.text('Bugün iptal'));
       await tester.pumpAndSettle();
       expect(job.inPool, isTrue);
 

@@ -9,6 +9,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../models/task.dart';
 import '../../theme.dart';
+import '../cancel_action.dart';
 import '../owner_avatar.dart';
 import 'block_preview.dart';
 
@@ -21,8 +22,7 @@ class EventBlock extends StatefulWidget {
     required this.skipped,
     required this.compact,
     this.dimmed = false,
-    this.onMoveToPool,
-    this.onToggleSkip,
+    this.onCancel,
     required this.onEdit,
     required this.onToggleDone,
     required this.onDuplicate,
@@ -52,13 +52,14 @@ class EventBlock extends StatefulWidget {
   /// görünüyorsa kulağa da görünmeli.
   final bool dimmed;
 
-  /// İşi havuza alır. Rutinlerde ve havuz bağlanmamışken null.
-  final VoidCallback? onMoveToPool;
-
-  /// Rutinin bu gününü atlar / atlamayı kaldırır. Havuzun rutindeki karşılığı:
-  /// tek günlük işin "Kenara al"ı neyse, rutinin "Bugün atla"sı o (plan K2/K4).
-  /// Tek günlük işlerde null.
-  final VoidCallback? onToggleSkip;
+  /// İşin bu gününü iptal eder / iptali geri alır.
+  ///
+  /// Tek bir geri çağrı, çünkü kullanıcı için tek bir eylem: "bugün bunu
+  /// geçiyorum". Rutinde günün atlanması, tek günlük işte havuza alınması
+  /// demek — ama bloğun bunu bilmesi gerekmiyor (plan K3). Eskiden burada
+  /// `onMoveToPool` ve `onToggleSkip` diye iki alan vardı ve menüde iki ayrı
+  /// satır olarak görünüyorlardı.
+  final VoidCallback? onCancel;
 
   /// Tam düzenleyiciyi açar. Bloğa tıklamak artık doğrudan buraya gitmiyor —
   /// önce hafif bir önizleme açılıyor, "Düzenle" oradan çağırıyor.
@@ -318,18 +319,12 @@ class _EventBlockState extends State<EventBlock> {
                     // kaybolması, "oldu mu" sorusunu cevapsız bırakırdı.
                     // Kutunun kendisi cevabı gösteriyor.
                     onToggleDone: widget.onToggleDone,
-                    onMoveToPool: widget.onMoveToPool == null
+                    cancelled: widget.skipped,
+                    onCancel: widget.onCancel == null
                         ? null
                         : () {
                             _preview.hide();
-                            widget.onMoveToPool!();
-                          },
-                    skipped: widget.skipped,
-                    onToggleSkip: widget.onToggleSkip == null
-                        ? null
-                        : () {
-                            _preview.hide();
-                            widget.onToggleSkip!();
+                            widget.onCancel!();
                           },
                   ),
                   // Sağ tık menüsü: içerideki uzun basma sürükleme başlatıyor ve
@@ -361,27 +356,15 @@ class _EventBlockState extends State<EventBlock> {
                         onPressed: widget.onDuplicate,
                         child: const Text('Kopyala'),
                       ),
-                      // Rutinde bu eylem hiç görünmüyor: "her gün tekrarlayan
-                      // ama hiçbir gün görünmeyen iş" tanımsız (plan K2).
-                      if (widget.onMoveToPool != null)
+                      // Tek satır: rutin de tek günlük iş de aynı etiketi
+                      // görüyor. Ne olduğu (gün atlandı / kenara alındı)
+                      // bildirimde yazıyor — kullanıcıya seçtirilmiyor,
+                      // yalnız söyleniyor (plan K3).
+                      if (widget.onCancel != null)
                         ShadContextMenuItem(
-                          leading: const Icon(Icons.inbox_rounded, size: I.sm),
-                          onPressed: widget.onMoveToPool,
-                          child: const Text('Kenara al'),
-                        ),
-                      // Rutinde havuzun yerini bu alıyor (K4).
-                      if (widget.onToggleSkip != null)
-                        ShadContextMenuItem(
-                          leading: Icon(
-                            widget.skipped
-                                ? Icons.undo_rounded
-                                : Icons.redo_rounded,
-                            size: I.sm,
-                          ),
-                          onPressed: widget.onToggleSkip,
-                          child: Text(
-                            widget.skipped ? 'Atlamayı kaldır' : 'Bugün atla',
-                          ),
+                          leading: Icon(cancelIcon(widget.skipped), size: I.sm),
+                          onPressed: widget.onCancel,
+                          child: Text(cancelLabel(widget.skipped)),
                         ),
                       ShadContextMenuItem(
                         leading: const Icon(Icons.delete_outline, size: I.sm),

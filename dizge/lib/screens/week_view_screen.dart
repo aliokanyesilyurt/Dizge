@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../core/day_rescue.dart';
 import '../core/energy_filter_controller.dart';
@@ -12,8 +11,10 @@ import '../core/time_grid.dart';
 import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
+import '../widgets/cancel_action.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
+import '../widgets/undo_toast.dart';
 import '../widgets/week_time_grid.dart';
 import 'week/daily_habit_strip.dart';
 import 'week/day_headers.dart';
@@ -377,46 +378,25 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     }
   }
 
-  /// Bir rutinin tek gününü atlar / atlamayı geri alır.
-  void _toggleSkip(Task task, DateTime day) {
-    final store = ref.read(appStoreProvider);
-    final next = !task.isSkippedOn(day);
-    store.skipRoutineOn(task, day, next);
-    _offerUndo(
-      next ? 'Bugünlük atlandı' : 'Atlama kaldırıldı',
-      () => store.skipRoutineOn(task, day, !next),
-    );
-  }
+  /// "Bugün iptal" — rutinde günü atlar, tek günlük işte havuza alır.
+  ///
+  /// Eskiden burada yalnız rutinin atlaması vardı; tek günlük işin karşılığı
+  /// ("Kenara al") ayrı bir menü satırıydı ve kullanıcı hangisinin geçerli
+  /// olduğunu bilmek zorundaydı. Artık ayrımı [toggleCancelOn] içeride
+  /// yapıyor (plan K3).
+  void _cancelOn(Task task, DateTime day) =>
+      toggleCancelOn(context, ref.read(appStoreProvider), task, day);
 
   /// Mutasyondan sonra "Geri al" bildirimi gösterir.
+  ///
+  /// Gövdesi [offerUndo]'ya taşındı: aynı bildirim artık aylık hücrede ve iki
+  /// liste ekranında da çıkıyor (plan K3). Buradaki kısa ad yerinde kalıyor,
+  /// çağrı yerleri `context`'i her seferinde tekrar yazmasın diye.
   void _offerUndo(
     String label,
     VoidCallback undo, {
     Duration duration = const Duration(seconds: 5),
-  }) {
-    final sonner = ShadSonner.maybeOf(context);
-    // Toaster yoksa (ör. ekranı tek başına kuran bir test) sessizce geç:
-    // geri alma bir kolaylık, mutasyonun kendisi zaten gerçekleşti.
-    if (sonner == null) return;
-
-    final id = UniqueKey();
-    sonner.show(
-      ShadToast(
-        id: id,
-        title: Text(label),
-        duration: duration,
-        action: ShadButton.ghost(
-          child: const Text('Geri al'),
-          onPressed: () {
-            undo();
-            // Bildirim kendini kapatmıyor; geri alındıktan sonra ekranda
-            // kalması "hâlâ geri alınabilir" izlenimi verirdi.
-            sonner.hide(id);
-          },
-        ),
-      ),
-    );
-  }
+  }) => offerUndo(context, label, undo, duration: duration);
 
   @override
   Widget build(BuildContext context) {
@@ -598,7 +578,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                             onDelete: _delete,
                             isOverPool: _isOverPool,
                             onDropToPool: _moveToPool,
-                            onToggleSkip: _toggleSkip,
+                            onCancel: _cancelOn,
                             onPullFromPool: _pullFromPool,
                             poolHover: _poolHover,
                           ),

@@ -406,6 +406,40 @@ class AppStore extends ChangeNotifier {
     _touched();
   }
 
+  // --- "Bugün iptal" (tek kapı) ---------------------------------------------
+
+  /// İş o gün için iptal edilmiş mi?
+  ///
+  /// Rutinde "iptal" = o günü atlamak, tek günlük işte = havuza almak. Çağıran
+  /// tarafın hangisi olduğunu bilmesi gerekmiyor; menüde tek satır görünsün
+  /// diye ayrım burada kalıyor (plan K3).
+  bool isCancelledOn(Task task, DateTime day) =>
+      task.isRoutine ? task.isSkippedOn(day) : task.inPool;
+
+  /// İşi o gün için iptal eder ve **bildirimde yazılacak cümleyi** döner.
+  ///
+  /// Cümleyi burası üretiyor çünkü mekanizmayı yalnız burası biliyor: ekran
+  /// "iptal ettim" der, ne olduğunu ("kenara alındı" / "bugünlük atlandı")
+  /// buradan öğrenir. Mekanizma gizlenmiyor, yalnızca *seçtirilmiyor*.
+  String cancelOn(Task task, DateTime day, {String source = 'block'}) {
+    if (task.isRoutine) {
+      skipRoutineOn(task, day, true, source: source);
+      return 'Bugünlük atlandı';
+    }
+    moveToPool(task);
+    return 'Kenara alındı';
+  }
+
+  /// İptali geri alır: atlanan rutin geri gelir, havuzdaki iş [day] gününe
+  /// döner.
+  void undoCancelOn(Task task, DateTime day, {String source = 'block'}) {
+    if (task.isRoutine) {
+      skipRoutineOn(task, day, false, source: source);
+    } else {
+      pullFromPool(task, toDay: day);
+    }
+  }
+
   /// Planı uygular: tek günlük işler havuza, rutinler o günün atlananlarına.
   ///
   /// Tek bir bildirim atıyor (`_touched` sonda): sekiz işi tek tek bildirmek

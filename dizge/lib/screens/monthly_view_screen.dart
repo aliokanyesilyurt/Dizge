@@ -5,6 +5,7 @@ import '../core/navigation_controller.dart';
 import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
+import '../widgets/cancel_action.dart';
 import '../widgets/owner_avatar.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
@@ -108,6 +109,19 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
   void _toggleTask(Task task, DateTime day) =>
       ref.read(appStoreProvider).setTaskDone(task, day, !task.isDoneOn(day));
 
+  /// Aynı satıra uzun basıldı: o günü iptal et / iptali geri al.
+  ///
+  /// Uzun basış, çünkü hücrede menü açacak yer yok ve kısa dokunuş zaten en
+  /// sık istenen şeyi (tamamlama) yapıyor. İptal ikinci sıklıkta: aynı
+  /// hedefin ikinci hareketi olması doğru yer.
+  void _cancelTask(Task task, DateTime day) => toggleCancelOn(
+    context,
+    ref.read(appStoreProvider),
+    task,
+    day,
+    source: 'month',
+  );
+
   Future<void> _openRoutines() => showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -160,6 +174,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
                       store: store,
                       onTapDay: _tapDay,
                       onToggleTask: _toggleTask,
+                      onCancelTask: _cancelTask,
                     ),
                   );
                 },
@@ -321,6 +336,9 @@ class _Grid extends StatelessWidget {
   /// Hucredeki bir is satirina dokunuldu: o gunu tamamla / geri al.
   final void Function(Task task, DateTime day) onToggleTask;
 
+  /// Aynı satıra uzun basıldı: o günü iptal et / iptali geri al.
+  final void Function(Task task, DateTime day) onCancelTask;
+
   const _Grid({
     required this.weeks,
     required this.leading,
@@ -332,6 +350,7 @@ class _Grid extends StatelessWidget {
     required this.store,
     required this.onTapDay,
     required this.onToggleTask,
+    required this.onCancelTask,
   });
 
   @override
@@ -357,6 +376,7 @@ class _Grid extends StatelessWidget {
                       DateUtils.isSameDay(date, selectedDay!),
                   onTap: date == null ? null : () => onTapDay(date),
                   onToggleTask: onToggleTask,
+                  onCancelTask: onCancelTask,
                 ),
               );
             }),
@@ -381,6 +401,9 @@ class _Cell extends StatelessWidget {
   /// Is satirina dokunulunca cagrilir (hucrenin bosluguna degil).
   final void Function(Task task, DateTime day) onToggleTask;
 
+  /// Is satirina uzun basilinca cagrilir.
+  final void Function(Task task, DateTime day) onCancelTask;
+
   const _Cell({
     required this.dayNum,
     required this.date,
@@ -390,6 +413,7 @@ class _Cell extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.onToggleTask,
+    required this.onCancelTask,
   });
 
   @override
@@ -474,6 +498,9 @@ class _Cell extends StatelessWidget {
   /// açar. İki hedef üst üste binmiyor çünkü satır dokunuşu yutuyor.
   Widget _entry(AppPalette c, Task task, DateTime day) {
     final done = task.isDoneOn(day);
+    // Havuza alınan iş takvimde hiç görünmüyor (Task.occursOn), yani burada
+    // "iptal" ancak atlanmış bir rutin olabilir.
+    final cancelled = task.isSkippedOn(day);
     final tag = c.tag(task.color);
 
     return Semantics(
@@ -482,9 +509,24 @@ class _Cell extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => onToggleTask(task, day),
+        // Uzun basış: "bugün iptal". Aynı hedefin ikinci hareketi — hücrede
+        // menü açacak yer yok (plan K3).
+        onLongPress: () => onCancelTask(task, day),
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
-          child: _entryBody(c, task, day, done: done, tag: tag),
+          child: Opacity(
+            // Atlanan gün ızgarada solgun görünüyor; aylık hücrede de öyle
+            // olmalı, yoksa aynı iş iki ekranda iki farklı şey der.
+            opacity: cancelled ? 0.45 : 1,
+            child: _entryBody(
+              c,
+              task,
+              day,
+              done: done,
+              cancelled: cancelled,
+              tag: tag,
+            ),
+          ),
         ),
       ),
     );
@@ -495,6 +537,7 @@ class _Cell extends StatelessWidget {
     Task task,
     DateTime day, {
     required bool done,
+    required bool cancelled,
     required TagStyle tag,
   }) {
     return Padding(
@@ -507,11 +550,13 @@ class _Cell extends StatelessWidget {
           // dolgunun varlığına bağlı kalmasın (WCAG 1.4.1).
           SizedBox(
             width: S.md,
-            child: done
+            child: (done || cancelled)
                 ? Padding(
                     padding: const EdgeInsets.only(top: S.hair, right: S.xs),
                     child: Icon(
-                      Icons.check_rounded,
+                      // İptal edilen gün ✓ değil ↷: "yapıldı" ile "bugünlük
+                      // geçildi" aynı işaretle anlatılamaz.
+                      done ? Icons.check_rounded : Icons.redo_rounded,
                       size: I.xs,
                       color: c.inkFaint,
                     ),
@@ -533,11 +578,13 @@ class _Cell extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: done ? c.inkFaint : tag.text,
+                color: (done || cancelled) ? c.inkFaint : tag.text,
                 fontSize: T.dense,
                 height: 1.2,
                 fontWeight: FontWeight.w500,
-                decoration: done ? TextDecoration.lineThrough : null,
+                decoration: (done || cancelled)
+                    ? TextDecoration.lineThrough
+                    : null,
                 decorationColor: c.inkFaint,
               ),
             ),

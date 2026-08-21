@@ -6,6 +6,27 @@ import '../widgets/owner_avatar.dart';
 import '../widgets/task_check.dart';
 import 'section_header.dart';
 
+/// Liste satırının sağ ucundaki tek eylem.
+///
+/// Ayrı bir tür, çünkü üç parçası (ikon, etiket, çağrı) hep birlikte anlamlı:
+/// üçünü ayrı alan olarak taşımak, ikisi verilip biri unutulan bir satırın
+/// derlenmesine izin verirdi.
+@immutable
+class TaskRowAction {
+  const TaskRowAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+
+  /// Hem fare ipucu hem ekran okuyucu etiketi. Satırda yazılı görünmüyor.
+  final String label;
+
+  final VoidCallback onPressed;
+}
+
 /// Rutinler ve Yapılacaklar ekranlarının paylaştığı liste düzeni.
 class TaskListScaffold extends StatelessWidget {
   final String title;
@@ -17,7 +38,17 @@ class TaskListScaffold extends StatelessWidget {
   /// Satırın sağında gösterilecek metin (tekrar özeti, tarih vb.).
   final String Function(Task) trailingTextFor;
   final ValueChanged<Task> onTap;
-  final VoidCallback onAdd;
+
+  /// Kayan ekleme düğmesi. Null ise hiç çizilmez — her listenin "yeni" diye
+  /// bir karşılığı yok (havuz, var olan işlerin bekleme yeri).
+  final VoidCallback? onAdd;
+
+  /// Satırın sağ ucundaki tek eylem. Null dönen satırda düğme çıkmaz.
+  ///
+  /// Tek eylem, çünkü liste satırı bir menü değil: "bugün iptal" ya da
+  /// "takvime geri koy" — ekranın o listede yapılabilecek en doğal ikinci
+  /// hareketi. Üçüncüsü gerekiyorsa yeri satıra dokunup açılan düzenleyici.
+  final TaskRowAction? Function(Task)? actionFor;
 
   /// Satır başındaki onay kutusunun durumu. Null ise kutu hiç çizilmez —
   /// tamamlama kavramı olmayan bir liste bu iskeleti kullanabilsin diye.
@@ -42,7 +73,8 @@ class TaskListScaffold extends StatelessWidget {
     required this.tasks,
     required this.trailingTextFor,
     required this.onTap,
-    required this.onAdd,
+    this.onAdd,
+    this.actionFor,
     this.isDone,
     this.onToggleDone,
     this.checkScopeLabel,
@@ -83,6 +115,7 @@ class TaskListScaffold extends StatelessWidget {
                               ? null
                               : () => onToggleDone!(tasks[i]),
                           checkScopeLabel: checkScopeLabel,
+                          action: actionFor?.call(tasks[i]),
                         ),
                       ),
               ),
@@ -90,10 +123,12 @@ class TaskListScaffold extends StatelessWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: onAdd,
-        child: const Icon(Icons.add_rounded, size: I.lg),
-      ),
+      floatingActionButton: onAdd == null
+          ? null
+          : FloatingActionButton(
+              onPressed: onAdd,
+              child: const Icon(Icons.add_rounded, size: I.lg),
+            ),
     );
   }
 }
@@ -180,6 +215,9 @@ class _Row extends StatefulWidget {
   final VoidCallback? onToggleDone;
   final String? checkScopeLabel;
 
+  /// Satırın sağ ucundaki tek eylem düğmesi. Null ise çizilmez.
+  final TaskRowAction? action;
+
   const _Row({
     required this.task,
     required this.trailing,
@@ -187,6 +225,7 @@ class _Row extends StatefulWidget {
     this.done,
     this.onToggleDone,
     this.checkScopeLabel,
+    this.action,
   });
 
   @override
@@ -201,6 +240,7 @@ class _RowState extends State<_Row> {
     final c = context.colors;
     final t = widget.task;
     final done = widget.done;
+    final action = widget.action;
 
     // Kutunun kapsamı satırda yazıyor ("bugün tamam"). Rutinlerde bu bilgi
     // olmadan kutu, hangi günü kastettiğini söyleyemez.
@@ -304,6 +344,22 @@ class _RowState extends State<_Row> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              // Eylem en sağda ve **yalnız** ikon: etiketi ipucunda ve ekran
+              // okuyucuda duruyor. Satırın asıl işi başlığı okutmak; ikinci
+              // bir kelime, birinciyle yarışırdı.
+              if (action != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: S.xs),
+                  child: IconButton(
+                    onPressed: action.onPressed,
+                    icon: Icon(action.icon, size: I.sm),
+                    color: c.inkFaint,
+                    tooltip: action.label,
+                    // Yoğun: varsayılan 48'lik hedef satırı büyütüyordu.
+                    // 40x40 hâlâ parmakla rahat vurulur.
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
             ],
           ),
         ),

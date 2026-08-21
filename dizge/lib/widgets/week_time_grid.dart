@@ -43,7 +43,7 @@ class WeekTimeGrid extends StatefulWidget {
     this.energyLimit,
     this.isOverPool,
     this.onDropToPool,
-    this.onToggleSkip,
+    this.onCancel,
     this.onPullFromPool,
     this.poolHover,
   }) : assert(tasksByDay.length == 7, 'Haftalık ızgara tam 7 gün bekler');
@@ -98,9 +98,13 @@ class WeekTimeGrid extends StatefulWidget {
   /// Blok havuzun üstüne bırakıldı.
   final void Function(Task task)? onDropToPool;
 
-  /// Rutinin verilen günü atlanacak / atlaması kaldırılacak. Rutinler havuza
-  /// giremediği için (K2) bloğun "kenara alma" karşılığı bu.
-  final void Function(Task task, DateTime day)? onToggleSkip;
+  /// İşin o günü iptal edilecek / iptali geri alınacak.
+  ///
+  /// Rutinde günü atlamak, tek günlük işte havuza almak demek — ama ızgaranın
+  /// bunu bilmesi gerekmiyor, ayrım [AppStore.cancelOn] içinde (plan K3).
+  /// Eskiden burada iki ayrı geri çağrı vardı ve blok, hangisinin çizileceğine
+  /// `task.isRoutine`'e bakarak kendisi karar veriyordu.
+  final void Function(Task task, DateTime day)? onCancel;
 
   /// Havuzdan sürüklenen iş ızgaraya bırakıldı.
   final void Function(Task task, DateTime day, double hour)? onPullFromPool;
@@ -621,15 +625,13 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                 dimmed: dimmed,
                 // Kısa blokta saat satırı sığmaz; başlık ve saat tek satıra iner.
                 compact: height < 34,
-                onMoveToPool: (widget.onDropToPool == null || task.isRoutine)
+                // Tek satır, iki mekanizma: rutinde gün atlanıyor, tek
+                // günlük işte iş havuza gidiyor. Blok hangisi olduğunu
+                // sormuyor — eskiden "Kenara al" ile "Bugün atla" ayrı
+                // satırlardı ve kullanıcı ayrımı öğrenmek zorundaydı.
+                onCancel: widget.onCancel == null
                     ? null
-                    : () => widget.onDropToPool!(task),
-                // Aynanın öteki yüzü: "Kenara al" rutinde hiç yok, "Bugün
-                // atla" da tek günlük işte hiç yok. Her blokta o işin
-                // yapabileceği tek "bugün bunu geç" eylemi duruyor.
-                onToggleSkip: (widget.onToggleSkip == null || !task.isRoutine)
-                    ? null
-                    : () => widget.onToggleSkip!(task, day),
+                    : () => widget.onCancel!(task, day),
                 onEdit: () => widget.onTapTask(task, day),
                 // Çoklu saatte tikin kapsamı da tekrarın kendisi — `done`
                 // hangi soruyu soruyorsa cevabı da aynı yere yazılmalı.
