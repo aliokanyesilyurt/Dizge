@@ -10,18 +10,39 @@ import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
 
 class MonthlyViewScreen extends ConsumerStatefulWidget {
-  /// Açılışta gösterilecek ay (0 = Ocak). Boşsa içinde bulunulan ay.
-  final int? initialMonth;
+  /// Açılışta gösterilecek ay (o ayın herhangi bir günü). Boşsa içinde
+  /// bulunulan ay.
+  final DateTime? initialMonth;
   const MonthlyViewScreen({super.key, this.initialMonth});
 
   @override
   ConsumerState<MonthlyViewScreen> createState() => _MonthlyViewScreenState();
 }
 
+/// Ayı tek bir tam sayıya indirger: `2026-08` → `24319`.
+///
+/// `PageView`'in sayfa numarası bu. Eskiden sayfa numarası ayın sıra numarası
+/// (0–11) idi ve yıl ekranın dışından geliyordu; ızgara **12 sayfada
+/// bitiyordu**, yani Aralık'tan Ocak'a geçmenin yolu yoktu. Yıl da sayfa
+/// numarasının içine girince sınır kendiliğinden kalktı.
+int monthIndexOf(DateTime d) => d.year * 12 + d.month - 1;
+
+/// [monthIndexOf]'un tersi: sayfa numarasından ayın ilk günü.
+DateTime monthOfIndex(int index) => DateTime(index ~/ 12, index % 12 + 1);
+
 class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
-  late final PageController _pageController = PageController(
-    initialPage: widget.initialMonth ?? DateTime.now().month - 1,
+  late final int _initialPage = monthIndexOf(
+    widget.initialMonth ?? DateTime.now(),
   );
+
+  late final PageController _pageController = PageController(
+    initialPage: _initialPage,
+  );
+
+  /// Başlığın gösterdiği ay. Sayfa numarasını ayrıca tutuyoruz çünkü başlık
+  /// artık `PageView`'in **dışında**: içerideyken her ayın kendi kopyası
+  /// vardı, oklar yatayda kayıyor ve hafta satırı ayla birlikte sürükleniyordu.
+  late int _page = _initialPage;
 
   static const List<String> _months = [
     'Ocak',
@@ -49,8 +70,26 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
     'PAZ',
   ];
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   /// İlk dokunuşta seçilen gün; ikinci dokunuş o günü açar.
   DateTime? _selectedDay;
+
+  /// Ay değiştirir. Ölçüt denetleyicinin kendi sayfası: kaydırmanın ortasında
+  /// oka basılırsa hedef, başlığın gösterdiği aydan değil gerçekten
+  /// bulunulan yerden hesaplanmalı.
+  void _shift(int months) =>
+      _goToPage((_pageController.page?.round() ?? _page) + months);
+
+  void _goToPage(int page) => _pageController.animateToPage(
+    page,
+    duration: Motion.base,
+    curve: Motion.curve,
+  );
 
   /// İki aşamalı seçim: önce gün vurgulanır, sonra açılır.
   void _tapDay(DateTime date) {
@@ -74,7 +113,6 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final int year = DateTime.now().year;
     final DateTime today = DateTime.now();
     // Store'u izle: hücrelerdeki iş noktaları her mutasyonda tazelensin.
     final store = ref.watch(appStoreProvider);
@@ -82,38 +120,47 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
-        child: PageView.builder(
-          controller: _pageController,
-          itemCount: 12,
-          itemBuilder: (context, monthIndex) {
-            final month = monthIndex + 1;
-            final daysInMonth = DateUtils.getDaysInMonth(year, month);
-            final leading = DateTime(year, month, 1).weekday - 1;
-            final weeks = ((leading + daysInMonth) / 7).ceil();
+        child: Column(
+          children: [
+            // Başlık ve hafta satırı `PageView`'in **dışında**: içerideyken
+            // her ayın kendi kopyası vardı ve gün adları ayla birlikte
+            // yatayda sürükleniyordu.
+            _header(c, monthOfIndex(_page), today),
+            _weekHeader(c),
+            Expanded(
+              // Sayfa sayısı yok: takvimin ne sonu var ne başı. Sayfalar
+              // tembel kurulduğu için sınırsızlığın bedeli de sıfır.
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (page) => setState(() => _page = page),
+                itemBuilder: (context, index) {
+                  final shown = monthOfIndex(index);
+                  final daysInMonth = DateUtils.getDaysInMonth(
+                    shown.year,
+                    shown.month,
+                  );
+                  final leading =
+                      DateTime(shown.year, shown.month, 1).weekday - 1;
+                  final weeks = ((leading + daysInMonth) / 7).ceil();
 
-            return Column(
-              children: [
-                _header(c, _months[monthIndex], year),
-                _weekHeader(c),
-                Expanded(
-                  child: Padding(
+                  return Padding(
                     padding: const EdgeInsets.fromLTRB(S.lg, 0, S.lg, S.lg),
                     child: _Grid(
                       weeks: weeks,
                       leading: leading,
                       daysInMonth: daysInMonth,
-                      year: year,
-                      month: month,
+                      year: shown.year,
+                      month: shown.month,
                       today: today,
                       selectedDay: _selectedDay,
                       store: store,
                       onTapDay: _tapDay,
                     ),
-                  ),
-                ),
-              ],
-            );
-          },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -127,7 +174,9 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
     );
   }
 
-  Widget _header(AppPalette c, String monthName, int year) {
+  Widget _header(AppPalette c, DateTime shown, DateTime today) {
+    final onThisMonth = shown.year == today.year && shown.month == today.month;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(S.sm, S.md, S.sm, S.xs),
       child: Row(
@@ -135,23 +184,45 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
           IconButton(
             icon: Icon(Icons.grid_view_rounded, color: c.inkDim, size: I.md),
             tooltip: '12 ay',
+            // Bakılan yılı yanında götürüyor: 2028'in Haziran'ından çıkan
+            // kişi 2028'in ızgarasına düşsün, bu yılınkine değil.
             onPressed: () =>
-                ref.read(navigationProvider.notifier).go(AppSection.year),
+                ref.read(navigationProvider.notifier).openYear(shown.year),
+          ),
+          IconButton(
+            icon: Icon(Icons.chevron_left_rounded, color: c.inkDim, size: I.md),
+            tooltip: 'Önceki ay',
+            onPressed: () => _shift(-1),
           ),
           Expanded(
             child: Column(
               children: [
                 Text(
-                  '$monthName $year',
+                  '${_months[shown.month - 1]} ${shown.year}',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: S.hair),
-                Text(
-                  'kaydırarak ayları gez',
-                  style: TextStyle(color: c.inkFaint, fontSize: T.micro),
-                ),
+                // Bu satır iki iş yapıyor ama asla ikisini birden: bulunulan
+                // aydayken kaydırmayı öğretiyor, uzaktayken geri dönüş kapısı
+                // oluyor. Ayrı bir düğme sırası başlığı iki kat yükseltirdi.
+                if (onThisMonth)
+                  Text(
+                    'kaydırarak ayları gez',
+                    style: TextStyle(color: c.inkFaint, fontSize: T.micro),
+                  )
+                else
+                  _TodayLink(onTap: () => _goToPage(monthIndexOf(today))),
               ],
             ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.chevron_right_rounded,
+              color: c.inkDim,
+              size: I.md,
+            ),
+            tooltip: 'Sonraki ay',
+            onPressed: () => _shift(1),
           ),
           IconButton(
             icon: Icon(Icons.repeat_rounded, color: c.inkDim, size: I.md),
@@ -183,6 +254,48 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
               ),
             )
             .toList(),
+      ),
+    );
+  }
+}
+
+/// Başlığın alt satırındaki "Bugün" dönüşü.
+///
+/// Düğme kılığında değil bağlantı kılığında: başlığın ipucu satırının yerine
+/// geçiyor ve o satırın dikey ritmini bozmaması gerek. Metin küçük ama hedef
+/// değil — dokunma alanı metnin çevresinde ayrıca genişletiliyor.
+class _TodayLink extends StatelessWidget {
+  const _TodayLink({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return Semantics(
+      button: true,
+      label: 'Bugünün ayına dön',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: S.md,
+              vertical: S.hair,
+            ),
+            child: Text(
+              'Bugün',
+              style: TextStyle(
+                color: c.accent,
+                fontSize: T.micro,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

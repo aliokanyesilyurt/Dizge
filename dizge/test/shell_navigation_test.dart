@@ -41,7 +41,11 @@ void main() {
 
     final nav = container.read(navigationProvider);
     expect(nav.section, AppSection.month);
-    expect(nav.month, 2, reason: 'Mart 0 tabanlı indekste 2');
+    expect(
+      nav.anchor,
+      DateTime(DateTime.now().year, 3),
+      reason: 'ay damgası yılıyla birlikte taşınmalı',
+    );
   });
 
   testWidgets('ay → yıl → ay gidip gelmek rota yığmıyor', (tester) async {
@@ -75,7 +79,9 @@ void main() {
     useScreenSize(tester, wide);
     final container = await pumpApp(tester, const AppShell());
 
-    container.read(navigationProvider.notifier).openMonth(2);
+    container
+        .read(navigationProvider.notifier)
+        .openMonth(DateTime(DateTime.now().year, 3));
     await tester.pumpAndSettle();
 
     // Gün açmak iki aşamalı: ilk dokunuş seçer, ikincisi açar.

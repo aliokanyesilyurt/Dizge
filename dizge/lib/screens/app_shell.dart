@@ -107,9 +107,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       case AppSection.agenda:
         return AgendaScreen(initialDay: nav.day);
       case AppSection.year:
-        return const YearViewScreen();
+        return YearViewScreen(year: nav.anchor?.year);
       case AppSection.month:
-        return MonthlyViewScreen(initialMonth: nav.month);
+        return MonthlyViewScreen(initialMonth: nav.anchor);
       case AppSection.week:
         return const WeekViewScreen();
       case AppSection.hour:

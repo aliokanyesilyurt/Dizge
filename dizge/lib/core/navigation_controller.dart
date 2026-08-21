@@ -26,25 +26,39 @@ enum AppSection {
 /// derken hangi ayı kastettiğini başka türlü söyleyemezdi.
 @immutable
 class NavState {
-  const NavState(this.section, {this.month, this.day});
+  const NavState(this.section, {this.anchor, this.day});
 
   final AppSection section;
 
-  /// [AppSection.month] için açılacak ay (0 = Ocak). Boşsa içinde bulunulan ay.
-  final int? month;
+  /// [AppSection.month] ve [AppSection.year] için açılacak ay/yıl — **ayın
+  /// ilk günü**. Boşsa içinde bulunulan ay.
+  ///
+  /// Eskiden burası `int? month` idi (0 = Ocak) ve **yıl taşımıyordu**. Aylık
+  /// ekran da bu yüzden yılı `DateTime.now().year` diye sabitlemek zorunda
+  /// kalıyor, takvim Aralık'ta duvara tosluyordu. Ay damgasının yılıyla
+  /// birlikte tek parça gezmesi o sınırı kaldırıyor.
+  ///
+  /// Gün değil ay tutuyor: "hangi aya bakıyoruz" sorusunun cevabında günün
+  /// bir karşılığı yok, olsaydı iki farklı gün aynı ayı iki ayrı durum
+  /// yapardı ve kabuk ekranı boşuna yeniden kurardı.
+  final DateTime? anchor;
 
-  /// [AppSection.hour] için açılacak gün. Boşsa bugün.
+  /// [AppSection.hour] ve [AppSection.agenda] için açılacak gün. Boşsa bugün.
+  ///
+  /// [anchor] ile ayrı duruyor: biri "hangi ay", öteki "hangi gün". Tek alana
+  /// bindirilseydi aylık ekran gün bilgisini yok saymak, gün ekranı da ayın
+  /// birinci gününü gerçek bir seçimden ayırmak zorunda kalırdı.
   final DateTime? day;
 
   @override
   bool operator ==(Object other) =>
       other is NavState &&
       other.section == section &&
-      other.month == month &&
+      other.anchor == anchor &&
       other.day == day;
 
   @override
-  int get hashCode => Object.hash(section, month, day);
+  int get hashCode => Object.hash(section, anchor, day);
 }
 
 /// Takvim bölümleri arasındaki geçişin tek yeri.
@@ -67,8 +81,20 @@ class NavigationController extends StateNotifier<NavState> {
 
   void go(AppSection section) => state = NavState(section);
 
-  /// Yıl görünümünden bir aya girer. [month] 0 tabanlı (0 = Ocak).
-  void openMonth(int month) => state = NavState(AppSection.month, month: month);
+  /// Yıl görünümünden bir aya girer. [anchor] o ayın herhangi bir günü
+  /// olabilir; durumda ayın ilk gününe yuvarlanır.
+  void openMonth(DateTime anchor) => state = NavState(
+    AppSection.month,
+    anchor: DateTime(anchor.year, anchor.month),
+  );
+
+  /// Aylık görünümden 12 aylık ızgaraya çıkar.
+  ///
+  /// Yılı taşıyor: bakılan yıl unutulsaydı 2028'in Haziran'ından "12 ay"a
+  /// basan kişi içinde bulunduğumuz yıla düşer, geri geldiği yere iki tıkla
+  /// dönerdi.
+  void openYear(int year) =>
+      state = NavState(AppSection.year, anchor: DateTime(year));
 
   /// Ay görünümünden bir güne girer.
   void openDay(DateTime day) => state = NavState(AppSection.hour, day: day);

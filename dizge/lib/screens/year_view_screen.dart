@@ -5,9 +5,25 @@ import '../core/navigation_controller.dart';
 import '../data/app_store.dart';
 import '../theme.dart';
 
-class YearViewScreen extends ConsumerWidget {
+/// 12 aylık ızgara.
+///
+/// Yıl artık **ekranın kendi durumu**: eskiden her kuruluşta
+/// `DateTime.now().year` okunuyordu, yani geçen yılın Mart'ına bakmanın hiçbir
+/// yolu yoktu. [year] yalnız açılış yılını veriyor; başlıktaki oklar oradan
+/// devam ediyor.
+class YearViewScreen extends ConsumerStatefulWidget {
+  /// Açılış yılı. Boşsa içinde bulunulan yıl.
   final int? year;
   const YearViewScreen({super.key, this.year});
+
+  @override
+  ConsumerState<YearViewScreen> createState() => _YearViewScreenState();
+}
+
+class _YearViewScreenState extends ConsumerState<YearViewScreen> {
+  late int _year = widget.year ?? DateTime.now().year;
+
+  void _shift(int years) => setState(() => _year += years);
 
   static const List<String> _months = [
     'Ocak',
@@ -25,9 +41,9 @@ class YearViewScreen extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final c = context.colors;
-    final int year = this.year ?? DateTime.now().year;
+    final year = _year;
     // Store'u izle: aylardan dönünce noktalar elle setState olmadan tazelenir.
     final store = ref.watch(appStoreProvider);
 
@@ -35,14 +51,35 @@ class YearViewScreen extends ConsumerWidget {
       backgroundColor: c.bg,
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          '$year',
-          style: TextStyle(
-            color: c.ink,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.5,
-            fontSize: T.title,
-          ),
+        // Oklar başlığın iki yanında: yıl, ikisinin arasında değişen tek şey.
+        // Ayrı bir araç çubuğuna konsalardı hangi sayıyı değiştirdikleri
+        // okunmazdı.
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _YearArrow(
+              icon: Icons.chevron_left_rounded,
+              tooltip: 'Önceki yıl',
+              onTap: () => _shift(-1),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: S.sm),
+              child: Text(
+                '$year',
+                style: TextStyle(
+                  color: c.ink,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                  fontSize: T.title,
+                ),
+              ),
+            ),
+            _YearArrow(
+              icon: Icons.chevron_right_rounded,
+              tooltip: 'Sonraki yıl',
+              onTap: () => _shift(1),
+            ),
+          ],
         ),
       ),
       body: SafeArea(
@@ -66,12 +103,36 @@ class YearViewScreen extends ConsumerWidget {
               // Rota itmiyoruz: yeni rota kabuğun üstüne biner ve kenar çubuğu
               // kaybolurdu. Ay, yılın *üstü* değil aynı takvimin bir kademe
               // yakını — kabuğun bölümü değişiyor, çerçeve yerinde kalıyor.
-              onTap: () =>
-                  ref.read(navigationProvider.notifier).openMonth(index),
+              onTap: () => ref
+                  .read(navigationProvider.notifier)
+                  .openMonth(DateTime(year, index + 1)),
             );
           },
         ),
       ),
+    );
+  }
+}
+
+/// Başlıktaki yıl oku. Sessiz: yıl değiştirmek gezinme, eylem değil.
+class _YearArrow extends StatelessWidget {
+  const _YearArrow({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      tooltip: tooltip,
+      iconSize: I.md,
+      icon: Icon(icon, color: context.colors.inkDim),
     );
   }
 }
