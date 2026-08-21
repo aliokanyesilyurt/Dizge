@@ -7,6 +7,7 @@ import '../models/task.dart';
 import '../theme.dart';
 import 'drawing_canvas.dart';
 import 'editor/editor_controls.dart';
+import 'editor/place_field.dart';
 import 'editor/property_row.dart';
 import 'editor/repeat_row.dart';
 import 'editor/time_rows.dart';
@@ -307,7 +308,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                         _windowEnd = w?.$2;
                       }),
                     ),
-                  _placeRow(c),
+                  _placeRow(),
                   _noteRow(c),
                 ],
               ),
@@ -601,19 +602,19 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     );
   }
 
-  Widget _placeRow(AppPalette c) {
+  Widget _placeRow() {
     return PropertyRow(
       icon: Icons.place_rounded,
       label: 'Yer',
       value: _place.text.trim().isEmpty ? 'Boş' : _place.text.trim(),
       open: _open == 'place',
       onTap: () => _toggle('place'),
-      child: TextField(
+      // Öneriler var olan işlerin yer alanlarından geliyor (plan K7′);
+      // dışarıya sorulan bir yer servisi yok.
+      child: PlaceField(
         controller: _place,
-        textCapitalization: TextCapitalization.sentences,
-        style: TextStyle(color: c.ink, fontSize: T.strong),
+        history: [for (final t in ref.read(appStoreProvider).tasks) t.place],
         onChanged: (_) => setState(() {}),
-        decoration: const InputDecoration(hintText: 'Ev, ofis, spor salonu…'),
       ),
     );
   }

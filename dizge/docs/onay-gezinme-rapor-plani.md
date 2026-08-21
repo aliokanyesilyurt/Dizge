@@ -1,6 +1,7 @@
 # Onay · Gezinme · Rapor · Havuz Planı
 
-**Durum:** D1–D4 tamam · D5 (canlı konum) isteğe bağlı, beklemede
+**Durum:** ✅ **tamamlandı** — D1–D4 indi, D5 canlı konum yerine **yer
+önerisi** olarak indi (21 Ağustos kullanıcı kararı)
 **Tarih:** 21 Ağustos 2026
 **Kaynak:** kullanıcının beş maddelik geri bildirimi (21 Ağustos)
 
@@ -148,7 +149,10 @@ değişmiyor. İki düzeltme:
 Ayrıca üst kartta "günde ortalama X iş" satırı — üç mutlak sayının yanında
 aralığa duyarlı tek metrik.
 
-### K7 — Konum: koordinat modele girer, adres girmez
+### K7 — Konum: koordinat modele girer, adres girmez · **düştü**
+
+> **21 Ağustos:** kullanıcı canlı konumu istemedi. Bu karar uygulanmadı;
+> yerine K7′ (aşağıda) geçti. Bölüm, neden vazgeçildiği görünsün diye duruyor.
 
 `Task`'a iki opsiyonel alan (`double? lat, lon`). Ters coğrafi kodlama
 (koordinat → "Kadıköy, İstanbul") **çevrimiçi bir servis** ister; uygulama
@@ -164,6 +168,20 @@ offline-first ve dışarı veri göndermeme sözü verdi
 platformda üç ayrı izin tanımı, Android'de `ACCESS_FINE_LOCATION` (mağaza
 dışı yan yükleme için bile kullanıcı onayı ekranı) ve APK'ya ek boyut
 demek — kullanıcının kendi deyimiyle "fark da etmez".
+
+---
+
+### K7′ — Yer önerisi kullanıcının kendi geçmişinden gelir
+
+"Yazınca konum çıksın" iki biçimde okunabilir: çevrimiçi bir yer arama
+servisi, ya da daha önce yazdığın yerlerin tamamlanması. Birincisi her tuş
+vuruşunda dışarı istek atar — uygulamanın "veri dışarı gitmez" sözünü
+(`services/productivity_report.dart` başlık notu) bozar ve API anahtarı
+ister. İkincisi hem offline hem de pratikte daha isabetli: kimse her gün yeni
+bir yere gitmiyor, "Ev · Ofis · Spor salonu" listesi üç işten sonra doluyor.
+
+Bu yüzden öneriler **var olan işlerin `place` alanlarından** türetilir,
+sıklığa göre sıralanır. Model değişmiyor, bağımlılık eklenmiyor.
 
 ---
 
@@ -345,21 +363,56 @@ birine denk geliyordu. Doğru soru "hangisi çizili" değil, "kaç tanesi çizil
 
 **Durum:** 13 yeni test, toplam 607 test geçiyor, `flutter analyze` temiz.
 
-### D5 — Canlı konum (K7) · **isteğe bağlı**
+### D5 — Yer önerisi (K7′) · *canlı konumun yerine geçti*
 
-* `geolocator` bağımlılığı; Android `ACCESS_COARSE_LOCATION` +
-  `ACCESS_FINE_LOCATION`, Windows desteği paketten geliyor.
-* `Task.lat` / `Task.lon` (nullable, JSON'da opsiyonel — eski kayıtlar okunur).
-* `task_editor_sheet.dart` yer satırına "Konumumu al" düğmesi; izin reddi
-  sessizce metin alanını değiştirmeden geçer.
-* Senkron: `toJson`/`fromJson` alanları taşır, LWW değişmez.
+**21 Ağustos, kullanıcı kararı:** "canlı konumu alma, yazınca konum çıksın."
+GPS dilimi düştü; yerine yer alanının **kendi geçmişinden** öneri veren bir
+tamamlama kondu.
 
-**Kabul ölçütü:** izin verilince koordinat yakalanır ve kaydedilir; izin
-verilmeyince uygulama hiçbir şey kaybetmez.
-**Test:** `test/task_location_test.dart` — JSON gidiş-dönüş, alan yokken eski
-kayıt okunması.
+* Yeni `lib/widgets/editor/place_field.dart`:
+  * saf fonksiyon `placeSuggestions(tasks, query, {limit})` — daha önce
+    yazılmış `place` değerlerinden, **kullanım sıklığına** göre sıralı liste;
+  * `PlaceField` — metin alanı + altında öneri çipleri.
+* `task_editor_sheet.dart` `_placeRow`: düz `TextField` yerine `PlaceField`.
+* Eşleme Türkçe katlamalı (`İstanbul` ≡ `istanbul`), önce baştan eşleşenler.
+* Alan boşken sık kullanılan ilk birkaç yer görünür — öneri, aramadan önce de
+  var; kullanıcı hiç yazmadan seçebilsin.
 
----
+**Kabul ölçütü:** "Ev" bir kez yazıldıktan sonra, ikinci işte "e" yazınca
+öneri çıkıyor ve çipe dokunmak alanı dolduruyor; hiç yer yazılmamış bir
+kurulumda hiçbir çip çıkmıyor.
+**Test:** `test/place_suggest_test.dart` — sıralama/katlama (saf fonksiyon) ve
+editörde çipe dokunuş.
+
+#### D5 kapanış notu (21 Ağustos) — **tamamlandı**
+
+Plandan tek sapma, testin ortaya çıkardığı bir kural değişikliği:
+
+**Elenen öneri "aynı yer" değil, "aynı yazım".** Önce katlanmış anahtar
+sorguya eşitse öneri gizleniyordu; o kural "sisli" yazan kullanıcıya
+"Şişli"yi göstermiyordu — yani katlama eşlemeyi kolaylaştırıp tam da
+kolaylaştırdığı yerde susuyordu. Şimdi yalnız **birebir** aynı yazım eleniyor:
+"Şişli" yazana öneri çıkmıyor, "sisli" yazana çıkıyor ve dokunuş yazılanı
+düzeltiyor. Öneri listesi böylece ikinci bir iş görüyor — aynı yerin üç ayrı
+yazımla birikmesini engelliyor.
+
+Sıralama iki basamaklı: önce ön ek ("of" yazan "Ofis"i arıyor, "Yeni ofis"i
+değil), sonra sıklık. Üçüncü basamak alfabetik — eşit sıklıkta liste her
+açılışta aynı sırada çıksın diye; `Map` sırasına bırakmak testi de kırılgan
+yapardı.
+
+Alan boşken çıkan çiplerin üstünde "Daha önce yazdıkların" yazıyor. Etiketsiz
+hâlde çipler "önerilen yerler" gibi okunuyordu; oysa hepsini kullanıcı kendi
+yazmış, uygulama hiçbir yer bilmiyor.
+
+**Durum:** 12 yeni test, toplam 619 test geçiyor, `flutter analyze` temiz.
+
+### D5-eski — Canlı konum (K7) · **düşürüldü**
+
+`geolocator` + üç platformda izin tanımı + APK boyutu, kullanıcının
+"fark da etmez" dediği bir özellik için. Koordinat saklama kararı (K7) da
+onunla birlikte düştü: `Task` yeni alan almadı, model olduğu gibi kaldı.
+Harita ve adres çözümleme zaten kapsam dışıydı.
 
 ## 5. Riskler
 
@@ -393,4 +446,5 @@ kayıt okunması.
 | K4 | Havuz kenar çubuğuna çıkar, şerit kalır | Boşken görünmeyen özellik keşfedilemez |
 | K5 | Atlanan gün planlanan sayılmaz | Bilerek atlama başarısızlık değil |
 | K6 | Grafikler günlük ortalamaya geçer + trend eklenir | Aralık seçicisinin görünür bir karşılığı olsun |
-| K7 | Koordinat saklanır, adres çözülmez | Offline-first ve dışarı veri göndermeme sözü |
+| ~~K7~~ | ~~Koordinat saklanır, adres çözülmez~~ | **Düştü** — kullanıcı canlı konumu istemedi (21 Ağustos) |
+| K7′ | Yer önerisi kullanıcının kendi `place` geçmişinden | Çevrimiçi yer araması offline-first sözünü bozardı; sıklık listesi pratikte daha isabetli |
