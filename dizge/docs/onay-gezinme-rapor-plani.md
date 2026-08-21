@@ -220,6 +220,36 @@ bir kutu, bulunduğun ayda hiçbir işe yaramayacakken sürekli yer kaplardı.
 her ekranda anında yansımak (store zaten `_touched` yayınlıyor).
 **Test:** `test/task_check_test.dart` — her ekran için işaretle/geri al.
 
+#### D2 kapanış notu (21 Ağustos) — **tamamlandı**
+
+Plandan üç sapma, üçü de uygulamada ortaya çıktı:
+
+**1. Önizlemede düğme değil kutu.** Karta üçüncü bir `ShadButton` eklemek
+320 pikseli taşırıyordu. Ama kartın başlık satırında zaten bir yer vardı:
+tamamlanmışlığı *bildiren* soluk ✓ ikonu. O ikonun yerine `TaskCheck`
+konunca kart hiç büyümedi ve eylem, göz zaten baktığı yerde belirdi.
+
+**2. Sağ tık menüsüne de kondu, en üste.** Fare kullanıcısının kestirmesi;
+önizlemeyi açmayı beklemesin diye.
+
+**3. Çoklu saatli işlerde tik tekrarın kendisi.** Izgara `done` durumunu
+zaten `isSlotDone` ile hesaplıyordu (Z6); kutunun yazdığı yer de aynı
+olmalıydı. `WeekTimeGrid.onToggleDone` bu yüzden üç parametreli:
+`(task, day, slotHour?)`. Sabah dozunu işaretlemek akşamkini bitirmiyor.
+
+Aylık hücrede iş satırı **kendisi** onay kutusu oldu; ayrı bir kutu, T.dense
+yüksekliğindeki bir satırın yanına sığmazdı. Nokta bitmişken ✓ oluyor —
+tamamlanmışlık yalnız dolgunun yokluğuna bağlı kalmasın diye (WCAG 1.4.1).
+Hücrenin boşluğu eski davranışında: bir dokunuş seçer, ikincisi günü açar.
+
+`TaskListScaffold` onay kutusunu **isteğe bağlı** aldı (`isDone` null ise
+çizilmiyor): tamamlama kavramı olmayan bir liste iskeleti kullanabilsin.
+Rutinlerde `checkScopeLabel: 'bugün'` zorunlu — tekrar eden bir işin
+yanındaki tek kutu, hangi günü kastettiğini söylemezse "bu rutini tamamen
+bitirdim" diye okunur.
+
+**Durum:** 8 yeni test, toplam 584 test geçiyor, `flutter analyze` temiz.
+
 ### D3 — Rapor düzeltmesi (K5, K6)
 
 * `productivity_report.dart`: atlanan gün elenir; `TimeBucket`'a `perDay`

@@ -51,6 +51,7 @@ void main() {
             today: monday,
             onTapTask: (_, _) {},
             onTapEmpty: (_, _) {},
+            onToggleDone: (_, _, _) {},
             onMove: (_, _, _) {},
             onResize: (_, _) {},
             onDuplicate: (_, _) {},
@@ -115,10 +116,7 @@ void main() {
     await pumpGrid(tester, t);
 
     expect(
-      find.descendant(
-        of: bandFinder(t),
-        matching: find.byType(IgnorePointer),
-      ),
+      find.descendant(of: bandFinder(t), matching: find.byType(IgnorePointer)),
       findsOneWidget,
     );
   });

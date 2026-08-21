@@ -36,6 +36,7 @@ void main() {
                 today: DateTime(2026, 7, 20),
                 onTapTask: (task, day) {},
                 onTapEmpty: (day, hour) {},
+                onToggleDone: (_, _, _) {},
                 onMove: (task, day, hour) {},
                 onResize: (task, duration) {},
                 onDuplicate: (task, day) {},

@@ -24,6 +24,7 @@ class EventBlock extends StatefulWidget {
     this.onMoveToPool,
     this.onToggleSkip,
     required this.onEdit,
+    required this.onToggleDone,
     required this.onDuplicate,
     required this.onDelete,
     required this.onLongPressStart,
@@ -62,6 +63,11 @@ class EventBlock extends StatefulWidget {
   /// Tam düzenleyiciyi açar. Bloğa tıklamak artık doğrudan buraya gitmiyor —
   /// önce hafif bir önizleme açılıyor, "Düzenle" oradan çağırıyor.
   final VoidCallback onEdit;
+
+  /// İşin bu gününü tamamlar / geri alır. Önizleme kartındaki kutu ve sağ tık
+  /// menüsündeki "Yaptım" aynı yere gidiyor.
+  final VoidCallback onToggleDone;
+
   final VoidCallback onDuplicate;
   final VoidCallback onDelete;
 
@@ -308,6 +314,10 @@ class _EventBlockState extends State<EventBlock> {
                       _preview.hide();
                       widget.onEdit();
                     },
+                    // Kart kapanmıyor: bir işi işaretledikten sonra kartın
+                    // kaybolması, "oldu mu" sorusunu cevapsız bırakırdı.
+                    // Kutunun kendisi cevabı gösteriyor.
+                    onToggleDone: widget.onToggleDone,
                     onMoveToPool: widget.onMoveToPool == null
                         ? null
                         : () {
@@ -328,6 +338,19 @@ class _EventBlockState extends State<EventBlock> {
                   child: ShadContextMenuRegion(
                     longPressEnabled: false,
                     items: [
+                      // En üstte: menünün en sık istenen satırı bu. Sağ tık
+                      // menüsü fare kullanıcısının kestirmesi, önizlemedeki
+                      // kutuyu açmayı beklemesin.
+                      ShadContextMenuItem(
+                        leading: Icon(
+                          done
+                              ? Icons.remove_done_rounded
+                              : Icons.check_rounded,
+                          size: I.sm,
+                        ),
+                        onPressed: widget.onToggleDone,
+                        child: Text(done ? 'Geri al' : 'Yaptım'),
+                      ),
                       ShadContextMenuItem(
                         leading: const Icon(Icons.edit_outlined, size: I.sm),
                         onPressed: widget.onEdit,

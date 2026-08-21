@@ -33,6 +33,7 @@ class TodosScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final todos = ref.watch(todosProvider);
     final open = todos.where((t) => !t.isDoneOn(t.date)).length;
+    final store = ref.read(appStoreProvider);
 
     return TaskListScaffold(
       title: 'Yapılacaklar',
@@ -42,6 +43,10 @@ class TodosScreen extends ConsumerWidget {
           'Yapılacak iş yok.\nTek günlük bir iş ekleyince burada görünür.',
       tasks: todos,
       trailingTextFor: (t) => '${t.date.day} ${_months[t.date.month - 1]}',
+      // Tek günlük işin günü belli: kutu o günü işaretler, ayrıca söylemeye
+      // gerek yok (bkz. [TaskListScaffold.checkScopeLabel]).
+      isDone: (t) => t.isDoneOn(t.date),
+      onToggleDone: (t) => store.setTaskDone(t, t.date, !t.isDoneOn(t.date)),
       onTap: (t) => showTaskEditor(context, date: t.date, existing: t),
       onAdd: () => showQuickAdd(context, date: Task.dayKey(DateTime.now())),
     );

@@ -37,6 +37,7 @@ void main() {
             today: monday,
             onTapTask: (_, _) {},
             onTapEmpty: (_, _) {},
+            onToggleDone: (_, _, _) {},
             onMove: (_, _, _) {},
             onResize: (_, _) {},
             onDuplicate: (_, _) {},
@@ -61,11 +62,12 @@ void main() {
   testWidgets('bloklar kendi saatlerinde duruyor', (tester) async {
     await pumpGrid(tester, ilac(times: [8, 14, 20]));
 
-    final tops = tester
-        .widgetList<Text>(find.text('İlaç'))
-        .map((w) => tester.getTopLeft(find.byWidget(w)).dy)
-        .toList()
-      ..sort();
+    final tops =
+        tester
+            .widgetList<Text>(find.text('İlaç'))
+            .map((w) => tester.getTopLeft(find.byWidget(w)).dy)
+            .toList()
+          ..sort();
 
     // Saat başına 60 piksel: 08:00 ile 14:00 arası altı saat.
     expect(tops[1] - tops[0], closeTo(6 * 60.0, 2.0));

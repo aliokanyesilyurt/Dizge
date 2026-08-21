@@ -104,6 +104,10 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
   void _openDay(DateTime date) =>
       ref.read(navigationProvider.notifier).openDay(date);
 
+  /// Hücredeki bir iş satırına dokunuldu: o günü tamamla / geri al.
+  void _toggleTask(Task task, DateTime day) =>
+      ref.read(appStoreProvider).setTaskDone(task, day, !task.isDoneOn(day));
+
   Future<void> _openRoutines() => showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -155,6 +159,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
                       selectedDay: _selectedDay,
                       store: store,
                       onTapDay: _tapDay,
+                      onToggleTask: _toggleTask,
                     ),
                   );
                 },
@@ -313,6 +318,9 @@ class _Grid extends StatelessWidget {
   final AppStore store;
   final void Function(DateTime date) onTapDay;
 
+  /// Hucredeki bir is satirina dokunuldu: o gunu tamamla / geri al.
+  final void Function(Task task, DateTime day) onToggleTask;
+
   const _Grid({
     required this.weeks,
     required this.leading,
@@ -323,6 +331,7 @@ class _Grid extends StatelessWidget {
     required this.selectedDay,
     required this.store,
     required this.onTapDay,
+    required this.onToggleTask,
   });
 
   @override
@@ -347,6 +356,7 @@ class _Grid extends StatelessWidget {
                       selectedDay != null &&
                       DateUtils.isSameDay(date, selectedDay!),
                   onTap: date == null ? null : () => onTapDay(date),
+                  onToggleTask: onToggleTask,
                 ),
               );
             }),
@@ -368,6 +378,9 @@ class _Cell extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onTap;
 
+  /// Is satirina dokunulunca cagrilir (hucrenin bosluguna degil).
+  final void Function(Task task, DateTime day) onToggleTask;
+
   const _Cell({
     required this.dayNum,
     required this.date,
@@ -376,6 +389,7 @@ class _Cell extends StatelessWidget {
     required this.isToday,
     required this.isSelected,
     required this.onTap,
+    required this.onToggleTask,
   });
 
   @override
@@ -451,24 +465,67 @@ class _Cell extends StatelessWidget {
   }
 
   /// Aylık ızgarada tek satırlık iş kaydı. Rutinler soluk + ↻ işaretli.
+  ///
+  /// Satırın kendisi bir onay kutusu: dokunmak işi o gün için tamamlar.
+  /// Eskiden hücrenin tamamı tek bir dokunuş hedefiydi ve aylık takvimde
+  /// yapılabilen tek şey günü açmaktı — tek bir işe hiç ulaşılamıyordu.
+  ///
+  /// Hücrenin boşluğu eski davranışında: bir dokunuş seçer, ikincisi günü
+  /// açar. İki hedef üst üste binmiyor çünkü satır dokunuşu yutuyor.
   Widget _entry(AppPalette c, Task task, DateTime day) {
     final done = task.isDoneOn(day);
     final tag = c.tag(task.color);
 
+    return Semantics(
+      checked: done,
+      label: task.title,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onToggleTask(task, day),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: _entryBody(c, task, day, done: done, tag: tag),
+        ),
+      ),
+    );
+  }
+
+  Widget _entryBody(
+    AppPalette c,
+    Task task,
+    DateTime day, {
+    required bool done,
+    required TagStyle tag,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: S.hair),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 5,
-            height: 5,
-            margin: const EdgeInsets.only(top: S.xs, right: S.xs),
-            decoration: BoxDecoration(
-              color: done ? Colors.transparent : task.color,
-              shape: BoxShape.circle,
-              border: Border.all(color: task.color, width: 1),
-            ),
+          // Nokta zaten tamamlanmışlığı söylüyordu (dolu = açık, boş = bitmiş);
+          // artık bitmişken ✓ oluyor. İşaret de değişsin ki bilgi yalnız
+          // dolgunun varlığına bağlı kalmasın (WCAG 1.4.1).
+          SizedBox(
+            width: S.md,
+            child: done
+                ? Padding(
+                    padding: const EdgeInsets.only(top: S.hair, right: S.xs),
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: I.xs,
+                      color: c.inkFaint,
+                    ),
+                  )
+                : Container(
+                    width: 5,
+                    height: 5,
+                    margin: const EdgeInsets.only(top: S.xs, right: S.xs),
+                    decoration: BoxDecoration(
+                      color: task.color,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: task.color, width: 1),
+                    ),
+                  ),
           ),
           Expanded(
             child: Text(

@@ -7,6 +7,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../models/task.dart';
 import '../../theme.dart';
 import '../owner_avatar.dart';
+import '../task_check.dart';
 
 /// Bloğa tıklayınca açılan hafif önizleme.
 ///
@@ -21,6 +22,7 @@ class Preview extends StatelessWidget {
     required this.day,
     required this.done,
     required this.onEdit,
+    required this.onToggleDone,
     this.onMoveToPool,
     this.skipped = false,
     this.onToggleSkip,
@@ -30,6 +32,13 @@ class Preview extends StatelessWidget {
   final DateTime day;
   final bool done;
   final VoidCallback onEdit;
+
+  /// İşin **bu gününü** tamamlar / geri alır.
+  ///
+  /// Kart açıldığında görünen ilk şey bu kutu. Eskiden burada yalnız
+  /// tamamlanmışlığı *bildiren* soluk bir ✓ ikonu vardı: takvimden bir işi
+  /// yaptım demenin hiçbir yolu yoktu, tek yer gün görünümüydü.
+  final VoidCallback onToggleDone;
 
   /// Rutinlerde ve havuz kapalıyken null — o zaman düğme hiç çizilmiyor
   /// (bkz. plan K2).
@@ -94,8 +103,13 @@ class Preview extends StatelessWidget {
                   ),
                 ),
               ),
-              if (done)
-                Icon(Icons.check_circle_outline, size: I.sm, color: c.inkDim),
+              // Durum bildiren ikonun yerinde artık dokunulabilir bir kutu
+              // var. Aynı köşe, aynı boy — fark, işe yarıyor olması.
+              TaskCheck(
+                done: done,
+                onToggle: onToggleDone,
+                label: task.title.isEmpty ? 'Başlıksız' : task.title,
+              ),
             ],
           ),
           const SizedBox(height: S.sm),

@@ -358,6 +358,25 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     return ok ?? false;
   }
 
+  /// İşin bu gününü tamamlar / geri alır.
+  ///
+  /// Tek kapı: önizleme kartındaki kutu da sağ tık menüsündeki "Yaptım" da
+  /// buraya geliyor. [slotHour] doluysa işaretlenen gün değil, gün içindeki
+  /// o tekrar (Z6).
+  void _toggleDone(Task task, DateTime day, double? slotHour) {
+    final store = ref.read(appStoreProvider);
+    if (slotHour != null) {
+      store.setTaskSlotDone(
+        task,
+        day,
+        slotHour,
+        !task.isSlotDone(day, slotHour),
+      );
+    } else {
+      store.setTaskDone(task, day, !task.isDoneOn(day));
+    }
+  }
+
   /// Bir rutinin tek gününü atlar / atlamayı geri alır.
   void _toggleSkip(Task task, DateTime day) {
     final store = ref.read(appStoreProvider);
@@ -571,6 +590,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                             onTapTask: (task, day) =>
                                 _openEditor(day, existing: task),
                             onTapEmpty: _quickAdd,
+                            onToggleDone: _toggleDone,
                             energyLimit: energy,
                             onMove: _move,
                             onResize: _resize,

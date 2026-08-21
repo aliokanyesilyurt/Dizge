@@ -33,6 +33,7 @@ class WeekTimeGrid extends StatefulWidget {
     required this.today,
     required this.onTapTask,
     required this.onTapEmpty,
+    required this.onToggleDone,
     required this.onMove,
     required this.onResize,
     required this.onDuplicate,
@@ -61,6 +62,13 @@ class WeekTimeGrid extends StatefulWidget {
 
   final void Function(Task task, DateTime day) onTapTask;
   final void Function(DateTime day, double hour) onTapEmpty;
+
+  /// İşin bu gününü tamamlar / geri alır.
+  ///
+  /// [slotHour] yalnız gün içinde birden çok kez tekrarlayan işlerde dolu
+  /// (Z6): orada işaretlenen gün değil o **tekrar** — sabah dozunu tamamlamak
+  /// akşamkini bitmiş saymamalı.
+  final void Function(Task task, DateTime day, double? slotHour) onToggleDone;
   final void Function(Task task, DateTime toDay, double newStartHour) onMove;
   final void Function(Task task, double newDurationHours) onResize;
 
@@ -623,6 +631,10 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                     ? null
                     : () => widget.onToggleSkip!(task, day),
                 onEdit: () => widget.onTapTask(task, day),
+                // Çoklu saatte tikin kapsamı da tekrarın kendisi — `done`
+                // hangi soruyu soruyorsa cevabı da aynı yere yazılmalı.
+                onToggleDone: () =>
+                    widget.onToggleDone(task, day, many ? hour : null),
                 onDuplicate: () => widget.onDuplicate(task, day),
                 onDelete: () => widget.onDelete(task),
                 onLongPressStart: many

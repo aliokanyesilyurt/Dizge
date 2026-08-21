@@ -57,6 +57,7 @@ void main() {
             today: monday,
             onTapTask: (t, d) => rec.tapped = (t, d),
             onTapEmpty: (d, h) => rec.emptyTap = (d, h),
+            onToggleDone: (_, _, _) {},
             onMove: (t, d, h) => rec.moved = (t, d, h),
             onResize: (t, dur) => rec.resized = (t, dur),
             onDuplicate: (t, d) => rec.duplicated = (t, d),

@@ -3,6 +3,7 @@ import '../models/task.dart';
 import '../theme.dart';
 import '../widgets/content_column.dart';
 import '../widgets/owner_avatar.dart';
+import '../widgets/task_check.dart';
 import 'section_header.dart';
 
 /// Rutinler ve Yapılacaklar ekranlarının paylaştığı liste düzeni.
@@ -18,6 +19,20 @@ class TaskListScaffold extends StatelessWidget {
   final ValueChanged<Task> onTap;
   final VoidCallback onAdd;
 
+  /// Satır başındaki onay kutusunun durumu. Null ise kutu hiç çizilmez —
+  /// tamamlama kavramı olmayan bir liste bu iskeleti kullanabilsin diye.
+  final bool Function(Task)? isDone;
+
+  /// Kutuya dokunulduğunda çağrılır. [isDone] varsa bu da olmalı.
+  final ValueChanged<Task>? onToggleDone;
+
+  /// Kutunun **hangi güne** baktığını söyleyen kısa ek ("bugün").
+  ///
+  /// Rutinlerde zorunlu: tekrar eden bir işin yanındaki tek kutu, hangi günü
+  /// kastettiğini söylemezse "bu rutini tamamen bitirdim" diye okunur.
+  /// Yapılacaklarda gereksiz — orada işin zaten tek bir günü var.
+  final String? checkScopeLabel;
+
   const TaskListScaffold({
     super.key,
     required this.title,
@@ -28,7 +43,13 @@ class TaskListScaffold extends StatelessWidget {
     required this.trailingTextFor,
     required this.onTap,
     required this.onAdd,
-  });
+    this.isDone,
+    this.onToggleDone,
+    this.checkScopeLabel,
+  }) : assert(
+         (isDone == null) == (onToggleDone == null),
+         'onay kutusu ya tam bağlanır ya hiç çizilmez',
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +78,11 @@ class TaskListScaffold extends StatelessWidget {
                           task: tasks[i],
                           trailing: trailingTextFor(tasks[i]),
                           onTap: () => onTap(tasks[i]),
+                          done: isDone?.call(tasks[i]),
+                          onToggleDone: onToggleDone == null
+                              ? null
+                              : () => onToggleDone!(tasks[i]),
+                          checkScopeLabel: checkScopeLabel,
                         ),
                       ),
               ),
@@ -149,7 +175,19 @@ class _Row extends StatefulWidget {
   final String trailing;
   final VoidCallback onTap;
 
-  const _Row({required this.task, required this.trailing, required this.onTap});
+  /// Null ise satırda onay kutusu yok.
+  final bool? done;
+  final VoidCallback? onToggleDone;
+  final String? checkScopeLabel;
+
+  const _Row({
+    required this.task,
+    required this.trailing,
+    required this.onTap,
+    this.done,
+    this.onToggleDone,
+    this.checkScopeLabel,
+  });
 
   @override
   State<_Row> createState() => _RowState();
@@ -162,6 +200,16 @@ class _RowState extends State<_Row> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final t = widget.task;
+    final done = widget.done;
+
+    // Kutunun kapsamı satırda yazıyor ("bugün tamam"). Rutinlerde bu bilgi
+    // olmadan kutu, hangi günü kastettiğini söyleyemez.
+    final scope = widget.checkScopeLabel;
+    final meta = [
+      if (t.scheduled) t.timeString,
+      if (t.categoryName.isNotEmpty) categoryLabel(t.categoryName),
+      if (scope != null && done != null) '$scope ${done ? 'tamam' : 'açık'}',
+    ];
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -192,6 +240,16 @@ class _RowState extends State<_Row> {
                 ),
               ),
               const SizedBox(width: S.md),
+              // Onay kutusu şeridin hemen sağında: göz soldan tarıyor ve
+              // "bunu yaptım mı" sorusu başlığı okumadan önce geliyor.
+              if (done != null) ...[
+                TaskCheck(
+                  done: done,
+                  onToggle: widget.onToggleDone!,
+                  label: t.title,
+                ),
+                const SizedBox(width: S.sm),
+              ],
               // Sahiplik rozeti (Y4.4d). Burada **satır başında**: listede
               // yer var ve göz zaten soldan tarıyor, "kimin işi" sorusu
               // başlığı okumadan yanıtlanıyor. Kişisel bağlamda gizli.
@@ -208,20 +266,23 @@ class _RowState extends State<_Row> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: c.ink,
+                        color: done == true ? c.inkDim : c.ink,
                         fontSize: T.strong,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.1,
+                        // Üstü çizili: tamamlanmışlık yalnız kutunun rengine
+                        // bırakılmıyor (WCAG 1.4.1).
+                        decoration: done == true
+                            ? TextDecoration.lineThrough
+                            : null,
+                        decorationColor: c.inkFaint,
                       ),
                     ),
-                    if (t.categoryName.isNotEmpty || t.scheduled)
+                    if (meta.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: S.xs),
                         child: Text(
-                          [
-                            if (t.scheduled) t.timeString,
-                            if (t.categoryName.isNotEmpty) categoryLabel(t.categoryName),
-                          ].join('  ·  '),
+                          meta.join('  ·  '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
