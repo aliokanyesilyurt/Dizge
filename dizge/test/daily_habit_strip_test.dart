@@ -17,11 +17,8 @@ void main() {
 
   /// Her gün beklenen alışkanlık. Ritim tek eksen olduğundan (§Zc) bu artık
   /// varsayılan değil, açıkça istenen bir hedef: haftada 7.
-  Habit daily(String title) => Habit(
-    title: title,
-    color: const Color(0xFF34E39B),
-    targetPerWeek: 7,
-  );
+  Habit daily(String title) =>
+      Habit(title: title, color: const Color(0xFF34E39B), targetPerWeek: 7);
 
   /// Şeridin *içindeki* yazıyı arar. Çıplak `find.text('1')` gün başlığındaki
   /// ayın 1'ine de takılırdı; test hangi gün koştuğuna göre renk değiştirmemeli.

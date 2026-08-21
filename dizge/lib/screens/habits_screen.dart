@@ -381,7 +381,10 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
           const SizedBox(height: S.md),
           Row(
             children: [
-              Text('Hedef', style: TextStyle(color: c.inkDim, fontSize: T.body)),
+              Text(
+                'Hedef',
+                style: TextStyle(color: c.inkDim, fontSize: T.body),
+              ),
               Expanded(
                 child: Slider(
                   value: _target.toDouble(),
@@ -416,11 +419,7 @@ class _AddHabitDialogState extends State<_AddHabitDialog> {
             final title = _controller.text.trim();
             if (title.isEmpty) return;
             widget.store.addHabit(
-              Habit(
-                title: title,
-                color: _color,
-                targetPerWeek: _target,
-              ),
+              Habit(title: title, color: _color, targetPerWeek: _target),
             );
             Navigator.pop(context);
           },

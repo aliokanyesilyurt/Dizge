@@ -55,3 +55,6 @@ env.json
 /android/key.properties
 *.jks
 *.keystore
+
+# Kotlin derleyici onbellegi (Gradle 8.x). Uretilen dosya, repoda isi yok.
+/android/.kotlin/

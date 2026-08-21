@@ -11,22 +11,25 @@ DateTime dayAgo(int n) {
 
 void main() {
   group('Habit streak', () {
-    test('haftada 7: ardışık günler seriyi büyütür, bugün beklerse kırılmaz', () {
-      // Haftada 7 = her gün (§Zc); serinin birimi gün olmaya devam ediyor.
-      final h = Habit(
-        title: 'Koşu',
-        color: const Color(0xFF34E39B),
-        targetPerWeek: 7,
-      );
-      // Bugün hariç son 3 gün yapılmış (dün, önceki, ondan önceki).
-      h.setDone(dayAgo(1), true);
-      h.setDone(dayAgo(2), true);
-      h.setDone(dayAgo(3), true);
-      expect(h.currentStreak, 3); // bugün henüz yapılmadı ama seri korunur
+    test(
+      'haftada 7: ardışık günler seriyi büyütür, bugün beklerse kırılmaz',
+      () {
+        // Haftada 7 = her gün (§Zc); serinin birimi gün olmaya devam ediyor.
+        final h = Habit(
+          title: 'Koşu',
+          color: const Color(0xFF34E39B),
+          targetPerWeek: 7,
+        );
+        // Bugün hariç son 3 gün yapılmış (dün, önceki, ondan önceki).
+        h.setDone(dayAgo(1), true);
+        h.setDone(dayAgo(2), true);
+        h.setDone(dayAgo(3), true);
+        expect(h.currentStreak, 3); // bugün henüz yapılmadı ama seri korunur
 
-      h.setDone(dayAgo(0), true);
-      expect(h.currentStreak, 4);
-    });
+        h.setDone(dayAgo(0), true);
+        expect(h.currentStreak, 4);
+      },
+    );
 
     test('haftada 7: boşluk seriyi keser', () {
       final h = Habit(

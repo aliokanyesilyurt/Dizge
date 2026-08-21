@@ -601,8 +601,9 @@ class Task implements Node {
     timesOfDay: (j['timesOfDay'] as List?)
         ?.map((e) => (e as num).toDouble())
         .toList(),
-    completedSlots:
-        (j['completedSlots'] as List?)?.map((e) => e as String).toSet(),
+    completedSlots: (j['completedSlots'] as List?)
+        ?.map((e) => e as String)
+        .toSet(),
     color: colorFromHex(j['colorHex'] as String?),
     categoryName: (j['categoryName'] as String?) ?? '',
     repeat: j['repeat'] == null

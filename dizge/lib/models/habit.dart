@@ -21,6 +21,7 @@ class Habit {
   final String id;
   String title;
   Color color;
+
   /// Haftada kaç kez yapılması bekleniyor (1–7).
   ///
   /// 7 = her gün. Ritmin tek ekseni bu; ayrı bir "günlük mü haftalık mı"
