@@ -264,6 +264,33 @@ görülür biçimde değişir; atlanan rutin oranı düşürmez.
 **Test:** `test/productivity_report_test.dart` — atlanan gün senaryosu,
 aralık duyarlılığı (aynı veriyle 7g ≠ 30g).
 
+#### D3 kapanış notu (21 Ağustos) — **tamamlandı**
+
+Uygulamada K6'nın birinci maddesinin **tek başına yetmediği** görüldü ve
+plan bu noktada düzeltildi.
+
+Günlük ortalamaya geçmek sayıları anlamlı yapıyor ama **çubukların şeklini
+değiştirmiyor**: `HBarChart` kendi maksimumuna göre ölçekliyor, bütün
+değerleri aynı sabite bölmek oranları hiç kımıldatmıyor. Yani "grafikler
+değişmiyor" şikâyetinin gerçek cevabı ikinci madde: **trend grafiği.**
+Aralıkta kaç gün varsa o kadar nokta çiziyor — 7g'de yedi, 90g'de doksan.
+Ekranda aralığı gerçekten gösteren tek şey o.
+
+Günlük ortalama yine de yapıldı, ama başka bir gerekçeyle: mutlak toplam
+aralık uzadıkça zaten büyür. "90 günde 90 saat", "7 günde 7 saat"ten fazla
+bir şey söylemez; günde ortalama iki aralığı karşılaştırılabilir kılıyor.
+
+`dailyCompletion` için **-1 sentinel'i** eklendi (eskiden 0 yazıyordu). İş
+yazılmamış bir günü sıfırla göstermek, onu "planladım hiçbirini yapmadım"
+günüyle aynı kefeye koyuyordu; trend o günlerde sıfıra inmek yerine kopuyor.
+`weekdayCompletion` zaten aynı sözleşmeyi kullanıyordu — ikisi artık tutarlı.
+
+Test yazarken iki kendi hatam çıktı ve ikisi de öğreticiydi: 60 gün önce
+başlayan bir rutin 90 günlük pencerede 61 tekrar veriyor (fixture düzeltildi),
+ve `formatDuration` "1 sa" yazıyor "1s" değil.
+
+**Durum:** 10 yeni test, toplam 594 test geçiyor, `flutter analyze` temiz.
+
 ### D4 — "Bugün iptal" ve havuzun görünürlüğü (K3, K4)
 
 * `AppStore.cancelOn(task, day)` + `undoCancelOn`.

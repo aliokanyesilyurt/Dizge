@@ -6,8 +6,22 @@ import '../theme.dart';
 class TimeBucket {
   final String label;
   final Color color;
+
+  /// Aralığın tamamında bu gruba ayrılan toplam saat.
   final double hours;
-  const TimeBucket(this.label, this.color, this.hours);
+
+  /// Raporun aralığı (gün). [perDay] bunun için duruyor.
+  final int days;
+
+  const TimeBucket(this.label, this.color, this.hours, this.days);
+
+  /// Günde ortalama kaç saat.
+  ///
+  /// Grafiklerde gösterilen sayı bu, mutlak toplam değil. Toplam aralık
+  /// uzadıkça zaten büyür — "90 günde 90 saat" cümlesi, "7 günde 7 saat"ten
+  /// başka bir şey söylemez. Günlük ortalama iki aralığı karşılaştırılabilir
+  /// kılan tek biçim.
+  double get perDay => days == 0 ? 0 : hours / days;
 }
 
 /// Görev verisinden türetilen kullanıcı-yüzü üretkenlik raporu.
@@ -34,8 +48,17 @@ class ProductivityReport {
   /// Haftanın her günü için tamamlanma oranı (Pzt=0 ... Paz=6). Erteleme analizi.
   final List<double> weekdayCompletion;
 
-  /// Aralıktaki her gün için tamamlanma oranı (eski → yeni), trend çizgisi için.
+  /// Aralıktaki her gün için tamamlanma oranı (eski → yeni), trend çizgisi
+  /// için. **-1 = o gün hiç planlı iş yoktu.**
+  ///
+  /// Sentinel şart: iş yazılmamış bir günü `0` ile göstermek, onu
+  /// "planladım ve hiçbirini yapmadım" günüyle aynı kefeye koyar. Trend
+  /// çizgisi o günlerde kopuyor, sıfıra inmiyor.
   final List<double> dailyCompletion;
+
+  /// Raporun kapsadığı gün sayısı. Grafiklerin günlük ortalamaya bölebilmesi
+  /// için burada duruyor.
+  final int days;
 
   const ProductivityReport({
     required this.planned,
@@ -44,9 +67,14 @@ class ProductivityReport {
     required this.byTag,
     required this.weekdayCompletion,
     required this.dailyCompletion,
+    required this.days,
   });
 
   double get completionRate => planned == 0 ? 0 : completed / planned;
+
+  /// Günde ortalama kaç iş planlandı. Aralık seçicisinin üst karttaki
+  /// karşılığı: üç mutlak sayının yanında aralığa duyarlı tek metrik.
+  double get plannedPerDay => days == 0 ? 0 : planned / days;
 
   /// Erteleme eğiliminin en yüksek olduğu gün (en düşük tamamlanma). Veri yoksa null.
   int? get worstWeekday {
@@ -85,6 +113,14 @@ class ProductivityReport {
       var dayDone = 0;
 
       for (final t in occurrences) {
+        // Bilerek atlanan gün plana hiç girmiyor.
+        //
+        // Sistemin tüm amacı suçluluk üretmemek (bkz. esnek plan sistemi
+        // planı §1). "Bugün bunu yapmıyorum" kararını kaçırılmış iş saymak
+        // tam tersini yapıyordu: atlamayı kullanan biri raporunu her hafta
+        // biraz daha kötü görüyordu.
+        if (t.isSkippedOn(day)) continue;
+
         planned++;
         dayPlanned++;
         wdPlanned[day.weekday - 1]++;
@@ -102,7 +138,8 @@ class ProductivityReport {
           wdDone[day.weekday - 1]++;
         }
       }
-      dailyRates.add(dayPlanned == 0 ? 0 : dayDone / dayPlanned);
+      // -1: o gün hiç planlı iş yoktu. Bkz. [dailyCompletion].
+      dailyRates.add(dayPlanned == 0 ? -1 : dayDone / dayPlanned);
     }
 
     List<TimeBucket> buckets(
@@ -116,6 +153,7 @@ class ProductivityReport {
                   e.key,
                   colors?[e.key] ?? kUnknownCategoryColor,
                   e.value,
+                  days,
                 ),
               )
               .toList()
@@ -135,6 +173,7 @@ class ProductivityReport {
       byTag: buckets(tagHours, null),
       weekdayCompletion: weekday,
       dailyCompletion: dailyRates,
+      days: days,
     );
   }
 }

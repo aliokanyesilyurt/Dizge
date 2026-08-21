@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
@@ -193,6 +194,160 @@ class HBarChart extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Aralık boyunca tamamlanma çizgisi.
+///
+/// ## Neden bu grafik gerekli
+///
+/// Rapordaki aralık seçicisinin (7g / 30g / 90g) **görsel** karşılığı yoktu.
+/// Çubuk grafikleri kendi maksimumlarına göre ölçekleniyor: aralık değişince
+/// sayılar değişse de çubukların şekli aynı kalıyor, ekran "hiçbir şey
+/// olmadı" gibi görünüyordu. Trend, aralıkta kaç gün varsa o kadar nokta
+/// çiziyor — 7g'de yedi, 90g'de doksan.
+///
+/// Değer -1 olan günlerde çizgi **kopuyor**, sıfıra inmiyor: o gün hiç planlı
+/// iş yoktu ve bu, "planladım hiçbirini yapmadım" ile aynı şey değil.
+class TrendChart extends StatelessWidget {
+  const TrendChart({
+    super.key,
+    required this.values,
+    required this.color,
+    this.emptyText = 'Trend için yeterli gün yok',
+  });
+
+  /// Her biri 0..1 ya da -1 (o gün planlı iş yok). Eski → yeni.
+  final List<double> values;
+  final Color color;
+  final String emptyText;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final withData = values.where((v) => v >= 0).length;
+
+    // Tek nokta çizgi yapmaz. İki noktadan azını çizmek, veri yokluğunu
+    // grafik varmış gibi göstermek olurdu.
+    if (withData < 2) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: S.lg),
+        child: Text(
+          emptyText,
+          style: TextStyle(color: c.inkFaint, fontSize: T.caption, height: 1.4),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 118,
+          child: CustomPaint(painter: _TrendPainter(values, color, c)),
+        ),
+        const SizedBox(height: S.sm),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${values.length} gün önce',
+              style: TextStyle(color: c.inkFaint, fontSize: T.dense),
+            ),
+            Text(
+              'bugün',
+              style: TextStyle(color: c.inkFaint, fontSize: T.dense),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TrendPainter extends CustomPainter {
+  _TrendPainter(this.values, this.color, this.palette);
+
+  final List<double> values;
+  final Color color;
+  final AppPalette palette;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2) return;
+
+    // %50 çizgisi: gözün oranı ölçeceği tek referans. Eksen etiketi yerine
+    // tek bir soluk çizgi — grafik 118 piksel, sayı kalabalığı kaldırmaz.
+    canvas.drawLine(
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      Paint()
+        ..color = palette.lineSoft
+        ..strokeWidth = 1,
+    );
+
+    final step = values.length == 1 ? 0.0 : size.width / (values.length - 1);
+    Offset at(int i) => Offset(i * step, size.height * (1 - values[i]));
+
+    // Veri kopan yerde çizgi de kopuyor: her kesintisiz dilim ayrı bir yol.
+    final segments = <List<Offset>>[];
+    var current = <Offset>[];
+    for (var i = 0; i < values.length; i++) {
+      if (values[i] < 0) {
+        if (current.length > 1) segments.add(current);
+        current = <Offset>[];
+        continue;
+      }
+      current.add(at(i));
+    }
+    if (current.length > 1) segments.add(current);
+
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    for (final points in segments) {
+      final line = Path()..moveTo(points.first.dx, points.first.dy);
+      for (final p in points.skip(1)) {
+        line.lineTo(p.dx, p.dy);
+      }
+
+      // Çizginin altındaki soluk alan: çizgiyi zeminden ayıran şey renk değil
+      // ağırlık olsun, ince bir çizgi 90 noktada kaybolur.
+      final area = Path.from(line)
+        ..lineTo(points.last.dx, size.height)
+        ..lineTo(points.first.dx, size.height)
+        ..close();
+      canvas.drawPath(
+        area,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              color.withValues(alpha: 0.22),
+              color.withValues(alpha: 0.0),
+            ],
+          ).createShader(Offset.zero & size),
+      );
+
+      canvas.drawPath(line, stroke);
+    }
+
+    // Son gün ayrıca noktalanıyor: "bugün buradasın".
+    final lastIndex = values.lastIndexWhere((v) => v >= 0);
+    if (lastIndex >= 0) {
+      canvas.drawCircle(at(lastIndex), 3.5, Paint()..color = color);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrendPainter old) =>
+      old.color != color ||
+      old.palette != palette ||
+      !listEquals(old.values, values);
 }
 
 /// Dikey mini çubuklar (haftanın günü tamamlanma oranı gibi). Değer -1 = veri yok.

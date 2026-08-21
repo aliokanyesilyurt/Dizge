@@ -62,8 +62,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         children: [
                           _OverviewCard(report: report),
                           const SizedBox(height: S.md),
+                          // Aralığın **görsel** karşılığı bu kart: 7g'de yedi
+                          // nokta, 90g'de doksan. Öteki grafikler kendi
+                          // maksimumlarına göre ölçeklendiği için aralık
+                          // değişince şekilleri değişmiyor; bu değişiyor.
                           _Card(
-                            title: 'Kategoriye göre zaman',
+                            title: 'Günlük gidişat',
+                            subtitle:
+                                'Boş günlerde çizgi kopuyor — o gün hiç iş '
+                                'yoktu, sıfır yapılmadı.',
+                            child: TrendChart(
+                              values: report.dailyCompletion,
+                              color: c.accent,
+                            ),
+                          ),
+                          const SizedBox(height: S.md),
+                          _Card(
+                            title: 'Kategoriye göre günlük ortalama',
+                            subtitle: 'Son $_days günün ortalaması',
                             child: HBarChart(
                               rows: [
                                 for (final b in report.byCategory.take(6))
@@ -72,23 +88,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     // görünen adıyla yazılıyor (§Zd).
                                     categoryLabel(b.label),
                                     b.color,
-                                    b.hours,
-                                    Task.formatDuration(b.hours),
+                                    b.perDay,
+                                    Task.formatDuration(b.perDay),
                                   ),
                               ],
                             ),
                           ),
                           const SizedBox(height: S.md),
                           _Card(
-                            title: 'Etikete göre zaman',
+                            title: 'Etikete göre günlük ortalama',
+                            subtitle: 'Son $_days günün ortalaması',
                             child: HBarChart(
                               rows: [
                                 for (final b in report.byTag.take(6))
                                   HBarRow(
                                     '#${b.label}',
                                     c.accent,
-                                    b.hours,
-                                    Task.formatDuration(b.hours),
+                                    b.perDay,
+                                    Task.formatDuration(b.perDay),
                                   ),
                               ],
                               emptyText:
@@ -141,6 +158,14 @@ class _OverviewCard extends StatelessWidget {
                 _Metric(
                   value: '${report.planned}',
                   label: 'planlanan toplam',
+                  color: c.inkDim,
+                ),
+                const SizedBox(height: S.md),
+                // Aralığa duyarlı tek metrik: üstteki üç sayı aralık uzadıkça
+                // zaten büyür, bu büyümez — yoğunluğu söyler.
+                _Metric(
+                  value: report.plannedPerDay.toStringAsFixed(1),
+                  label: 'günde ortalama iş',
                   color: c.inkDim,
                 ),
               ],
