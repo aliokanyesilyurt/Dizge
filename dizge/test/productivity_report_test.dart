@@ -155,5 +155,54 @@ void main() {
       expect(find.text('Kategoriye göre günlük ortalama'), findsOneWidget);
       expect(find.text('1 sa'), findsWidgets);
     });
+
+    testWidgets('hiç iş yokken boş durum görev eklemeyi söylüyor', (
+      tester,
+    ) async {
+      useScreenSize(tester, const Size(1200, 1400));
+
+      await pumpApp(tester, const ReportsScreen());
+
+      expect(find.text('Rapor için yeterli veri yok.'), findsOneWidget);
+    });
+
+    testWidgets('iş aralığın dışındaysa boş durum aralığı söylüyor', (
+      tester,
+    ) async {
+      useScreenSize(tester, const Size(1200, 1400));
+
+      // Tek günlük, 200 gün önceki bir iş: hiçbir aralığa düşmüyor ama
+      // kullanıcının verisi var. "Görev ekleyin" demek yanlış tavsiye olurdu.
+      await pumpApp(
+        tester,
+        const ReportsScreen(),
+        seed: (store) => store.addTask(
+          Task(
+            title: 'Eski iş',
+            color: Colors.blue,
+            date: today.subtract(const Duration(days: 200)),
+          ),
+        ),
+      );
+
+      expect(find.text('Son 30 günde iş yok.'), findsOneWidget);
+      expect(
+        find.text('Daha geniş bir aralık seçince eski işler görünebilir.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('7g'));
+      await tester.pumpAndSettle();
+      expect(find.text('Son 7 günde iş yok.'), findsOneWidget);
+
+      // En geniş aralıkta genişletme tavsiyesi anlamsız: gidecek yer yok.
+      await tester.tap(find.text('90g'));
+      await tester.pumpAndSettle();
+      expect(find.text('Son 90 günde iş yok.'), findsOneWidget);
+      expect(
+        find.text('Bu aralığa düşen planlanmış iş bulunmuyor.'),
+        findsOneWidget,
+      );
+    });
   });
 }

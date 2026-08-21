@@ -46,11 +46,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
               Expanded(
                 child: report.planned == 0
-                    ? const EmptyState(
+                    // Boş rapor iki ayrı şeyi anlatabilir: hiç iş yok, ya da
+                    // *bu aralıkta* iş yok. İkincisinin çözümü görev eklemek
+                    // değil aralığı genişletmek — metin hangisi olduğunu
+                    // söylemezse kullanıcı 7g'de takılı kalıp raporu bozuk
+                    // sanır.
+                    ? EmptyState(
                         icon: Icons.insights_rounded,
-                        title: 'Rapor için yeterli veri yok.',
-                        text:
-                            'Birkaç görev ekleyip tamamlayınca grafikler dolar.',
+                        title: tasks.isEmpty
+                            ? 'Rapor için yeterli veri yok.'
+                            : 'Son $_days günde iş yok.',
+                        text: tasks.isEmpty
+                            ? 'Birkaç görev ekleyip tamamlayınca grafikler '
+                                  'dolar.'
+                            : _days == 90
+                            ? 'Bu aralığa düşen planlanmış iş bulunmuyor.'
+                            : 'Daha geniş bir aralık seçince eski işler '
+                                  'görünebilir.',
                       )
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(

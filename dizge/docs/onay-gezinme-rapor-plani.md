@@ -309,6 +309,19 @@ ve `formatDuration` "1 sa" yazıyor "1s" değil.
 
 **Durum:** 10 yeni test, toplam 594 test geçiyor, `flutter analyze` temiz.
 
+#### D3 ek kapanış (21 Ağustos akşamı) — boş durum aralığı söylüyor
+
+Dilimin "aralıkta veri yoksa boş durum metni aralığı söyler" maddesi atlanmış;
+metin sabit kalmıştı ("Rapor için yeterli veri yok"). Ekranda aralık zaten
+başlıkta yazdığı için etkisi küçüktü ama tavsiye yanlıştı: aralık dışında
+kalmış verisi olan kullanıcıya "birkaç görev ekleyin" deniyordu.
+
+Boş durum artık iki hâli ayırıyor: hiç iş yoksa görev eklemeyi, iş varken bu
+aralığa düşen yoksa **aralığı genişletmeyi** söylüyor — 90g seçiliyken
+genişletme tavsiyesi düşüyor, gidecek yer kalmadığı için.
+
+**Durum:** 2 yeni test, toplam 621 test geçiyor, `flutter analyze` temiz.
+
 ### D4 — "Bugün iptal" ve havuzun görünürlüğü (K3, K4)
 
 * `AppStore.cancelOn(task, day)` + `undoCancelOn`.
