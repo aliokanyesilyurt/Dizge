@@ -81,7 +81,7 @@ void main() {
       );
 
       expect(find.byType(PoolRail), findsOneWidget);
-      expect(find.byTooltip('Kenarda Bekleyenler (2)'), findsOneWidget);
+      expect(find.byTooltip('Havuz (2)'), findsOneWidget);
     });
 
     testWidgets('şeride dokunmak paneli açar, tercih diske iner', (

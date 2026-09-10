@@ -255,7 +255,7 @@ class _RescueButton extends StatelessWidget {
     // olmaması, sebebi yazmaktan çok daha sinir bozucu.
     return Tooltip(
       message: enabled
-          ? 'Günü kurtar — bugünün kalan $count esnek işini kenara alır'
+          ? 'Günü kurtar — bugünün kalan $count esnek işini havuza alır'
           : 'Kurtarılacak iş yok',
       child: ShadButton.outline(
         size: ShadButtonSize.sm,

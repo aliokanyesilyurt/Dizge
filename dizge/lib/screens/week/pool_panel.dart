@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../core/pool_labels.dart';
 import '../../models/task.dart';
 import '../../theme.dart';
 
@@ -108,9 +109,7 @@ class PoolRail extends StatelessWidget {
           border: Border(left: BorderSide(color: c.lineSoft)),
         ),
         child: Tooltip(
-          message: count == 0
-              ? 'Kenarda Bekleyenler'
-              : 'Kenarda Bekleyenler ($count)',
+          message: poolCountLabel(count),
           child: InkWell(
             onTap: onExpand,
             child: Padding(
@@ -181,7 +180,7 @@ class _Header extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'Kenarda Bekleyenler',
+              kPoolName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -252,7 +251,7 @@ class _EmptyPool extends StatelessWidget {
           ),
           const SizedBox(height: S.xs),
           Text(
-            'Bugün olmayacak bir işi buraya bırak; silmeden kenarda bekler.',
+            'Bugün olmayacak bir işi buraya bırak; silinmeden havuzda bekler.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: c.inkFaint,
@@ -347,7 +346,7 @@ class _PoolCard extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: '${task.title}, kenarda, ${_waitLabel(waited)}',
+      label: '${task.title}, havuzda, ${_waitLabel(waited)}',
       excludeSemantics: true,
       child: ShadContextMenuRegion(
         items: [
@@ -387,7 +386,7 @@ class _PoolCard extends StatelessWidget {
   /// "3 gündür bekliyor" — sayı değil cümle: rozet olsaydı neyin sayısı
   /// olduğu anlaşılmazdı.
   static String _waitLabel(int days) {
-    if (days <= 0) return 'Bugün kenara alındı';
+    if (days <= 0) return 'Bugün havuza alındı';
     if (days == 1) return 'Dünden beri bekliyor';
     return '$days gündür bekliyor';
   }

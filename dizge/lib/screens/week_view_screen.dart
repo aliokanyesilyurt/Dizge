@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/day_rescue.dart';
 import '../core/energy_filter_controller.dart';
 import '../core/grid_density_controller.dart';
+import '../core/pool_labels.dart';
 import '../core/pool_panel_controller.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
@@ -211,7 +212,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     final store = ref.read(appStoreProvider);
     final day = task.date;
     store.moveToPool(task);
-    _offerUndo('Kenara alındı', () => store.pullFromPool(task, toDay: day));
+    _offerUndo(kMovedToPool, () => store.pullFromPool(task, toDay: day));
   }
 
   void _pullFromPool(Task task, DateTime day, double hour) {

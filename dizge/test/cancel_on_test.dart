@@ -50,7 +50,7 @@ void main() {
       store.addTask(job);
 
       expect(store.isCancelledOn(job, today), isFalse);
-      expect(store.cancelOn(job, today), 'Kenara alındı');
+      expect(store.cancelOn(job, today), 'Havuza alındı');
 
       expect(job.inPool, isTrue);
       expect(job.isSkippedOn(today), isFalse, reason: 'atlama rutinin işi');
@@ -118,7 +118,7 @@ void main() {
   // --- Liste ekranları ------------------------------------------------------
 
   group('liste satırı', () {
-    testWidgets('yapılacaklarda satır eylemi işi kenara alır', (tester) async {
+    testWidgets('yapılacaklarda satır eylemi işi havuza alır', (tester) async {
       late Task job;
 
       final container = await pumpApp(
@@ -229,7 +229,7 @@ void main() {
       await pumpApp(tester, const AppShell());
 
       // Haftalık görünüm de paneli içerdiği için birden fazla görünebilir.
-      expect(find.text('Kenarda Bekleyenler'), findsWidgets);
+      expect(find.text('Havuz'), findsWidgets);
     });
 
     testWidgets('rozet bekleyen iş sayısını söyler', (tester) async {
@@ -252,10 +252,7 @@ void main() {
       expect(
         find.descendant(
           of: find
-              .ancestor(
-                of: find.text('Kenarda Bekleyenler'),
-                matching: find.byType(Row),
-              )
+              .ancestor(of: find.text('Havuz'), matching: find.byType(Row))
               .first,
           matching: find.text('2'),
         ),
@@ -281,7 +278,7 @@ void main() {
 
       final poolTile = find.descendant(
         of: find.byType(ListView),
-        matching: find.text('Kenarda Bekleyenler'),
+        matching: find.text('Havuz'),
       );
       await tester.tap(poolTile.first);
       await tester.pumpAndSettle();

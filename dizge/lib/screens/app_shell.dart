@@ -7,6 +7,7 @@ import '../core/auth_service.dart';
 import '../core/connectivity.dart';
 import '../core/group_context.dart';
 import '../core/navigation_controller.dart';
+import '../core/pool_labels.dart';
 import '../core/profile_directory.dart';
 import '../core/telemetry.dart';
 import '../core/theme_mode_controller.dart';
@@ -53,7 +54,7 @@ const _listItems = [
   _NavItem(AppSection.todos, Icons.checklist_rounded, 'Yapılacaklar'),
   // Havuzun ikinci kapısı. Haftalık şerit boşken hiç görünmüyor; burası
   // her zaman duruyor ki özellik keşfedilebilsin (plan K4).
-  _NavItem(AppSection.pool, Icons.inbox_rounded, 'Kenarda Bekleyenler'),
+  _NavItem(AppSection.pool, Icons.inbox_rounded, kPoolName),
 ];
 
 const _knowledgeItems = [

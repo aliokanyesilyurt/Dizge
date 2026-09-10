@@ -37,10 +37,13 @@ void main() {
     await disk.writeString(kGuestModeKey, 'yes');
     if (name != null) await disk.writeString(kGuestNameKey, name);
     if (color != null) await disk.writeString(kGuestColorKey, color);
-    return (disk, [
-      authServiceProvider.overrideWithValue(auth),
-      localStoreProvider.overrideWithValue(disk),
-    ]);
+    return (
+      disk,
+      [
+        authServiceProvider.overrideWithValue(auth),
+        localStoreProvider.overrideWithValue(disk),
+      ],
+    );
   }
 
   void useWideScreen(WidgetTester tester) =>

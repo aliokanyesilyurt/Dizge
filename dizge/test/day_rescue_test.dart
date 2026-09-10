@@ -112,7 +112,7 @@ void main() {
         toPool: [make('a'), make('b')],
         toSkip: [make('c', repeat: const Repeat(RepeatType.daily))],
       );
-      expect(plan.describe(), '2 iş kenara alındı · 1 rutin atlandı');
+      expect(plan.describe(), '2 iş havuza alındı · 1 rutin atlandı');
     });
   });
 

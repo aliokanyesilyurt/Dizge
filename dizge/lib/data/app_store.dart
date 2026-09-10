@@ -7,6 +7,7 @@ import '../core/app_config.dart';
 import '../core/day_rescue.dart';
 import '../core/group_context.dart';
 import '../core/notification_service.dart';
+import '../core/pool_labels.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
 import '../models/agenda_page.dart';
@@ -445,7 +446,7 @@ class AppStore extends ChangeNotifier {
       return 'Bugünlük atlandı';
     }
     moveToPool(task);
-    return 'Kenara alındı';
+    return kMovedToPool;
   }
 
   /// İptali geri alır: atlanan rutin geri gelir, havuzdaki iş [day] gününe

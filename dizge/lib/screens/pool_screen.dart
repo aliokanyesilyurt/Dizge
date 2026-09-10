@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/pool_labels.dart';
 import '../data/app_store.dart';
 import '../widgets/task_editor_sheet.dart';
 import '../widgets/undo_toast.dart';
@@ -40,7 +41,7 @@ class PoolScreen extends ConsumerWidget {
     final store = ref.read(appStoreProvider);
 
     return TaskListScaffold(
-      title: 'Kenarda Bekleyenler',
+      title: kPoolName,
       subtitle: pooled.isEmpty
           ? 'takvimden çekilen işler burada birikir'
           : '${pooled.length} iş bekliyor · en uzun bekleyen üstte',
@@ -48,7 +49,7 @@ class PoolScreen extends ConsumerWidget {
       // Boş durum bir kusur değil, bir tarif: kullanıcı buraya işin nasıl
       // geldiğini öğrenmek için de girer.
       emptyText:
-          'Kenarda bekleyen iş yok.\nBir işi "Bugün iptal" ile takvimden '
+          'Havuz boş.\nBir işi "Bugün iptal" ile takvimden '
           'çekince burada birikir — silinmez, unutulmaz.',
       tasks: pooled,
       // Havuzdaki iş hangi günden çekildiyse o gün yazıyor: geri koyarken

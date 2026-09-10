@@ -32,7 +32,7 @@ class DayRescuePlan {
   /// biri kenara alındı, biri bugünlük geçildi.
   String describe() {
     final parts = <String>[];
-    if (toPool.isNotEmpty) parts.add('${toPool.length} iş kenara alındı');
+    if (toPool.isNotEmpty) parts.add('${toPool.length} iş havuza alındı');
     if (toSkip.isNotEmpty) parts.add('${toSkip.length} rutin atlandı');
     return parts.join(' · ');
   }
