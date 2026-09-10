@@ -6,6 +6,7 @@ import 'package:dizge/screens/monthly_view_screen.dart';
 import 'package:dizge/screens/pool_screen.dart';
 import 'package:dizge/screens/routines_screen.dart';
 import 'package:dizge/screens/todos_screen.dart';
+import 'package:dizge/widgets/cancel_action.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -168,7 +169,9 @@ void main() {
   // --- Aylık hücre ----------------------------------------------------------
 
   group('aylık hücre', () {
-    testWidgets('iş satırına uzun basmak o günü iptal eder', (tester) async {
+    testWidgets('uzun basış menüsündeki "Bugün iptal" o günü iptal eder', (
+      tester,
+    ) async {
       useScreenSize(tester, wide);
       final day = DateTime(2026, 3, 12);
       late Task job;
@@ -182,7 +185,12 @@ void main() {
         },
       );
 
+      // Uzun basış yalnız menüyü açar; kendi başına hiçbir şey değiştirmez.
       await tester.longPress(find.text('Rapor yaz'));
+      await tester.pumpAndSettle();
+      expect(job.inPool, isFalse);
+
+      await tester.tap(find.text(cancelLabel(false)));
       await tester.pumpAndSettle();
 
       expect(job.inPool, isTrue);
@@ -220,8 +228,8 @@ void main() {
       useScreenSize(tester, wide);
       await pumpApp(tester, const AppShell());
 
-      // Asıl kusur buydu: hiç kullanmamış biri için ekranda sıfır iz vardı.
-      expect(find.text('Kenarda Bekleyenler'), findsOneWidget);
+      // Haftalık görünüm de paneli içerdiği için birden fazla görünebilir.
+      expect(find.text('Kenarda Bekleyenler'), findsWidgets);
     });
 
     testWidgets('rozet bekleyen iş sayısını söyler', (tester) async {
@@ -271,7 +279,11 @@ void main() {
         },
       );
 
-      await tester.tap(find.text('Kenarda Bekleyenler'));
+      final poolTile = find.descendant(
+        of: find.byType(ListView),
+        matching: find.text('Kenarda Bekleyenler'),
+      );
+      await tester.tap(poolTile.first);
       await tester.pumpAndSettle();
 
       expect(container.read(navigationProvider).section, AppSection.pool);

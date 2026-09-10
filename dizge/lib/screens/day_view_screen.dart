@@ -45,17 +45,23 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
     'Aralık',
   ];
 
+  late DateTime _day = Task.dayKey(widget.date);
+
+  void _go(int days) {
+    setState(() => _day = _day.add(Duration(days: days)));
+  }
+
   Future<void> _openEditor({Task? existing, TimeOfDay? presetStart}) async {
     final changed = await showTaskEditor(
       context,
-      date: widget.date,
+      date: _day,
       existing: existing,
       presetStart: presetStart,
     );
     // Silinen/rutini biten iş seçili kalmasın (saat diski onu vurgulamaya
     // devam ederdi). Liste zaten store'dan tazeleniyor.
     if (changed == true && mounted) {
-      if (existing != null && !existing.occursOn(widget.date)) {
+      if (existing != null && !existing.occursOn(_day)) {
         setState(() => _selected = null);
       }
     }
@@ -63,110 +69,163 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
 
   /// Saat diskinin bir dilimine dokunmak: o saate hızlı ekleme.
   void _onClockTap(double hour) =>
-      showQuickAdd(context, date: widget.date, startHour: hour.floorToDouble());
+      showQuickAdd(context, date: _day, startHour: hour.floorToDouble());
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    // Store'u izle: bu ekran açıkken başka bir yerden yapılan değişiklik
-    // (ör. senkron ya da haftalık ızgaradaki sürükleme) anında yansır.
-    final tasks = ref.watch(appStoreProvider).tasksForDate(widget.date);
+    final tasks = ref.watch(appStoreProvider).tasksForDate(_day);
     final routines = tasks.where((t) => t.isRoutine).toList();
     final singles = tasks.where((t) => !t.isRoutine).toList();
-    final d = widget.date;
+    final d = _day;
     final done = tasks.where((t) => t.isDoneOn(d)).length;
+    final today = Task.dayKey(DateTime.now());
+    final isToday = d == today;
 
     return Scaffold(
       backgroundColor: c.bg,
-      appBar: AppBar(
-        titleSpacing: 8,
-        toolbarHeight: 66,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Column(
           children: [
-            Text(
-              '${d.day} ${_monthNames[d.month - 1]} ${d.year}',
-              style: Theme.of(context).textTheme.titleLarge,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: S.gutter,
+                vertical: S.sm,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${d.day} ${_monthNames[d.month - 1]} ${d.year}',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: S.hair),
+                        Text(
+                          tasks.isEmpty
+                              ? _weekdays[d.weekday - 1]
+                              : '${_weekdays[d.weekday - 1]}  ·  $done/${tasks.length} tamam',
+                          style: TextStyle(
+                            color: c.inkFaint,
+                            fontSize: T.caption,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () => _go(-1),
+                        tooltip: 'Önceki gün',
+                        icon: Icon(
+                          Icons.chevron_left_rounded,
+                          size: I.lg,
+                          color: c.inkDim,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: isToday
+                            ? null
+                            : () => setState(() => _day = today),
+                        child: Text(
+                          'Bugün',
+                          style: TextStyle(
+                            color: isToday ? c.inkFaint : c.accent,
+                            fontSize: T.caption,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _go(1),
+                        tooltip: 'Sonraki gün',
+                        icon: Icon(
+                          Icons.chevron_right_rounded,
+                          size: I.lg,
+                          color: c.inkDim,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: S.hair),
-            Text(
-              tasks.isEmpty
-                  ? _weekdays[d.weekday - 1]
-                  : '${_weekdays[d.weekday - 1]}  ·  $done/${tasks.length} tamam',
-              style: TextStyle(
-                color: c.inkFaint,
-                fontSize: T.caption,
-                fontWeight: FontWeight.w500,
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        S.gutter,
+                        S.xs,
+                        S.gutter,
+                        S.lg,
+                      ),
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: DayPieChart(
+                            tasks: tasks,
+                            date: d,
+                            selected: _selected,
+                            onHourTap: _onClockTap,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Divider(height: 1, color: c.lineSoft),
+                  Expanded(
+                    flex: 4,
+                    child: tasks.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.check_circle_outline_rounded,
+                            title: 'Bu gün boş.',
+                            text:
+                                'Saatin bir dilimine dokun ya da yeni bir iş ekle.',
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(
+                              S.gutter,
+                              S.md,
+                              S.gutter,
+                              S.fabGap,
+                            ),
+                            children: [
+                              if (singles.isNotEmpty) ...[
+                                _sectionHeader(
+                                  c,
+                                  Icons.today_rounded,
+                                  'BUGÜNE ÖZEL',
+                                  singles.length,
+                                ),
+                                ...singles.expand(_cards),
+                              ],
+                              if (routines.isNotEmpty) ...[
+                                if (singles.isNotEmpty)
+                                  const SizedBox(height: S.lg),
+                                _sectionHeader(
+                                  c,
+                                  Icons.repeat_rounded,
+                                  'RUTİNLER',
+                                  routines.length,
+                                ),
+                                ...routines.expand(_cards),
+                              ],
+                            ],
+                          ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                S.gutter,
-                S.xs,
-                S.gutter,
-                S.lg,
-              ),
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: DayPieChart(
-                    tasks: tasks,
-                    date: d,
-                    selected: _selected,
-                    onHourTap: _onClockTap,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Divider(height: 1, color: c.lineSoft),
-          Expanded(
-            flex: 4,
-            child: tasks.isEmpty
-                ? const EmptyState(
-                    icon: Icons.check_circle_outline_rounded,
-                    title: 'Bu gün boş.',
-                    text: 'Saatin bir dilimine dokun ya da yeni bir iş ekle.',
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      S.gutter,
-                      S.md,
-                      S.gutter,
-                      S.fabGap,
-                    ),
-                    children: [
-                      if (singles.isNotEmpty) ...[
-                        _sectionHeader(
-                          c,
-                          Icons.today_rounded,
-                          'BUGÜNE ÖZEL',
-                          singles.length,
-                        ),
-                        ...singles.expand(_cards),
-                      ],
-                      if (routines.isNotEmpty) ...[
-                        if (singles.isNotEmpty) const SizedBox(height: S.lg),
-                        _sectionHeader(
-                          c,
-                          Icons.repeat_rounded,
-                          'RUTİNLER',
-                          routines.length,
-                        ),
-                        ...routines.expand(_cards),
-                      ],
-                    ],
-                  ),
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openEditor,

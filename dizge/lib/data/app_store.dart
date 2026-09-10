@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/app_config.dart';
 import '../core/day_rescue.dart';
 import '../core/group_context.dart';
+import '../core/notification_service.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
 import '../models/agenda_page.dart';
@@ -175,6 +176,16 @@ class AppStore extends ChangeNotifier {
     );
   }
 
+  /// Verilen başlangıç tarihinden itibaren n günün görevleri. Mobil için 3 veya 1 günlük
+  /// görünümü desteklemek üzere eklendi.
+  List<List<Task>> tasksForDays(DateTime startDay, int numDays) {
+    final start = Task.dayKey(startDay);
+    return List.generate(
+      numDays,
+      (i) => TaskRepository.forDate(start.add(Duration(days: i))),
+    );
+  }
+
   Node? nodeById(String id) {
     for (final n in nodes) {
       if (n.id == id) return n;
@@ -210,6 +221,7 @@ class AppStore extends ChangeNotifier {
     task.groupId ??= activeGroupId;
     TaskRepository.add(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+    NotificationService().scheduleTaskNotification(task);
     _telemetry.capture(
       Ev.taskCreated,
       props: {
@@ -235,6 +247,11 @@ class AppStore extends ChangeNotifier {
     task.updatedAt = DateTime.now();
     TaskRepository.update(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+
+    // Var olanı iptal edip yeniden planla
+    NotificationService().cancelTaskNotification(task);
+    NotificationService().scheduleTaskNotification(task);
+
     _telemetry.capture(
       Ev.taskUpdated,
       props: {
@@ -249,6 +266,7 @@ class AppStore extends ChangeNotifier {
   void removeTask(Task task) {
     TaskRepository.remove(task);
     _record(EntityKind.task, MutationOp.delete, task.id, const {});
+    NotificationService().cancelTaskNotification(task);
     _telemetry.capture(Ev.taskDeleted, props: {'routine': task.isRoutine});
     _touched();
   }

@@ -75,7 +75,7 @@ class UntimedRow extends StatelessWidget {
               ),
             ),
           ),
-          for (var i = 0; i < 7; i++)
+          for (var i = 0; i < tasksByDay.length; i++)
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.xs),

@@ -136,6 +136,19 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
   }
 
+  int _bottomNavIndex(AppSection s) {
+    if (s == AppSection.week ||
+        s == AppSection.month ||
+        s == AppSection.year ||
+        s == AppSection.hour) {
+      return 0;
+    }
+    if (s == AppSection.agenda) return 1;
+    if (s == AppSection.todos || s == AppSection.routines) return 2;
+    if (s == AppSection.pool) return 3;
+    return 4;
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -208,6 +221,40 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         ],
       ),
+      bottomNavigationBar: wide
+          ? null
+          : NavigationBar(
+              selectedIndex: _bottomNavIndex(nav.section),
+              onDestinationSelected: (index) {
+                if (index == 0) _select(AppSection.month);
+                if (index == 1) _select(AppSection.agenda);
+                if (index == 2) _select(AppSection.todos);
+                if (index == 3) _select(AppSection.pool);
+                if (index == 4) _scaffoldKey.currentState?.openDrawer();
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.view_week_rounded),
+                  label: 'Takvim',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.draw_rounded),
+                  label: 'Ajanda',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.checklist_rounded),
+                  label: 'İşler',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.inbox_rounded),
+                  label: 'Havuz',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.menu_rounded),
+                  label: 'Menü',
+                ),
+              ],
+            ),
     );
   }
 }

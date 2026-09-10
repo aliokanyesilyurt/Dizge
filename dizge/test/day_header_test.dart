@@ -115,9 +115,10 @@ void main() {
       // çalışmak gün sayısını kırpardı, o yüzden rozet tamamen düşüyor.
       expect(find.byType(ShadBadge), findsNothing);
 
-      // Yedi günün sayısı da eksiksiz duruyor ve hiçbiri taşmıyor.
-      for (var i = 0; i < 7; i++) {
-        expect(find.text('${monday.add(Duration(days: i)).day}'), findsWidgets);
+      final today = Task.dayKey(DateTime.now());
+      // Görünen 3 günün sayısı da eksiksiz duruyor ve hiçbiri taşmıyor.
+      for (var i = 0; i < 3; i++) {
+        expect(find.text('${today.add(Duration(days: i)).day}'), findsWidgets);
       }
       expect(tester.takeException(), isNull);
     });

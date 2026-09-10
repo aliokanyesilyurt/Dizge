@@ -58,13 +58,13 @@ class DayHeaderRow extends StatelessWidget {
               ),
             ),
           ),
-          for (var i = 0; i < 7; i++)
+          for (var i = 0; i < tasksByDay.length; i++)
             Expanded(
               child: _DayHeaderCell(
                 day: monday.add(Duration(days: i)),
                 label: labels[i],
                 isToday: monday.add(Duration(days: i)) == today,
-                isWeekend: i >= 5,
+                isWeekend: monday.add(Duration(days: i)).weekday >= 6,
                 taskCount: showBadges ? tasksByDay[i].length : 0,
                 onTap: () => onTapDay(monday.add(Duration(days: i))),
               ),

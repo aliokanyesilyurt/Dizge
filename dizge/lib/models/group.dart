@@ -4,7 +4,13 @@
 /// gösterileceğini söyleyen bir etiket. Kimin neyi görebildiğine dair bütün
 /// karar sunucuda, RLS'te — bu sınıfta bir yetki alanı yok ve olmamalı.
 class Group {
-  const Group({required this.id, required this.name, this.ownerId});
+  const Group({
+    required this.id,
+    required this.name,
+    this.ownerId,
+    this.description,
+    this.color,
+  });
 
   final String id;
   final String name;
@@ -13,6 +19,12 @@ class Group {
   /// düğmesini buna bakarak gösteriyor.
   final String? ownerId;
 
+  /// Grup açıklaması veya özelleştirme seçeneği.
+  final String? description;
+
+  /// Grup rengi (ör. 0xFF22D3EE).
+  final int? color;
+
   bool isOwnedBy(String? userId) => userId != null && ownerId == userId;
 
   /// Sunucu satırından — sütun adları snake_case.
@@ -20,6 +32,8 @@ class Group {
     id: (row['id'] as String?) ?? '',
     name: (row['name'] as String?) ?? '',
     ownerId: row['owner_id'] as String?,
+    description: row['description'] as String?,
+    color: row['color'] as int?,
   );
 
   /// Yerel önbellek için. Çevrimdışı açılışta grup **adlarının** görünmesi
@@ -28,13 +42,25 @@ class Group {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
-    'ownerId': ?ownerId,
+    'ownerId': ownerId,
+    'description': description,
+    'color': color,
   };
 
   factory Group.fromJson(Map<String, dynamic> j) => Group(
     id: (j['id'] as String?) ?? '',
     name: (j['name'] as String?) ?? '',
     ownerId: j['ownerId'] as String?,
+    description: j['description'] as String?,
+    color: j['color'] as int?,
+  );
+
+  Group copyWith({String? name, String? description, int? color}) => Group(
+    id: id,
+    name: name ?? this.name,
+    ownerId: ownerId,
+    description: description ?? this.description,
+    color: color ?? this.color,
   );
 
   @override
@@ -42,11 +68,13 @@ class Group {
       other is Group &&
       other.id == id &&
       other.name == name &&
-      other.ownerId == ownerId;
+      other.ownerId == ownerId &&
+      other.description == description &&
+      other.color == color;
 
   @override
-  int get hashCode => Object.hash(id, name, ownerId);
+  int get hashCode => Object.hash(id, name, ownerId, description, color);
 
   @override
-  String toString() => 'Group($id, $name)';
+  String toString() => 'Group($id, $name, $description, $color)';
 }

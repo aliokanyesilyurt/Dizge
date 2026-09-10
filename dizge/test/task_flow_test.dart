@@ -71,7 +71,7 @@ void main() {
     );
 
     // Saat + süre: saat satırını aç, 12:00 seç.
-    await tester.tap(find.text('Saat'));
+    await tester.tap(find.text('Saat ve Süre'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('12:00'));
     await tester.pumpAndSettle();
@@ -124,7 +124,7 @@ void main() {
     // sınamak istediği şeyi sınamaz.
     for (final label in [
       'Başlangıç',
-      'Saat',
+      'Saat ve Süre',
       'Kategori',
       'Efor',
       'Sabit',
@@ -133,11 +133,10 @@ void main() {
     ]) {
       await tapRow(tester, label);
     }
-    // "Süre" satırı ancak saat seçilince görünür.
-    await tapRow(tester, 'Saat');
+    // "Süre" artık "Saat ve Süre" içinde, slider olarak görünüyor, ayrı satır değil.
+    await tapRow(tester, 'Saat ve Süre');
     await tester.tap(find.text('09:00'));
     await tester.pumpAndSettle();
-    await tapRow(tester, 'Süre');
 
     expect(find.text('1 sa'), findsWidgets);
     expect(tester.takeException(), isNull);

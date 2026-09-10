@@ -12,6 +12,7 @@ import 'core/auth_service.dart';
 import 'core/connectivity.dart';
 import 'core/handwriting_recognizer.dart';
 import 'core/mlkit_recognizer.dart';
+import 'core/notification_service.dart';
 import 'core/secure_key_store.dart';
 import 'core/telemetry.dart';
 import 'core/windows_ink_recognizer.dart';
@@ -45,6 +46,9 @@ Future<ProviderContainer> bootstrap({
   AuthService? auth,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await NotificationService().init();
+  await NotificationService().requestPermissions();
 
   // Depo telemetriden **önce** açılıyor (T4): rıza tercihi orada saklanıyor ve
   // geçit doğru başlangıç değeriyle kurulmalı. Hata yakalayıcıların bir adım

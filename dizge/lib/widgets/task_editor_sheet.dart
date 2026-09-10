@@ -194,13 +194,15 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Rutini sil'),
-          content: const Text(
-            'Bu bir rutin. Sadece bu günü mü, yoksa rutinin tamamını mı kaldıralım?',
-          ),
+          content: const Text('Bu bir rutin. Nasıl silelim?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Vazgeç'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'skip'),
+              child: const Text('Sadece bu gün'),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, 'day'),
@@ -215,9 +217,14 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
       );
       if (!mounted || choice == null) return;
       final store = ref.read(appStoreProvider);
-      choice == 'all'
-          ? store.removeTask(e)
-          : store.endRoutineBefore(e, widget.date);
+
+      if (choice == 'all') {
+        store.removeTask(e);
+      } else if (choice == 'day') {
+        store.endRoutineBefore(e, widget.date);
+      } else if (choice == 'skip') {
+        store.skipRoutineOn(e, widget.date, true);
+      }
     } else {
       ref.read(appStoreProvider).removeTask(e);
     }
@@ -270,7 +277,29 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                     duration: _duration,
                     open: _open == 'time',
                     onTap: () => _toggle('time'),
-                    onChanged: (v) => setState(() => _start = v),
+                    onChanged: (v) => setState(() {
+                      _start = v;
+                      if (_start != null &&
+                          _windowStart != null &&
+                          _windowEnd != null) {
+                        if (_start! < _windowStart!) {
+                          _windowStart = _start;
+                        }
+                        if (_start! + _duration > _windowEnd!) {
+                          _windowEnd = _start! + _duration;
+                        }
+                      }
+                    }),
+                    onDurationChanged: (v) => setState(() {
+                      _duration = v;
+                      if (_start != null &&
+                          _windowStart != null &&
+                          _windowEnd != null) {
+                        if (_start! + _duration > _windowEnd!) {
+                          _windowEnd = _start! + _duration;
+                        }
+                      }
+                    }),
                   ),
                   // Çoklu saat yalnız saatli işte anlamlı: saatsiz bir işin
                   // "birkaç kez"i tutunacak bir yer bulamaz.
@@ -281,13 +310,6 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                       open: _open == 'times',
                       onTap: () => _toggle('times'),
                       onChanged: (v) => setState(() => _times = [...v]),
-                    ),
-                  if (_start != null)
-                    DurationRow(
-                      duration: _duration,
-                      open: _open == 'duration',
-                      onTap: () => _toggle('duration'),
-                      onChanged: (v) => setState(() => _duration = v),
                     ),
                   _categoryRow(c),
                   _energyRow(c),
@@ -306,6 +328,15 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                       onChanged: (w) => setState(() {
                         _windowStart = w?.$1;
                         _windowEnd = w?.$2;
+                        if (_start != null &&
+                            _windowStart != null &&
+                            _windowEnd != null) {
+                          if (_start! < _windowStart!) {
+                            _start = _windowStart;
+                          } else if (_start! + _duration > _windowEnd!) {
+                            _start = (_windowEnd! - _duration).clamp(0.0, 24.0);
+                          }
+                        }
                       }),
                     ),
                   _placeRow(),

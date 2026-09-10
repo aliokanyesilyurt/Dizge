@@ -201,8 +201,21 @@ class _InkPainter extends CustomPainter {
     }
 
     final path = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final p in points.skip(1)) {
-      path.lineTo(p.dx, p.dy);
+    if (points.length == 2) {
+      path.lineTo(points[1].dx, points[1].dy);
+    } else {
+      for (int i = 1; i < points.length - 1; i++) {
+        final p0 = points[i];
+        final p1 = points[i + 1];
+        // İki noktanın orta noktasına doğru eğri çiziyoruz (Smoothing)
+        path.quadraticBezierTo(
+          p0.dx,
+          p0.dy,
+          (p0.dx + p1.dx) / 2,
+          (p0.dy + p1.dy) / 2,
+        );
+      }
+      path.lineTo(points.last.dx, points.last.dy);
     }
     canvas.drawPath(path, paint);
   }

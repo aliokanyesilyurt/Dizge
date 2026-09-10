@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -69,7 +71,17 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
     setState(() => _day = _day.add(Duration(days: days)));
   }
 
+  Timer? _saveTimer;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _saveTimer?.cancel();
+    super.dispose();
+  }
+
   void _write(List<InkStroke> strokes, Size canvas) {
+    setState(() => _saving = true);
     ref
         .read(appStoreProvider)
         .saveAgendaPage(
@@ -78,6 +90,10 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
               .agendaPage(_day)
               .copyWith(strokes: strokes, canvasSize: canvas),
         );
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _saving = false);
+    });
   }
 
   void _undo(AgendaPage page) {
@@ -168,6 +184,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
               selectedPen: _pen,
               erasing: _erasing,
               canUndo: page.strokes.isNotEmpty,
+              isSaving: _saving,
               onPen: (i) => setState(() {
                 _pen = i;
                 _erasing = false;
@@ -273,6 +290,7 @@ class _Toolbar extends StatelessWidget {
     required this.selectedPen,
     required this.erasing,
     required this.canUndo,
+    required this.isSaving,
     required this.onPen,
     required this.onErase,
     required this.onUndo,
@@ -283,6 +301,7 @@ class _Toolbar extends StatelessWidget {
   final int selectedPen;
   final bool erasing;
   final bool canUndo;
+  final bool isSaving;
   final ValueChanged<int> onPen;
   final VoidCallback onErase;
   final VoidCallback onUndo;
@@ -308,6 +327,17 @@ class _Toolbar extends StatelessWidget {
             label: 'Silgi',
             active: erasing,
             onTap: onErase,
+          ),
+          const SizedBox(width: S.sm),
+          // Saving Indicator
+          AnimatedOpacity(
+            opacity: isSaving ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              Icons.cloud_done_rounded,
+              color: context.colors.inkFaint,
+              size: I.sm,
+            ),
           ),
           const Spacer(),
           _ToolButton(

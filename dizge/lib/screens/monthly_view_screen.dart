@@ -109,11 +109,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
   void _toggleTask(Task task, DateTime day) =>
       ref.read(appStoreProvider).setTaskDone(task, day, !task.isDoneOn(day));
 
-  /// Aynı satıra uzun basıldı: o günü iptal et / iptali geri al.
-  ///
-  /// Uzun basış, çünkü hücrede menü açacak yer yok ve kısa dokunuş zaten en
-  /// sık istenen şeyi (tamamlama) yapıyor. İptal ikinci sıklıkta: aynı
-  /// hedefin ikinci hareketi olması doğru yer.
+  /// Satırın menüsünden "Bugün iptal" seçildi: o günü iptal et / geri al.
   void _cancelTask(Task task, DateTime day) => toggleCancelOn(
     context,
     ref.read(appStoreProvider),
@@ -488,7 +484,7 @@ class _Cell extends StatelessWidget {
     );
   }
 
-  /// Aylık ızgarada tek satırlık iş kaydı. Rutinler soluk + ↻ işaretli.
+  /// Aylık ızgarada tek satırlık iş kaydı. Rutinler ↻ işaretli.
   ///
   /// Satırın kendisi bir onay kutusu: dokunmak işi o gün için tamamlar.
   /// Eskiden hücrenin tamamı tek bir dokunuş hedefiydi ve aylık takvimde
@@ -497,111 +493,178 @@ class _Cell extends StatelessWidget {
   /// Hücrenin boşluğu eski davranışında: bir dokunuş seçer, ikincisi günü
   /// açar. İki hedef üst üste binmiyor çünkü satır dokunuşu yutuyor.
   Widget _entry(AppPalette c, Task task, DateTime day) {
-    final done = task.isDoneOn(day);
-    // Havuza alınan iş takvimde hiç görünmüyor (Task.occursOn), yani burada
-    // "iptal" ancak atlanmış bir rutin olabilir.
-    final cancelled = task.isSkippedOn(day);
-    final tag = c.tag(task.color);
+    return _TaskBox(
+      task: task,
+      day: day,
+      onToggleTask: onToggleTask,
+      onCancelTask: onCancelTask,
+    );
+  }
+}
 
-    return Semantics(
-      checked: done,
-      label: task.title,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onToggleTask(task, day),
-        // Uzun basış: "bugün iptal". Aynı hedefin ikinci hareketi — hücrede
-        // menü açacak yer yok (plan K3).
-        onLongPress: () => onCancelTask(task, day),
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Opacity(
-            // Atlanan gün ızgarada solgun görünüyor; aylık hücrede de öyle
-            // olmalı, yoksa aynı iş iki ekranda iki farklı şey der.
-            opacity: cancelled ? 0.45 : 1,
-            child: _entryBody(
-              c,
-              task,
-              day,
-              done: done,
-              cancelled: cancelled,
-              tag: tag,
-            ),
+class _TaskBox extends StatefulWidget {
+  final Task task;
+  final DateTime day;
+  final void Function(Task task, DateTime day) onToggleTask;
+  final void Function(Task task, DateTime day) onCancelTask;
+
+  const _TaskBox({
+    required this.task,
+    required this.day,
+    required this.onToggleTask,
+    required this.onCancelTask,
+  });
+
+  @override
+  State<_TaskBox> createState() => _TaskBoxState();
+}
+
+class _TaskBoxState extends State<_TaskBox> {
+  bool _hovered = false;
+
+  /// Uzun basış (masaüstünde sağ tık): satırın bütün eylemleri.
+  ///
+  /// Kısa dokunuş en sık istenen şeyi — tamamlamayı — yapıyor; iptal ve
+  /// düzenleme daha seyrek, hücrede de onlara ayrı hedef açacak yer yok.
+  /// "Tamamla" menüde de var ki uzun basan kişi aradığını bulsun.
+  void _showQuickActions(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        final c = ctx.colors;
+        final done = widget.task.isDoneOn(widget.day);
+        final cancelled = widget.task.isSkippedOn(widget.day);
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(
+                  done ? Icons.undo_rounded : Icons.check_circle_rounded,
+                  color: done ? c.inkDim : c.accent,
+                ),
+                title: Text(done ? 'Tamamlanmayı geri al' : 'Tamamla'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onToggleTask(widget.task, widget.day);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  cancelIcon(cancelled),
+                  color: cancelled ? c.inkDim : c.danger,
+                ),
+                title: Text(cancelLabel(cancelled)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onCancelTask(widget.task, widget.day);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.edit_rounded, color: c.inkDim),
+                title: const Text('Düzenle'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  showTaskEditor(
+                    context,
+                    date: widget.day,
+                    existing: widget.task,
+                  );
+                },
+              ),
+            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _entryBody(
-    AppPalette c,
-    Task task,
-    DateTime day, {
-    required bool done,
-    required bool cancelled,
-    required TagStyle tag,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: S.hair),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Nokta zaten tamamlanmışlığı söylüyordu (dolu = açık, boş = bitmiş);
-          // artık bitmişken ✓ oluyor. İşaret de değişsin ki bilgi yalnız
-          // dolgunun varlığına bağlı kalmasın (WCAG 1.4.1).
-          SizedBox(
-            width: S.md,
-            child: (done || cancelled)
-                ? Padding(
-                    padding: const EdgeInsets.only(top: S.hair, right: S.xs),
-                    child: Icon(
-                      // İptal edilen gün ✓ değil ↷: "yapıldı" ile "bugünlük
-                      // geçildi" aynı işaretle anlatılamaz.
-                      done ? Icons.check_rounded : Icons.redo_rounded,
-                      size: I.xs,
-                      color: c.inkFaint,
-                    ),
-                  )
-                : Container(
-                    width: 5,
-                    height: 5,
-                    margin: const EdgeInsets.only(top: S.xs, right: S.xs),
-                    decoration: BoxDecoration(
-                      color: task.color,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: task.color, width: 1),
-                    ),
-                  ),
-          ),
-          Expanded(
-            child: Text(
-              task.isRoutine ? '↻ ${task.title}' : task.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: (done || cancelled) ? c.inkFaint : tag.text,
-                fontSize: T.dense,
-                height: 1.2,
-                fontWeight: FontWeight.w500,
-                decoration: (done || cancelled)
-                    ? TextDecoration.lineThrough
-                    : null,
-                decorationColor: c.inkFaint,
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final done = widget.task.isDoneOn(widget.day);
+    final cancelled = widget.task.isSkippedOn(widget.day);
+    final tag = c.tag(widget.task.color);
+
+    return Semantics(
+      checked: done,
+      label: widget.task.title,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => widget.onToggleTask(widget.task, widget.day),
+          onLongPress: () => _showQuickActions(context),
+          onSecondaryTap: () => _showQuickActions(context),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: S.hair),
+            padding: const EdgeInsets.symmetric(
+              horizontal: S.xs,
+              vertical: S.hair,
+            ),
+            decoration: BoxDecoration(
+              color: (done || cancelled) ? Colors.transparent : tag.fill,
+              borderRadius: R.radiusXs,
+              border: Border.all(
+                color: (done || cancelled) ? c.lineSoft : Colors.transparent,
               ),
             ),
-          ),
-          // Sahiplik rozeti (Y4.4d). Hücre dar olduğu için 12px ve **satırın
-          // sonunda**: başa koymak, zaten tek satıra sığmayan başlıktan bir
-          // parça daha alırdı. Kişisel bağlamda kendini gizler.
-          if (task.ownerId != null) ...[
-            const SizedBox(width: S.xs),
-            Padding(
-              // Nokta ve yazı üstten hizalı; rozet de onlarla aynı çizgide
-              // dursun diye 1px iniyor.
-              padding: const EdgeInsets.only(top: S.hair),
-              child: OwnerAvatar(ownerId: task.ownerId, size: I.xs),
+            child: Row(
+              children: [
+                // Bitmiş/iptal işte işaret hep görünüyor: bilgi yalnız
+                // üstü çizili yazıya bağlı kalmasın (WCAG 1.4.1). Açık işte
+                // yalnız fare üstündeyken — satırın bir onay kutusu olduğunu
+                // söylüyor.
+                if (_hovered || done || cancelled)
+                  Padding(
+                    padding: const EdgeInsets.only(right: S.xs),
+                    child: Icon(
+                      done
+                          ? Icons.check_circle_rounded
+                          // İptal edilen gün ✓ değil ↷: "yapıldı" ile
+                          // "bugünlük geçildi" aynı işaretle anlatılamaz.
+                          : (cancelled
+                                ? cancelIcon(false)
+                                : Icons.radio_button_unchecked_rounded),
+                      size: I.xs,
+                      color: done
+                          ? c.inkFaint
+                          : (cancelled ? c.danger : tag.text),
+                    ),
+                  ),
+                Expanded(
+                  child: Text(
+                    widget.task.isRoutine
+                        ? '↻ ${widget.task.title}'
+                        : widget.task.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: (done || cancelled) ? c.inkFaint : tag.text,
+                      fontSize: T.dense,
+                      fontWeight: FontWeight.w600,
+                      decoration: (done || cancelled)
+                          ? TextDecoration.lineThrough
+                          : null,
+                      decorationColor: c.inkFaint,
+                    ),
+                  ),
+                ),
+                // Sahiplik rozeti (Y4.4d). Hücre dar olduğu için satırın
+                // **sonunda**: başa koymak, zaten tek satıra sığmayan
+                // başlıktan bir parça daha alırdı. Kişisel bağlamda kendini
+                // gizler.
+                if (widget.task.ownerId != null) ...[
+                  const SizedBox(width: S.xs),
+                  OwnerAvatar(ownerId: widget.task.ownerId, size: I.xs),
+                ],
+              ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }

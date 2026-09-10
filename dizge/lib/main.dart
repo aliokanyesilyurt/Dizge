@@ -1,8 +1,12 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'bootstrap.dart';
 import 'core/theme_mode_controller.dart';
@@ -11,6 +15,25 @@ import 'theme.dart';
 import 'theme/shad_bridge.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    await windowManager.ensureInitialized();
+    const windowOptions = WindowOptions(
+      minimumSize: Size(400, 600),
+      // Başlık 'Dizge' olmak zorunda: Windows'ta Google girişinin dönüşü
+      // (dizge://login-callback) yeni bir süreç başlatıyor ve o süreç
+      // çalışan örneği FindWindow ile **başlığından** buluyor
+      // (windows/runner/main.cpp, SendAppLinkToInstance). Ayrışırsa dönüş
+      // ikinci bir pencere açar ve oturum yanlış kopyada açılır.
+      title: 'Dizge',
+    );
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
+
   // Depo, telemetri ve senkron kurulur; hazır bir ProviderContainer döner.
   // Böylece uygulamanın ilk karesi kayıtlı verisiyle birlikte çizilir.
   final container = await bootstrap();

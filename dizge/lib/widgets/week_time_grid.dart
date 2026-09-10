@@ -46,7 +46,7 @@ class WeekTimeGrid extends StatefulWidget {
     this.onCancel,
     this.onPullFromPool,
     this.poolHover,
-  }) : assert(tasksByDay.length == 7, 'Haftalık ızgara tam 7 gün bekler');
+  });
 
   /// Gösterilen haftanın pazartesisi (saat kırpılmış).
   final DateTime monday;
@@ -191,10 +191,14 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     return box.globalToLocal(globalPosition);
   }
 
-  double _columnWidth(double canvasWidth) => canvasWidth / 7;
+  double _columnWidth(double canvasWidth) =>
+      canvasWidth / widget.tasksByDay.length;
 
   int _dayIndexAt(double dx, double canvasWidth) =>
-      (dx / _columnWidth(canvasWidth)).floor().clamp(0, 6);
+      (dx / _columnWidth(canvasWidth)).floor().clamp(
+        0,
+        widget.tasksByDay.length - 1,
+      );
 
   // --- Sürükleme -------------------------------------------------------------
 
@@ -452,6 +456,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
             metrics: _m,
             palette: c,
             todayIndex: _todayIndex,
+            columnCount: widget.tasksByDay.length,
             // Vurgulanan sütun ya taşınan bloğun ya da havuzdan gelen işin
             // hedefi; ikisi aynı anda olamaz.
             dropDayIndex: _drag?.dayIndex ?? _poolDropDay,
@@ -488,7 +493,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       widget.today.month,
       widget.today.day,
     ).difference(widget.monday).inDays;
-    return (diff >= 0 && diff < 7) ? diff : null;
+    return (diff >= 0 && diff < widget.tasksByDay.length) ? diff : null;
   }
 
   /// Saat penceresi olan işlerin arkasındaki soluk şerit.
@@ -501,7 +506,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     final columnWidth = _columnWidth(canvasWidth);
     final bands = <Widget>[];
 
-    for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
+    for (var dayIndex = 0; dayIndex < widget.tasksByDay.length; dayIndex++) {
       for (final task in widget.tasksByDay[dayIndex]) {
         final start = task.windowStart;
         final end = task.windowEnd;
@@ -542,7 +547,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     final columnWidth = _columnWidth(canvasWidth);
     final blocks = <Widget>[];
 
-    for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
+    for (var dayIndex = 0; dayIndex < widget.tasksByDay.length; dayIndex++) {
       final day = _dayAt(dayIndex);
       // Yerleşim **işler** değil **tekrarlar** üzerinden: gün içinde birkaç
       // kez olan bir iş (Z6) o gün birden çok blok çiziyor ve her biri

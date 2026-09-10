@@ -60,8 +60,18 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
 
   int _page = _anchorPage;
 
-  DateTime get _monday =>
-      _anchorMonday.add(Duration(days: 7 * (_page - _anchorPage)));
+  int get visibleDays => MediaQuery.sizeOf(context).width < 800 ? 3 : 7;
+
+  DateTime _getStartDate(int page, int vDays) {
+    if (vDays == 7) {
+      return _anchorMonday.add(Duration(days: 7 * (page - _anchorPage)));
+    } else {
+      final today = Task.dayKey(DateTime.now());
+      return today.add(Duration(days: vDays * (page - _anchorPage)));
+    }
+  }
+
+  DateTime get _startDate => _getStartDate(_page, visibleDays);
 
   @override
   void dispose() {
@@ -101,19 +111,21 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
         );
   }
 
-  void _shift(int weeks) => _goToPage(_page + weeks);
+  void _shift(int amount) => _goToPage(_page + amount);
 
   void _goToToday() {
     if (_page == _anchorPage) return;
     _goToPage(_anchorPage, reason: 'today');
   }
 
-  String _rangeLabel(DateTime monday) {
-    final end = monday.add(const Duration(days: 6));
-    final a = '${monday.day} ${_months[monday.month - 1]}';
-    // Aynı ay içindeyse ay adını iki kez yazma: "3 – 9 Ağustos 2026".
-    if (monday.month == end.month) {
-      return '${monday.day} – ${end.day} ${_months[end.month - 1]} ${end.year}';
+  String _rangeLabel(DateTime start, int vDays) {
+    final end = start.add(Duration(days: vDays - 1));
+    final a = '${start.day} ${_months[start.month - 1]}';
+    if (start.month == end.month && start.day != end.day) {
+      return '${start.day} – ${end.day} ${_months[end.month - 1]} ${end.year}';
+    }
+    if (start.day == end.day) {
+      return '$a ${start.year}';
     }
     return '$a – ${end.day} ${_months[end.month - 1]} ${end.year}';
   }
@@ -213,41 +225,6 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     final store = ref.read(appStoreProvider);
     store.pullFromPool(task);
     _offerUndo('Takvime kondu', () => store.moveToPool(task));
-  }
-
-  /// Dar ekranda panel yerine açılan katman.
-  ///
-  /// Sütun burada mümkün değil: 390px'te 248 piksellik bir panel takvimi
-  /// yutar. Sürükle-bırak da bu katmanda yok — telefonda havuza atmanın yolu
-  /// bloğa dokunup "Kenara al", geri koymanın yolu buradaki listeye dokunmak.
-  Future<void> _openPoolSheet() async {
-    final store = ref.read(appStoreProvider);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.colors.surface,
-      builder: (sheetContext) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.7,
-          ),
-          child: Consumer(
-            builder: (context, ref, _) => PoolPanel(
-              tasks: ref.watch(poolProvider),
-              onCollapse: () => Navigator.pop(sheetContext),
-              onOpenTask: (task) {
-                Navigator.pop(sheetContext);
-                _openEditor(task.date, existing: task);
-              },
-              onRestore: (task) {
-                Navigator.pop(sheetContext);
-                store.pullFromPool(task);
-              },
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   // --- "Günü kurtar" ----------------------------------------------------------
@@ -477,7 +454,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     return Column(
       children: [
         WeekHeaderBar(
-          rangeLabel: _rangeLabel(_monday),
+          rangeLabel: _rangeLabel(_startDate, visibleDays),
           offsetLabel: _page == _anchorPage
               ? 'Bu hafta'
               : '${_weekOffsetLabel()} hafta',
@@ -494,7 +471,9 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
           onCreate: _createFromHeader,
           rescuableCount: _rescuePlan(store, today).total,
           onRescue: () => _rescueDay(store, today),
-          isEmptyWeek: store.tasksForWeek(_monday).every((day) => day.isEmpty),
+          isEmptyWeek: store
+              .tasksForDays(_startDate, visibleDays)
+              .every((day) => day.isEmpty),
           isFirstRun: store.tasks.isEmpty,
         ),
         // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
@@ -518,10 +497,12 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                   );
             },
             itemBuilder: (context, page) {
-              final monday = _anchorMonday.add(
-                Duration(days: 7 * (page - _anchorPage)),
-              );
-              final tasksByDay = store.tasksForWeek(monday);
+              final startDay = _getStartDate(page, visibleDays);
+              final tasksByDay = store.tasksForDays(startDay, visibleDays);
+              final currentLabels = [
+                for (var i = 0; i < visibleDays; i++)
+                  _weekDays[(startDay.add(Duration(days: i)).weekday - 1) % 7],
+              ];
 
               return Column(
                 children: [
@@ -530,14 +511,14 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                     child: Column(
                       children: [
                         DayHeaderRow(
-                          monday: monday,
+                          monday: startDay,
                           today: today,
-                          labels: _weekDays,
+                          labels: currentLabels,
                           tasksByDay: tasksByDay,
                           onTapDay: (day) => _quickAdd(day, null),
                         ),
                         UntimedRow(
-                          monday: monday,
+                          monday: startDay,
                           tasksByDay: tasksByDay,
                           energyLimit: energy,
                           onTapTask: (task, day) =>
@@ -558,8 +539,8 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                           WeekTimeGrid(
                             // Sayfa değiştikçe yeni durum kurulsun ama aynı
                             // hafta için gereksiz yeniden kurulum olmasın.
-                            key: ValueKey('week-${monday.toIso8601String()}'),
-                            monday: monday,
+                            key: ValueKey('week-${startDay.toIso8601String()}'),
+                            monday: startDay,
                             tasksByDay: tasksByDay,
                             metrics: metrics,
                             today: today,
@@ -603,8 +584,8 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     // ızgaranın en kalabalık saatlerinin üstüne oturuyordu.
   }
 
-  /// Ekranın sağ kenarı: geniş ekranda panel ya da şerit, dar ekranda yalnız
-  /// şerit (dokununca katman açılır).
+  /// Ekranın sağ kenarı: geniş ekranda panel ya da şerit. Dar ekranda hiçbiri
+  /// — orada kabuğun alt menüsünde Havuz sekmesi var (eşikler aynı: 900).
   Widget _poolSide() {
     final pooled = ref.watch(poolProvider);
     final open = ref.watch(poolPanelOpenProvider);
@@ -612,11 +593,11 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
 
     // Boş havuz + kapalı panel = ekranda hiçbir iz yok. Havuzu hiç kullanmayan
     // birinden 44 piksel almak, kullanan birinin bir tıklamasından pahalı.
-    if (pooled.isEmpty && !open) return const SizedBox.shrink();
+    if (!wide || (pooled.isEmpty && !open)) return const SizedBox.shrink();
 
     return KeyedSubtree(
       key: _poolKey,
-      child: (open && wide)
+      child: open
           ? PoolPanel(
               tasks: pooled,
               hover: _poolHover,
@@ -627,9 +608,8 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
             )
           : PoolRail(
               count: pooled.length,
-              onExpand: wide
-                  ? () => ref.read(poolPanelOpenProvider.notifier).set(true)
-                  : _openPoolSheet,
+              onExpand: () =>
+                  ref.read(poolPanelOpenProvider.notifier).set(true),
             ),
     );
   }

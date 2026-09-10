@@ -56,18 +56,20 @@ class GridPainter extends CustomPainter {
     required this.palette,
     required this.todayIndex,
     required this.dropDayIndex,
+    required this.columnCount,
   });
 
   final GridMetrics metrics;
   final AppPalette palette;
   final int? todayIndex;
+  final int columnCount;
 
   /// Sürükleme sırasında hedeflenen gün — sütunu hafifçe aydınlanır.
   final int? dropDayIndex;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final columnWidth = size.width / 7;
+    final columnWidth = size.width / columnCount;
 
     // Bugünün ve bırakma hedefinin sütun zemini.
     if (todayIndex != null) {
@@ -106,7 +108,7 @@ class GridPainter extends CustomPainter {
     }
 
     // Dikey: gün ayraçları.
-    for (var i = 1; i < 7; i++) {
+    for (var i = 1; i < columnCount; i++) {
       final x = i * columnWidth;
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), columnPaint);
     }

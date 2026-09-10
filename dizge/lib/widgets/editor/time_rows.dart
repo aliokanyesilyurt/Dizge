@@ -56,29 +56,41 @@ class TimeRow extends StatelessWidget {
     required this.open,
     required this.onTap,
     required this.onChanged,
+    required this.onDurationChanged,
   });
 
   final double? start;
-
-  /// Yalnız alt yazıdaki bitiş saatini hesaplamak için; değiştirilmiyor.
   final double duration;
   final bool open;
   final VoidCallback onTap;
   final ValueChanged<double?> onChanged;
+  final ValueChanged<double> onDurationChanged;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return PropertyRow(
       icon: Icons.schedule_rounded,
-      label: 'Saat',
-      value: start == null ? 'Saatsiz' : Task.formatTime(start!),
+      label: 'Saat ve Süre',
+      value: start == null
+          ? 'Saatsiz · ${Task.formatDuration(duration)}'
+          : '${Task.formatTime(start!)} · ${Task.formatDuration(duration)}',
       valueColor: start == null ? c.inkFaint : null,
       open: open,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Başlangıç Saati
+          Text(
+            'Başlangıç',
+            style: TextStyle(
+              color: c.inkFaint,
+              fontSize: T.caption,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: S.xs),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -122,66 +134,27 @@ class TimeRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: S.md),
+          // Süre Seçimi
           Text(
-            start == null
-                ? 'Saatsiz işler günün listesinde en altta durur.'
-                : 'Bitiş: ${Task.formatTime((start! + duration).clamp(0.0, 24.0))}  ·  süre ${Task.formatDuration(duration)}',
-            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// İşin ne kadar süreceği.
-class DurationRow extends StatelessWidget {
-  const DurationRow({
-    super.key,
-    required this.duration,
-    required this.open,
-    required this.onTap,
-    required this.onChanged,
-  });
-
-  final double duration;
-  final bool open;
-  final VoidCallback onTap;
-  final ValueChanged<double> onChanged;
-
-  static const _presets = [0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0];
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return PropertyRow(
-      icon: Icons.timelapse_rounded,
-      label: 'Süre',
-      value: Task.formatDuration(duration),
-      open: open,
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final d in _presets)
-                ChoiceChipTile(
-                  text: Task.formatDuration(d),
-                  selected: duration == d,
-                  onTap: () => onChanged(d),
-                ),
-            ],
+            'Süre',
+            style: TextStyle(
+              color: c.inkFaint,
+              fontSize: T.caption,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: S.xs),
           Row(
             children: [
               Text(
-                'İnce ayar',
-                style: TextStyle(color: c.inkFaint, fontSize: T.caption),
+                Task.formatDuration(duration),
+                style: TextStyle(
+                  color: c.ink,
+                  fontSize: T.body,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              const SizedBox(width: S.sm),
               Expanded(
                 child: Slider(
                   value: duration.clamp(0.25, 12.0),
@@ -189,7 +162,7 @@ class DurationRow extends StatelessWidget {
                   max: 12,
                   divisions: 47, // 15 dakikalık adımlar
                   label: Task.formatDuration(duration),
-                  onChanged: onChanged,
+                  onChanged: onDurationChanged,
                 ),
               ),
             ],
