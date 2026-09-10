@@ -6,6 +6,7 @@ import 'package:dizge/data/sync/mutation.dart';
 import 'package:dizge/data/sync/outbox.dart';
 import 'package:dizge/models/node.dart';
 import 'package:dizge/screens/account_screen.dart';
+import 'package:dizge/screens/auth_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -77,6 +78,61 @@ void main() {
       expect(find.text('Çıkış yap'), findsOneWidget);
       expect(find.text('Oturum aç'), findsNothing);
     });
+
+    testWidgets('oturum açıkken hesap değiştirme de görünür', (tester) async {
+      // Kullanıcının aradığı kelime "çıkış" değil "hesap değiştir" olabiliyor;
+      // ikisi aynı işi yapsa da (Karar B) satırın kendisi bulunabilir olmalı.
+      useTallScreen(tester);
+      final auth = FakeAuthService(
+        user: const AuthUser(id: 'k1', email: 'ali@example.com'),
+      );
+      addTearDown(auth.dispose);
+
+      await pumpApp(
+        tester,
+        const AccountScreen(),
+        overrides: [authServiceProvider.overrideWithValue(auth)],
+      );
+
+      expect(find.text('Hesap değiştir'), findsOneWidget);
+      expect(find.text('Parolanı değiştir'), findsOneWidget);
+    });
+
+    testWidgets(
+      'hesap değiştirmek çıkar, siler ve kapıyı giriş kipinde bırakır',
+      (tester) async {
+        useTallScreen(tester);
+        final auth = FakeAuthService(
+          user: const AuthUser(id: 'k1', email: 'ali@example.com'),
+        );
+        addTearDown(auth.dispose);
+        final disk = InMemoryStore();
+        await disk.init();
+
+        final container = await pumpApp(
+          tester,
+          const AccountScreen(),
+          overrides: [
+            authServiceProvider.overrideWithValue(auth),
+            localStoreProvider.overrideWithValue(disk),
+          ],
+          seed: (store) => store.addNote(_note()),
+        );
+
+        await tester.tap(find.text('Hesap değiştir'));
+        await tester.pumpAndSettle();
+
+        expect(auth.signOutCount, 1);
+        expect(container.read(appStoreProvider).notes, isEmpty);
+
+        // `wipe()` her şeyi siliyor, bu bayrak dahil. Geri yazılmazsa karşılama
+        // ekranı cihazı "ilk kez açılıyor" sanıp **kayıt** kipinde açılır ve
+        // başka hesapla girmek isteyen kullanıcının önüne yeni hesap formu
+        // gelirdi — hesap değiştirmenin tam tersi.
+        expect(disk.readString(kHasSignedInKey), 'yes');
+        expect(container.read(guestModeProvider), isFalse);
+      },
+    );
 
     testWidgets('oturum açılınca ekran kendiliğinden güncellenir', (
       tester,

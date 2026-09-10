@@ -98,6 +98,9 @@ class _FakeGateway implements RemoteGateway {
   Future<void> updateDisplayName(String displayName) async =>
       throw UnimplementedError('bu test ad değiştirmiyor');
   @override
+  Future<void> updateAvatarColor(int color) async =>
+      throw UnimplementedError('bu test renk değiştirmiyor');
+  @override
   Future<Group> createGroup(String name) async =>
       throw UnimplementedError('bu test grup kurmuyor');
 

@@ -169,6 +169,10 @@ class SupabaseGateway implements RemoteGateway {
       _api.upsertProfile(displayName: displayName.trim());
 
   @override
+  Future<void> updateAvatarColor(int color) =>
+      _api.upsertProfile(avatarColor: color);
+
+  @override
   Future<PushResult> pushSnapshot(Map<String, dynamic> snapshot) async {
     final mutations = <Mutation>[];
 

@@ -61,8 +61,12 @@ class _FakeApi implements SupabaseApi {
   final List<String> profileWrites = [];
 
   @override
-  Future<void> upsertProfile({required String displayName}) async =>
-      profileWrites.add(displayName);
+  Future<void> upsertProfile({String? displayName, int? avatarColor}) async {
+    if (displayName != null) profileWrites.add(displayName);
+    if (avatarColor != null) colorWrites.add(avatarColor);
+  }
+
+  final List<int> colorWrites = [];
 
   List<Map<String, dynamic>> mutationsSentTo(String fn) => [
     for (final c in calls)

@@ -207,4 +207,185 @@ class _DisplayNameFieldState extends ConsumerState<DisplayNameField> {
   }
 }
 
+/// Sekiz rengin yan yana dizisi — seçilen olanın çevresinde halka.
+///
+/// Hem hesap ekranı hem misafir diyaloğu bunu kullanıyor. İkisine ayrı ayrı
+/// çizdirseydim renkler bir gün ayrışırdı: misafirken seçtiğin mor, giriş
+/// yaptıktan sonra başka bir mor olurdu.
+///
+/// Erişilebilirlik: her daire kendi [Semantics] etiketini taşıyor ve seçili
+/// olan `selected` diyor. Renk tek başına bilgi taşıyamaz — ekran okuyucu
+/// kullanan biri de hangisinde durduğunu bilmeli. Halka da aynı sebeple var:
+/// seçimi yalnız "daha canlı görünmesiyle" anlatmak, renk körü bir kullanıcıya
+/// hiçbir şey söylemezdi.
+class AvatarSwatches extends StatelessWidget {
+  const AvatarSwatches({
+    super.key,
+    required this.selected,
+    required this.onPick,
+    this.enabled = true,
+  });
+
+  /// `kAvatarColors` içindeki sıra; null ise henüz seçim yok.
+  final int? selected;
+  final ValueChanged<int> onPick;
+  final bool enabled;
+
+  /// Renklerin okunabilir adları. Ekran okuyucu "üçüncü daire" diyemez.
+  static const _names = [
+    'mavi',
+    'deniz yeşili',
+    'kiremit',
+    'mor',
+    'gül',
+    'camgöbeği',
+    'hardal',
+    'kurşun',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return Wrap(
+      spacing: S.sm,
+      runSpacing: S.sm,
+      children: [
+        for (var i = 0; i < kAvatarColors.length; i++)
+          Semantics(
+            label: _names[i],
+            button: true,
+            selected: i == selected,
+            child: Tooltip(
+              message: _names[i],
+              child: InkWell(
+                onTap: enabled ? () => onPick(i) : null,
+                customBorder: const CircleBorder(),
+                child: Opacity(
+                  opacity: enabled ? 1 : 0.4,
+                  child: Container(
+                    width: I.md + S.sm,
+                    height: I.md + S.sm,
+                    decoration: BoxDecoration(
+                      color: kAvatarColors[i],
+                      shape: BoxShape.circle,
+                      // Halka rengin **dışında** duruyor: içeri çizseydim
+                      // seçili dairenin rengi diğerlerinden dar görünür,
+                      // karşılaştırma bozulurdu.
+                      border: Border.all(
+                        color: i == selected ? c.ink : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: i == selected
+                        ? Icon(
+                            Icons.check_rounded,
+                            size: I.sm,
+                            color: inkOn(kAvatarColors[i]),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Oturum açmış kullanıcının rozet rengi (Karar C).
+///
+/// [DisplayNameField] ile aynı iki kural: yalnız oturum açıkken görünür ve
+/// çevrimdışıyken pasif. Renk de ad gibi bir `Mutation` değil — outbox'a
+/// giremez, sessizce kuyruğa alınırsa kullanıcı rengini değiştirdiğini sanır,
+/// grup arkadaşları eskisini görmeye devam ederdi.
+///
+/// Kaydet düğmesi **yok**: tek tıklık bir seçim için ikinci bir onay adımı
+/// gereksiz, ve yanlış seçim bir tıkla geri alınıyor.
+class AvatarColorField extends ConsumerStatefulWidget {
+  const AvatarColorField({super.key});
+
+  @override
+  ConsumerState<AvatarColorField> createState() => _AvatarColorFieldState();
+}
+
+class _AvatarColorFieldState extends ConsumerState<AvatarColorField> {
+  bool _saving = false;
+
+  Future<void> _pick(String userId, int color) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(profileDirectoryProvider.notifier)
+          .updateAvatarColor(userId, color);
+    } on RemoteException catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Renk kaydedilemedi. Sonra tekrar dene.')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final user = ref.watch(authUserProvider).valueOrNull;
+    if (user == null) return const SizedBox.shrink();
+
+    final me = ref.watch(profileProvider(user.id));
+    final online = ref.watch(networkStatusProvider).valueOrNull;
+    final offline = online == NetworkStatus.offline;
+    final canPick = !_saving && !offline;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(S.lg, S.md, S.lg, S.md),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: R.radiusMd,
+        border: Border.all(color: c.lineSoft),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Rozet rengi',
+            style: TextStyle(
+              color: c.ink,
+              fontSize: T.body,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: S.sm),
+          AvatarSwatches(
+            selected: me?.avatarColor,
+            enabled: canPick,
+            onPick: (i) => _pick(user.id, i),
+          ),
+          const SizedBox(height: S.sm),
+          Text(
+            offline
+                ? 'Renk değiştirmek bağlantı gerektiriyor.'
+                : me?.avatarColor == null
+                ? 'Seçmezsen renk adından türer.'
+                : 'Grup arkadaşların bu rengi görür.',
+            style: TextStyle(
+              color: offline ? c.warning : c.inkFaint,
+              fontSize: T.caption,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // --- Hesap -------------------------------------------------------------------

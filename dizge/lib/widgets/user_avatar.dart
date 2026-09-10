@@ -42,7 +42,12 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fill = avatarColorFor(userId ?? '');
+    // Renk profilin kendi alanından, yoksa kimlikten (`avatarColorOf`).
+    // Bir ara burada `userId.startsWith('guest_color_')` diye bir kırpma
+    // vardı: misafirin rengi kimliğin **içine** gömülüydü. Kimliğe veri
+    // gömmek, ileride `userId` karşılaştıran her yeri sessizce bozar —
+    // renk artık `Profile`'ın kendi alanı.
+    final fill = avatarColorOf(profile, userId);
     final ink = inkOn(fill);
 
     // Harf yüksekliği çapın %44'ü: 14px rozette 6.2px, 60px'te 26px. Sabit bir

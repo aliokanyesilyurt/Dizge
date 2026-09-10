@@ -44,6 +44,8 @@ class AccountScreen extends ConsumerWidget {
                 const ProfileHeader(),
                 const SizedBox(height: S.lg),
                 const DisplayNameField(),
+                const SizedBox(height: S.md),
+                const AvatarColorField(),
                 const SizedBox(height: S.xl),
 
                 // --- Görünüm ---

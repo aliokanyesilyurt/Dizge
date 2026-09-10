@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/auth_service.dart';
 import '../data/app_store.dart';
+import '../data/local_store.dart';
 import '../data/persistence_providers.dart';
 import '../data/sync/first_sync.dart';
 import '../data/sync/remote_gateway.dart';
@@ -38,20 +39,32 @@ class AuthGate extends ConsumerWidget {
       return const AppShell();
     }
 
+    // Dinleyici misafir kipinde de kuruluyor ve oturum misafirlikten **önce**
+    // okunuyor. Eskiden misafir dalı buradan önce dönüyordu; `guest_mode`
+    // yerel depoda kalıcı olduğu için bir kez "misafir olarak devam et" diyen
+    // cihaz bir daha oturuma hiç bakmıyordu. Google girişi sunucuda
+    // tamamlanıyor, uygulama misafir kabuğunda kalıyordu — kullanıcının
+    // "hâlâ giremiyorum" dediği hata buydu.
     _listenForLogin(context, ref);
 
     final auth = ref.watch(authUserProvider);
+    final isGuest = ref.watch(guestModeProvider);
 
+    // Karar A: **gerçek oturum misafir kipini yener.** Misafirlik bir tercih
+    // değil, oturum yokken verilen bir izin; oturum açıldığı anda konusu
+    // kalmıyor. Bayrağın kendisini de giriş anında dinleyici siliyor.
     final child = switch (auth) {
       // Jeton güvenli kasadan geri yüklenirken bir kare "Hoş geldin" gösterip
       // sonra takvime atlamak, her açılışta bir yanıp sönme olurdu.
       AsyncLoading() => const _Splash(),
 
       // Oturum akışı düşerse içeride sayılmak yanlış taraf: kapı kapanır.
-      AsyncError() => const WelcomeScreen(),
+      // Misafir bunun dışında — o zaten oturuma dayanmıyor, akış düştü diye
+      // onu dışarı atmak sebepsiz bir ceza olurdu.
+      AsyncError() => isGuest ? const AppShell() : const WelcomeScreen(),
 
       AsyncValue(:final value) =>
-        value == null ? const WelcomeScreen() : const AppShell(),
+        value != null || isGuest ? const AppShell() : const WelcomeScreen(),
     };
 
     return AnimatedSwitcher(
@@ -93,6 +106,14 @@ class AuthGate extends ConsumerWidget {
       unawaited(
         ref.read(localStoreProvider).writeString(kHasSignedInKey, 'yes'),
       );
+
+      // Misafirlik bitti (Karar A). Bayrağı burada silmek şart: yalnız kapıda
+      // "oturum misafiri yener" demek ekranı düzeltirdi ama bayrak diskte
+      // kalır, kullanıcı çıkış yaptığında hiç istemediği hâlde yine misafir
+      // olarak içeride uyanırdı.
+      if (ref.read(guestModeProvider)) {
+        unawaited(ref.read(guestModeProvider.notifier).leaveGuestMode());
+      }
 
       if (wasSignedOut) {
         unawaited(_runFirstSync(context, ref));
@@ -207,5 +228,43 @@ class _Splash extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Misafir kipinin yerel depodaki anahtarları.
+///
+/// Üçü de burada duruyor çünkü misafirliğin sahibi kapı. Dizeler koda dağılmış
+/// olsaydı (`'guest_mode'` bir dosyada, `'guest_name'` başka bir dosyada) bir
+/// harf farkı sessizce ikinci bir misafir yaratırdı — hata vermeyen, yalnız
+/// adı unutan bir kusur.
+const String kGuestModeKey = 'guest_mode';
+const String kGuestNameKey = 'guest_name';
+const String kGuestColorKey = 'guest_color';
+
+/// "Bu cihazda hesapsız devam ediliyor."
+///
+/// Kalıcı: misafir uygulamayı kapatıp açtığında yine takvimine düşmeli, her
+/// açılışta aynı kararı yeniden vermeye zorlanmamalı. Kalıcı olduğu için de
+/// kapının onu **oturumun altında** okuması gerekiyor (Karar A) — yoksa bayrak
+/// bir kere yazıldıktan sonra girişi sonsuza dek yutar.
+final guestModeProvider = StateNotifierProvider<GuestModeNotifier, bool>((ref) {
+  return GuestModeNotifier(ref.watch(localStoreProvider));
+});
+
+/// Misafirin kim olduğu ayrı bir soru ve cevabı `guestProfileProvider`'da.
+class GuestModeNotifier extends StateNotifier<bool> {
+  GuestModeNotifier(this._store)
+    : super(_store.readString(kGuestModeKey) == 'yes');
+
+  final LocalStore _store;
+
+  Future<void> enterGuestMode() async {
+    state = true;
+    await _store.writeString(kGuestModeKey, 'yes');
+  }
+
+  Future<void> leaveGuestMode() async {
+    state = false;
+    await _store.writeString(kGuestModeKey, 'no');
   }
 }

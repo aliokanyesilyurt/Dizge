@@ -115,6 +115,14 @@ abstract class RemoteGateway {
 
   /// Kendi görünen adını yazar. Yalnız kendi satırı — imzada kimlik yok.
   Future<void> updateDisplayName(String displayName);
+
+  /// Kendi rozet rengini yazar: `kAvatarColors` içindeki sıra (Karar C).
+  ///
+  /// Adla aynı imza kuralı — kimlik parametre değil. Ayrı bir yöntem olması
+  /// bilinçli: ad bir "kaydet" düğmesiyle, renk tek tıkla yazılıyor. Tek bir
+  /// `updateProfile` altında birleştirseydim renge dokunan her tık adı da
+  /// göndermek zorunda kalırdı.
+  Future<void> updateAvatarColor(int color);
 }
 
 /// Backend bağlanana kadarki varsayılan. Uygulamayı %100 offline çalıştırır.
@@ -166,6 +174,9 @@ class NoopRemoteGateway implements RemoteGateway {
 
   @override
   Future<void> updateDisplayName(String displayName) async => throw _yokSunucu;
+
+  @override
+  Future<void> updateAvatarColor(int color) async => throw _yokSunucu;
 
   static const _yokSunucu = RemoteException(
     'Gruplar için hesap bağlantısı gerekiyor.',

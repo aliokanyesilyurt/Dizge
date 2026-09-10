@@ -8,6 +8,7 @@ import '../../core/auth_service.dart';
 import '../../data/app_store.dart';
 import '../../data/persistence_providers.dart';
 import '../../theme.dart';
+import '../auth_gate.dart';
 import 'account_tiles.dart';
 
 /// Oturum bilgisi ve çıkış.
@@ -25,7 +26,24 @@ class AccountSection extends ConsumerWidget {
 
     // Anahtarsız (yerel) derlemede kapı açık kalıyor (G2) ve oturum kavramı
     // hiç yok; bu bölümün gösterecek bir şeyi de yok.
-    if (user == null) return const SizedBox.shrink();
+    if (user == null) {
+      if (ref.watch(guestModeProvider)) {
+        return Column(
+          children: [
+            ActionTile(
+              icon: Icons.login_rounded,
+              iconColor: c.inkDim,
+              title: 'Oturum aç',
+              subtitle: 'Bulut eşitleme ve grupları kullan',
+              onTap: () async {
+                await ref.read(guestModeProvider.notifier).leaveGuestMode();
+              },
+            ),
+          ],
+        );
+      }
+      return const SizedBox.shrink();
+    }
 
     return Column(
       children: [
@@ -38,6 +56,20 @@ class AccountSection extends ConsumerWidget {
           title: 'Parolanı değiştir',
           subtitle: 'Bu hesabın parolası',
           onTap: () => _changePassword(context, ref),
+        ),
+        // "Hesap değiştir" ayrı bir mekanizma değil, çıkışın kısayolu
+        // (Karar B). Hive kutusu tek ve kullanıcıdan bağımsız; iki hesabın
+        // verisini aynı anda cihazda tutmanın yolu yok, dolayısıyla çıkmadan
+        // geçiş de yok. Ayrı bir satır olması yine de değerli: kullanıcı
+        // aradığı şeye "çıkış" demiyor, "hesap değiştir" diyor.
+        //
+        // Bedeli gizlenmiyor — alt metin çıkıştakiyle aynı şeyi söylüyor.
+        ActionTile(
+          icon: Icons.switch_account_rounded,
+          iconColor: c.inkDim,
+          title: 'Hesap değiştir',
+          subtitle: 'Çıkıp başka hesapla gir — bu cihazdaki planlar silinir',
+          onTap: () => _signOut(context, ref, switchAccount: true),
         ),
         ActionTile(
           icon: Icons.logout_rounded,
@@ -119,7 +151,11 @@ Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
 /// bilerek karar verir. Oturum kapatma başarısız olursa (ağ yok) hiçbir şey
 /// silinmez — yarım kalmış bir çıkış, kullanıcıyı hem içeride hem verisiz
 /// bırakırdı.
-Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+Future<void> _signOut(
+  BuildContext context,
+  WidgetRef ref, {
+  bool switchAccount = false,
+}) async {
   // Kapı, oturum kapanır kapanmaz bu ekranı ağaçtan söküyor. Sökülmüş bir
   // widget'ın `ref`'inden okumak hata; ihtiyacımız olan her şey şimdi alınır.
   final outbox = ref.read(outboxProvider);
@@ -141,7 +177,8 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
         title: const Text('Yüklenmemiş değişiklikler var'),
         content: Text(
           '${outbox.length} değişiklik henüz hesabına gönderilemedi. '
-          'Şimdi çıkarsan bu cihazdan silinecekler ve geri gelmeyecekler.',
+          '${switchAccount ? 'Şimdi hesap değiştirirsen' : 'Şimdi çıkarsan'} '
+          'bu cihazdan silinecekler ve geri gelmeyecekler.',
         ),
         actions: [
           TextButton(
@@ -151,7 +188,7 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
-              'Yine de çık',
+              switchAccount ? 'Yine de değiştir' : 'Yine de çık',
               style: TextStyle(color: ctx.colors.danger),
             ),
           ),
@@ -171,4 +208,15 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
   await outbox.clear();
   await localStore.wipe();
   appStore.loadJson(const {});
+
+  // `wipe()` her şeyi siliyor — `kHasSignedInKey` dahil. O bayrak olmadan
+  // karşılama ekranı bu cihazı "ilk kez açılıyor" sanıp **kayıt** kipinde
+  // açılır: az önce çıkmış ya da hesap değiştirmek isteyen kullanıcının
+  // önüne yeni hesap formu gelirdi. Bayrak bir sır değil, bir cihaz
+  // gerçeği; silinmesi gereken veri değil.
+  await localStore.writeString(kHasSignedInKey, 'yes');
+
+  // Misafirlik de sıfırlanıyor: bayrak `wipe()` ile zaten gitti ama bellekteki
+  // durum kalıyordu ve kapı çıkıştan sonra takvimi misafir olarak açardı.
+  await ref.read(guestModeProvider.notifier).leaveGuestMode();
 }

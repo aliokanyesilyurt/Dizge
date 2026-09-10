@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/group_context.dart';
+import '../screens/auth_gate.dart';
 import '../theme.dart';
 import 'group_dialogs.dart';
 
@@ -49,16 +50,18 @@ class GroupSwitcher extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isGuest = ref.watch(guestModeProvider);
     final ctx = ref.watch(groupContextProvider);
     final c = context.colors;
     final inGroup = !ctx.isPersonal;
     final icon = inGroup ? Icons.groups_rounded : Icons.person_outline_rounded;
     // Grup bağlamı vurgulu: bir süzgecin açık olduğu, ada bakmadan da
     // anlaşılmalı.
-    final ink = inGroup ? c.navActiveInk : c.inkDim;
+    final ink = isGuest ? c.inkFaint : (inGroup ? c.navActiveInk : c.inkDim);
 
     final button = PopupMenuButton<String>(
-      tooltip: '',
+      enabled: !isGuest,
+      tooltip: isGuest ? 'Gruplar için oturum açmalısın' : '',
       position: PopupMenuPosition.under,
       color: c.surfaceAlt,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),

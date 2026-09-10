@@ -7,6 +7,7 @@ import '../data/local_store.dart';
 import '../data/persistence_providers.dart';
 import '../data/sync/remote_gateway.dart';
 import '../models/profile.dart';
+import '../screens/auth_gate.dart';
 
 /// Görülebilen profillerin yerel önbelleği.
 const String kProfilesCacheKey = 'profiles.cache';
@@ -94,6 +95,17 @@ class ProfileDirectoryController extends StateNotifier<ProfileDirectory> {
     await _apply({...state.byId, userId: mine.copyWith(displayName: trimmed)});
   }
 
+  /// Kendi rozet rengini yazar (Karar C).
+  ///
+  /// [updateDisplayName] ile aynı sıra ve aynı gerekçe: önce sunucu, sonra
+  /// yerel harita.
+  Future<void> updateAvatarColor(String userId, int color) async {
+    await _gateway.updateAvatarColor(color);
+
+    final mine = state.byId[userId] ?? Profile(userId: userId);
+    await _apply({...state.byId, userId: mine.copyWith(avatarColor: color)});
+  }
+
   Future<void> _apply(Map<String, Profile> byId) async {
     state = ProfileDirectory(byId: byId);
     await _store.writeString(
@@ -111,11 +123,42 @@ final profileDirectoryProvider =
       ),
     );
 
+/// Hesapsız kullanıcının kendi seçtiği yüzü.
+///
+/// Sunucuda karşılığı yok ve olmayacak: misafirin adı bu cihazdan dışarı
+/// çıkmıyor, kimsenin görmediği bir rozeti sunucuya yazmanın anlamı yok.
+///
+/// Kimliği sabit `kGuestUserId`. Eskiden rengi taşımak için
+/// `'guest_color_3'` gibi uydurma kimlikler üretiliyor ve rozet bunu ön
+/// ekinden tanımaya çalışıyordu; renk artık [Profile.avatarColor] alanında,
+/// kimlik yine sadece kimlik.
+final guestProfileProvider = Provider<Profile?>((ref) {
+  if (!ref.watch(guestModeProvider)) return null;
+
+  final store = ref.watch(localStoreProvider);
+  final name = store.readString(kGuestNameKey) ?? 'Misafir';
+  return Profile(
+    userId: kGuestUserId,
+    displayName: name.trim().isEmpty ? 'Misafir' : name.trim(),
+    avatarColor: int.tryParse(store.readString(kGuestColorKey) ?? ''),
+  );
+});
+
+/// Misafirin kimliği. Sunucudaki hiçbir uuid'ye benzemiyor — bilerek: bu dize
+/// bir gün `owner_id` diye bir satıra yazılırsa hemen göze batmalı.
+const String kGuestUserId = 'guest';
+
 /// Tek bir kişinin profili.
 ///
 /// `family` + `select`: bir kişinin adı değiştiğinde yalnız onun blokları
 /// yeniden çizilir. Bütün haritayı izlemek, her tazelemede ekrandaki her
 /// avatarı uyandırırdı.
-final profileProvider = Provider.family<Profile?, String?>(
-  (ref, userId) => ref.watch(profileDirectoryProvider.select((d) => d[userId])),
-);
+final profileProvider = Provider.family<Profile?, String?>((ref, userId) {
+  // Kimliksiz "ben": ya misafiriz, ya da hiç kimseyiz. `guestProfileProvider`
+  // misafir değilken zaten null döndürüyor, yani bu dal eski davranışı
+  // (bilinmeyen kimlik → null → `?` rozeti) bozmuyor.
+  if (userId == null || userId == kGuestUserId) {
+    return ref.watch(guestProfileProvider);
+  }
+  return ref.watch(profileDirectoryProvider.select((d) => d[userId]));
+});

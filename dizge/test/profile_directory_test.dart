@@ -41,6 +41,18 @@ class _FakeGateway implements RemoteGateway {
     renamed.add(displayName);
   }
 
+  final List<int> colored = [];
+
+  @override
+  Future<void> updateAvatarColor(int color) async {
+    final f = nextWriteFailure;
+    if (f != null) {
+      nextWriteFailure = null;
+      throw f;
+    }
+    colored.add(color);
+  }
+
   // --- Bu testin ilgilenmediği yüzey ------------------------------------------
   @override
   bool get isConfigured => true;
@@ -232,6 +244,50 @@ void main() {
         throwsA(isA<RemoteException>()),
       );
       expect(c.state['u-ali']?.displayName, 'Ali Okan');
+    });
+  });
+  group('rozet rengi yazma', () {
+    test('önce sunucu, sonra yerel harita', () async {
+      // Ters sıra olsaydı çevrimdışı bir tık rengi ekranda değiştirir, grup
+      // arkadaşlarında eski renk kalırdı.
+      final gateway = _FakeGateway();
+      final store = InMemoryStore();
+      await store.init();
+      final c = ProfileDirectoryController(store, gateway);
+
+      await c.updateAvatarColor('u-ali', 4);
+
+      expect(gateway.colored, [4]);
+      expect(c.state['u-ali']?.avatarColor, 4);
+    });
+
+    test('sunucu reddederse yerel harita değişmez', () async {
+      final gateway = _FakeGateway()
+        ..nextWriteFailure = const RemoteException('olmaz', fatal: true);
+      final store = InMemoryStore();
+      await store.init();
+      final c = ProfileDirectoryController(store, gateway);
+
+      await expectLater(
+        c.updateAvatarColor('u-ali', 4),
+        throwsA(isA<RemoteException>()),
+      );
+      expect(c.state['u-ali']?.avatarColor, isNull);
+    });
+
+    test('renk yazmak adı silmez', () async {
+      // `upsert` haritasına null alan koymak adı sıfırlardı; burada aynı
+      // kural istemci tarafında sınanıyor: renk yazımı adı taşımalı.
+      final gateway = _FakeGateway();
+      final store = InMemoryStore();
+      await store.init();
+      final c = ProfileDirectoryController(store, gateway);
+
+      await c.updateDisplayName('u-ali', 'Ali Okan');
+      await c.updateAvatarColor('u-ali', 6);
+
+      expect(c.state['u-ali']?.displayName, 'Ali Okan');
+      expect(c.state['u-ali']?.avatarColor, 6);
     });
   });
 }

@@ -3,7 +3,12 @@
 /// Tabloda e-posta yok ve bu sınıfta da olmayacak: grup arkadaşına gösterilmesi
 /// gereken şey "bu işi kim yazdı" sorusunun cevabı, iletişim bilgisi değil.
 class Profile {
-  const Profile({required this.userId, this.displayName = '', this.avatarUrl});
+  const Profile({
+    required this.userId,
+    this.displayName = '',
+    this.avatarUrl,
+    this.avatarColor,
+  });
 
   final String userId;
 
@@ -15,6 +20,17 @@ class Profile {
   /// Sağlayıcının (bugün Google) CDN adresi. Fotoğrafın kendisini
   /// kopyalamıyoruz; kullanıcı sağlayıcıdan silerse bizde de yaşamamalı.
   final String? avatarUrl;
+
+  /// Rozet rengi: `kAvatarColors` içindeki sıra (Karar C).
+  ///
+  /// **null "renk yok" değil, "seçilmedi" demek** — o zaman renk kimlikten
+  /// türer (`avatarColorFor`). İki hâli ayırmak şart: varsayılanı 0 yapsaydım
+  /// hiç renk seçmemiş herkes aynı maviye düşer ve rozetin kişileri ayırma
+  /// işlevi ortadan kalkardı.
+  ///
+  /// Sunucu sütunu yoksa (göç çalıştırılmamışsa) bu alan null gelir ve
+  /// uygulama eski davranışa düşer; hata vermez.
+  final int? avatarColor;
 
   /// Rozette görünen 1–2 harf: `Ali Okan` → `AO`, `Ali` → `A`.
   ///
@@ -51,6 +67,7 @@ class Profile {
     userId: (row['user_id'] as String?) ?? '',
     displayName: (row['display_name'] as String?) ?? '',
     avatarUrl: _clean(row['avatar_url'] as String?),
+    avatarColor: (row['avatar_color'] as num?)?.toInt(),
   );
 
   /// Yerel önbellek için. Çevrimdışı açılışta grup işlerinin **kime ait
@@ -60,18 +77,25 @@ class Profile {
     'userId': userId,
     'displayName': displayName,
     'avatarUrl': ?avatarUrl,
+    'avatarColor': ?avatarColor,
   };
 
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
     userId: (j['userId'] as String?) ?? '',
     displayName: (j['displayName'] as String?) ?? '',
     avatarUrl: _clean(j['avatarUrl'] as String?),
+    avatarColor: (j['avatarColor'] as num?)?.toInt(),
   );
 
-  Profile copyWith({String? displayName, String? avatarUrl}) => Profile(
+  Profile copyWith({
+    String? displayName,
+    String? avatarUrl,
+    int? avatarColor,
+  }) => Profile(
     userId: userId,
     displayName: displayName ?? this.displayName,
     avatarUrl: avatarUrl ?? this.avatarUrl,
+    avatarColor: avatarColor ?? this.avatarColor,
   );
 
   /// Boş dize `null` sayılır: istemci "fotoğraf var" sanıp boş bir ağ isteği
@@ -84,10 +108,11 @@ class Profile {
       other is Profile &&
       other.userId == userId &&
       other.displayName == displayName &&
-      other.avatarUrl == avatarUrl;
+      other.avatarUrl == avatarUrl &&
+      other.avatarColor == avatarColor;
 
   @override
-  int get hashCode => Object.hash(userId, displayName, avatarUrl);
+  int get hashCode => Object.hash(userId, displayName, avatarUrl, avatarColor);
 
   @override
   String toString() => 'Profile($userId, $displayName)';

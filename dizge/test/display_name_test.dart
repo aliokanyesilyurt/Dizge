@@ -34,6 +34,9 @@ class _FakeGateway implements RemoteGateway {
   }
 
   @override
+  Future<void> updateAvatarColor(int color) async {}
+
+  @override
   Future<List<Profile>> fetchProfiles() async => const [];
   @override
   bool get isConfigured => true;

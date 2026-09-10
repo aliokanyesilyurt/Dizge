@@ -73,6 +73,9 @@ class _FakeGateway implements RemoteGateway {
     renamed.add(displayName);
   }
 
+  @override
+  Future<void> updateAvatarColor(int color) async {}
+
   // --- Grup işlemleri --------------------------------------------------------
 
   /// Sunucunun reddi: sıradaki grup çağrısı bununla düşer.

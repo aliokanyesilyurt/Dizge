@@ -125,6 +125,12 @@ class FakeAuthService implements AuthService {
     _controller.add(user);
   }
 
+  /// Oturum akışını hataya düşürür: jeton yenilenemedi, sunucu reddetti.
+  ///
+  /// Kapının hata dalı yalnız böyle sınanabiliyor — `currentUser`'ı null
+  /// yapmak "oturum yok" demek, "oturumu okuyamıyorum" demek değil.
+  void emitError(Object error) => _controller.addError(error);
+
   @override
   Future<void> signIn({required String email, required String password}) async {
     final failure = nextFailure;

@@ -77,7 +77,11 @@ abstract class SupabaseApi {
   /// `user_id` çağıranın kimliğinden alınır ve parametre değildir: başkasının
   /// satırını hedefleyebilen bir imza, RLS onu reddetse bile yanlış soruyu
   /// sormayı mümkün kılardı.
-  Future<void> upsertProfile({required String displayName});
+  ///
+  /// İki alan da isteğe bağlı ve **verilmeyen alan yazılmaz**: rengi
+  /// değiştiren bir tık, kullanıcının o sırada kutuda düzenlediği yarım adı
+  /// sunucuya göndermemeli.
+  Future<void> upsertProfile({String? displayName, int? avatarColor});
 
   /// "Sunucuda bir şey değişti" sinyali (Y2). Veri taşımaz.
   Stream<void> get remoteChanges;
@@ -130,7 +134,7 @@ class LiveSupabaseApi implements SupabaseApi {
   );
 
   @override
-  Future<void> upsertProfile({required String displayName}) async {
+  Future<void> upsertProfile({String? displayName, int? avatarColor}) async {
     final uid = currentUserId;
     if (uid == null) {
       throw const RemoteException('Oturum yok.', fatal: true);
@@ -139,9 +143,13 @@ class LiveSupabaseApi implements SupabaseApi {
       // `updated_at` gönderilmiyor: onu sunucudaki trigger yazıyor (04 §5b).
       // Cihaz saatine bırakılsaydı, saati ileri kurulmuş bir telefonun yazdığı
       // ad sonsuza dek kazanan olurdu.
+      //
+      // Null alanlar haritaya hiç girmiyor. `'display_name': null` yazmak
+      // upsert'te adı **silerdi** — renk değiştiren biri adını kaybederdi.
       () => _client.from('profiles').upsert({
         'user_id': uid,
-        'display_name': displayName,
+        'display_name': ?displayName,
+        'avatar_color': ?avatarColor,
       }),
     );
   }

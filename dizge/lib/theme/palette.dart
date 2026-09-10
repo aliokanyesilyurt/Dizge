@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../models/profile.dart';
 
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
@@ -636,6 +637,22 @@ Color avatarColorFor(String userId) {
     sum = (sum + unit) % 1000003;
   }
   return kAvatarColors[sum % kAvatarColors.length];
+}
+
+/// Rozetin gerçek rengi: **seçim varsa seçim, yoksa kimlik** (Karar C).
+///
+/// İki kaynağı tek yerde birleştiriyor ki "kullanıcı rengini seçti mi"
+/// sorusunu rozet çizen her yer ayrı ayrı sormasın. `avatarColorFor` tek
+/// başına da duruyor: kimliği olan ama profili hiç bilinmeyen biri (henüz
+/// inmemiş bir grup arkadaşı) yine de kararlı bir renk almalı.
+///
+/// Modül alınıyor: sunucudan gelen sıra, listeye sonradan renk eklenip
+/// çıkarılırsa aralık dışına düşebilir. Aralık dışı bir sayı yüzünden rozetin
+/// çizilmemesi (ve o satırın çökmesi) kabul edilemez bir bedel.
+Color avatarColorOf(Profile? profile, String? userId) {
+  final chosen = profile?.avatarColor;
+  if (chosen != null) return kAvatarColors[chosen.abs() % kAvatarColors.length];
+  return avatarColorFor(userId ?? '');
 }
 
 /// WCAG 2.1 kontrast oranı (1:1 – 21:1).

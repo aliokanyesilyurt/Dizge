@@ -37,6 +37,8 @@ class _FakeGateway implements RemoteGateway {
   @override
   Future<void> updateDisplayName(String d) async {}
   @override
+  Future<void> updateAvatarColor(int color) async {}
+  @override
   Future<Group> createGroup(String name) async => throw UnimplementedError();
   @override
   Future<String> createInvite(String g, {String? email}) async =>

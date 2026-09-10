@@ -8,6 +8,8 @@ import '../core/telemetry.dart';
 import '../data/persistence_providers.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
+import 'account/profile_section.dart';
+import 'auth_gate.dart';
 
 /// Karşılama ekranının dört hâli.
 ///
@@ -176,6 +178,93 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _googleBusy = false);
+    }
+  }
+
+  /// Hesapsız devam: önce "sen kimsin", sonra takvim.
+  ///
+  /// Soru sorulmasının sebebi kozmetik değil. Misafirin de bir rozeti var
+  /// (kendi yazdığı işlerin üstünde) ve varsayılan bırakılırsa herkes aynı
+  /// "Misafir" ve aynı renk olurdu — cihazı iki kişi kullandığında kimin ne
+  /// yazdığı kaybolurdu.
+  ///
+  /// Diyalog kendi durumunu `StatefulBuilder` ile tutuyor: seçilen renk
+  /// diyaloğun ömründen uzun yaşamamalı, vazgeçilirse hiçbir yere yazılmamalı.
+  Future<void> _continueAsGuest() async {
+    final nameController = TextEditingController(text: 'Misafir');
+    var colorIdx = 0;
+
+    try {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: const Text('Misafir profilin'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  maxLength: 40,
+                  decoration: const InputDecoration(
+                    hintText: 'Adın ne olsun?',
+                    isDense: true,
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: S.lg),
+                Text(
+                  'Rozet rengi',
+                  style: TextStyle(
+                    color: ctx.colors.ink,
+                    fontSize: T.body,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: S.sm),
+                AvatarSwatches(
+                  selected: colorIdx,
+                  onPick: (i) => setDialogState(() => colorIdx = i),
+                ),
+                const SizedBox(height: S.sm),
+                Text(
+                  'Bunlar bu cihazda kalır; sunucuya gitmez.',
+                  style: TextStyle(
+                    color: ctx.colors.inkFaint,
+                    fontSize: T.caption,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Vazgeç'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Başla'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (proceed != true) return;
+
+      // Boş ad `guestProfileProvider`'da zaten 'Misafir'e düşüyor; yine de
+      // kırpılmış hâli yazılıyor ki depoda baştaki/sondaki boşluklar kalmasın.
+      final store = ref.read(localStoreProvider);
+      await store.writeString(kGuestNameKey, nameController.text.trim());
+      await store.writeString(kGuestColorKey, colorIdx.toString());
+      await ref.read(guestModeProvider.notifier).enterGuestMode();
+    } finally {
+      // Diyalog nasıl kapanırsa kapansın — vazgeçilerek, geri tuşuyla ya da
+      // bir hata atılarak — denetleyici serbest bırakılır.
+      nameController.dispose();
     }
   }
 
@@ -444,6 +533,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           ),
                         ),
                       ],
+                      const SizedBox(height: S.sm),
+                      OutlinedButton(
+                        onPressed: _locked ? null : _continueAsGuest,
+                        child: const Text('Misafir olarak devam et'),
+                      ),
                     ],
 
                     const SizedBox(height: S.xs),
