@@ -1,11 +1,15 @@
 // Paket de `AuthUser` diye bir tip ihraç ediyor. Gizleniyor: bu dosyadaki
 // `AuthUser` her zaman **bizim** modelimiz olmalı, yoksa çeviri katmanının
 // anlamı kalmaz.
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
 import '../core/app_config.dart';
 import '../core/auth_service.dart';
+import 'oauth_loopback.dart';
 
 /// [AuthService]'in Supabase uygulaması.
 ///
@@ -13,9 +17,30 @@ import '../core/auth_service.dart';
 /// açıldığında geri yüklemek `supabase_flutter`'ın işi — bu sınıf yalnız
 /// çeviri yapar: paket tipleri → [AuthUser] / [AuthFailure].
 class SupabaseAuthService implements AuthService {
-  SupabaseAuthService(this._auth);
+  SupabaseAuthService(
+    this._auth, {
+    OAuthLoopback? loopback,
+    this.onBrowserReturn,
+  }) : _loopback = loopback ?? (_isDesktop ? OAuthLoopback() : null);
 
   final GoTrueClient _auth;
+
+  /// Masaüstünde Google dönüşünün yerel dinleyicisi (G1); mobilde null —
+  /// orada özel şema zaten uygulamaya geçiyor.
+  final OAuthLoopback? _loopback;
+
+  /// Tarayıcı dönüşünden sonra pencereyi öne getirmek için (bootstrap
+  /// bağlıyor). Bu katman pencere yöneticisini tanımıyor.
+  final void Function()? onBrowserReturn;
+
+  /// Yerel dönüşte çıkan hatalar. Sağlayıcının kendi akışına düşmüyorlar
+  /// (kodu oturuma çeviren burası), ama ekran hatayı yine **akıştan**
+  /// bekliyor (bkz. [AuthService.signInWithGoogle]); o yüzden aynı akışa
+  /// katılıyorlar.
+  final _returnErrors = StreamController<AuthUser?>.broadcast();
+
+  static bool get _isDesktop =>
+      !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
   /// Bu sınıf yalnızca anahtarlar verilmişken kurulur (`bootstrap._initBackend`);
   /// var olması, kimlik doğrulanabildiği anlamına gelir.
@@ -26,8 +51,16 @@ class SupabaseAuthService implements AuthService {
   AuthUser? get currentUser => _toUser(_auth.currentUser);
 
   @override
-  Stream<AuthUser?> get changes =>
-      _auth.onAuthStateChange.map((e) => _toUser(e.session?.user));
+  Stream<AuthUser?> get changes => Stream.multi((out) {
+    final a = _auth.onAuthStateChange
+        .map((e) => _toUser(e.session?.user))
+        .listen(out.add, onError: out.addError);
+    final b = _returnErrors.stream.listen(out.add, onError: out.addError);
+    out.onCancel = () async {
+      await a.cancel();
+      await b.cancel();
+    };
+  }, isBroadcast: true);
 
   @override
   Future<void> signIn({required String email, required String password}) =>
@@ -55,9 +88,7 @@ class SupabaseAuthService implements AuthService {
     try {
       final launched = await _auth.signInWithOAuth(
         OAuthProvider.google,
-        // Web'de dönüş sayfanın kendi adresi; özel şema orada anlamsız ve
-        // verilirse tarayıcı çalıştıramayacağı bir adrese yönlenir.
-        redirectTo: kIsWeb ? null : AppConfig.oauthCallbackUrl,
+        redirectTo: await _redirectUrl(),
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
       if (!launched) {
@@ -74,6 +105,51 @@ class SupabaseAuthService implements AuthService {
       throw const AuthFailure(
         'Tarayıcı açılamadı. E-posta ve parolayla girebilirsin.',
       );
+    }
+  }
+
+  /// Dönüş adresi: masaüstünde yerel dinleyici, açılamazsa özel şema.
+  ///
+  /// Web'de dönüş sayfanın kendi adresi (`null`); özel şema orada anlamsız
+  /// ve verilirse tarayıcı çalıştıramayacağı bir adrese yönlenir.
+  Future<String?> _redirectUrl() async {
+    if (kIsWeb) return null;
+    final loopback = _loopback;
+    if (loopback != null && await loopback.start(onCallback: _completeReturn)) {
+      return loopback.redirectUrl;
+    }
+    return AppConfig.oauthCallbackUrl;
+  }
+
+  /// Tarayıcı yerel adrese döndü: kodu oturuma çevir, pencereyi öne getir.
+  ///
+  /// Dönen metin tarayıcıdaki sayfaya yazılıyor; `null` = başarı.
+  Future<String?> _completeReturn(Uri uri) async {
+    onBrowserReturn?.call();
+
+    final providerError = oauthErrorOf(uri);
+    if (providerError != null) {
+      _returnErrors.addError(AuthFailure(providerError));
+      return providerError;
+    }
+    final code = uri.queryParameters['code'];
+    if (code == null || code.isEmpty) {
+      const message = 'Dönüş adresinde giriş kodu yok. Tekrar dene.';
+      _returnErrors.addError(const AuthFailure(message));
+      return message;
+    }
+    try {
+      await _auth.exchangeCodeForSession(code);
+      return null;
+    } on AuthException catch (e) {
+      final failure = _translate(e);
+      _returnErrors.addError(failure);
+      return failure.message;
+    } catch (_) {
+      const message =
+          'Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.';
+      _returnErrors.addError(const AuthFailure(message));
+      return message;
     }
   }
 

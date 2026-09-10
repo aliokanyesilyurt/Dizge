@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+import 'package:window_manager/window_manager.dart';
 
 import 'core/app_config.dart';
 import 'core/auth_service.dart';
@@ -206,8 +207,26 @@ Future<(RemoteGateway, AuthService)> _initBackend(
   final client = sb.Supabase.instance.client;
   return (
     SupabaseGateway(LiveSupabaseApi(client)),
-    SupabaseAuthService(client.auth),
+    SupabaseAuthService(client.auth, onBrowserReturn: _bringToFront),
   );
+}
+
+/// Google girişinden dönülünce pencereyi öne getirir (G1). Kullanıcı az
+/// önce tarayıcıdaydı; takvim arkada kalırsa "giriş oldu mu" diye aramak
+/// zorunda kalırdı.
+void _bringToFront() {
+  if (kIsWeb || !(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    return;
+  }
+  unawaited(() async {
+    try {
+      if (await windowManager.isMinimized()) await windowManager.restore();
+      await windowManager.show();
+      await windowManager.focus();
+    } catch (_) {
+      // Pencere yöneticisi hazır değilse sessiz: giriş yine tamamlandı.
+    }
+  }());
 }
 
 /// Telemetriyi kurar ve **her zaman** rıza geçidinin arkasına koyar.
