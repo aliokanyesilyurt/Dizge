@@ -6,20 +6,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// geri kalanı jeton, yenileme süresi ya da sağlayıcıya özgü meta veriyi
 /// tanımıyor.
 class AuthUser {
-  const AuthUser({required this.id, required this.email});
+  const AuthUser({
+    required this.id,
+    required this.email,
+    this.hasPassword = true,
+  });
 
   /// Sunucudaki `owner_id` — satırı kimin oluşturduğu buna yazılıyor.
   final String id;
 
   final String email;
 
-  @override
-  bool operator ==(Object other) =>
-      other is AuthUser && other.id == id && other.email == email;
+  /// Hesap e-posta + parolayla mı açıldı? Yalnız Google ile açılmış hesapta
+  /// "mevcut parola" diye bir şey yok; parola sayfası orada "Parola belirle"
+  /// olur ve doğrulamayı e-postaya giden kodla yapar (P4).
+  final bool hasPassword;
 
   @override
-  int get hashCode => Object.hash(id, email);
+  bool operator ==(Object other) =>
+      other is AuthUser &&
+      other.id == id &&
+      other.email == email &&
+      other.hasPassword == hasPassword;
+
+  @override
+  int get hashCode => Object.hash(id, email, hasPassword);
 }
+
+/// Kaydın sonucu: oturum hemen mi açıldı, yoksa e-posta doğrulaması mı
+/// bekleniyor? Sunucuda "Confirm email" açıksa ikincisi (P2).
+enum SignUpOutcome { signedIn, needsConfirmation }
 
 /// Kullanıcıya **gösterilebilir** oturum hatası.
 ///
@@ -61,7 +77,20 @@ abstract class AuthService {
   Stream<AuthUser?> get changes;
 
   Future<void> signIn({required String email, required String password});
-  Future<void> signUp({required String email, required String password});
+
+  /// Hesap açar. E-posta doğrulaması gerekiyorsa oturum açılmaz ve
+  /// [SignUpOutcome.needsConfirmation] döner; kullanıcı e-postasına gelen
+  /// kodu [verifySignupCode] ile girer.
+  Future<SignUpOutcome> signUp({
+    required String email,
+    required String password,
+  });
+
+  /// Kayıt doğrulama kodunu doğrular ve oturumu açar.
+  Future<void> verifySignupCode({required String email, required String code});
+
+  /// Kayıt doğrulama kodunu yeniden gönderir.
+  Future<void> resendSignupCode(String email);
 
   /// Oturumu kapatır. Yerel veriye ne olacağı bu katmanın işi değil; çağıran
   /// karar verir (bkz. `account_screen._signOut`).
@@ -92,27 +121,51 @@ abstract class AuthService {
   // Onun yerine e-postaya bir kod gidiyor ve kod uygulamaya yazılıyor: hiçbir
   // platform yapılandırması gerekmiyor.
 
-  /// E-postaya tek kullanımlık bir giriş kodu gönderir.
+  /// E-postaya parola sıfırlama kodu gönderir.
   ///
-  /// Kayıtlı olmayan bir adres için **hesap açmaz**: yanlış yazılmış bir
-  /// e-posta, sessizce boş bir hesap yaratıp kullanıcıyı "neden takvimim yok"
-  /// sorusuyla baş başa bırakırdı.
+  /// Kayıtlı olmayan adres için de **hata vermez** (P3): "bu adres kayıtlı
+  /// değil" demek, herhangi birinin bir e-postanın burada hesabı olup
+  /// olmadığını sorgulayabilmesi demekti. Ekran bu yüzden "kayıtlıysa
+  /// gönderdik" diyor. Hesap da açmaz.
   Future<void> sendRecoveryCode(String email);
 
   /// Kodu doğrular ve oturumu açar.
   ///
-  /// Kurtarma burada bitmiyor: kullanıcı içeri girer ve parolasını
-  /// [updatePassword] ile değiştirir. Kodu "yeni parola belirle" ekranına
-  /// bağlamak, oturum açmadan parola değiştirmek demekti — kod tek başına
-  /// zaten bir oturum anahtarı.
+  /// Kurtarma burada bitmiyor: kapı [passwordResetPendingProvider] yanarken
+  /// takvim yerine "Yeni parolanı belirle" ekranını gösterir. Kod tek başına
+  /// zaten bir oturum anahtarı; parolayı ondan önce değiştirmenin yolu yok.
   Future<void> verifyRecoveryCode({
     required String email,
     required String code,
   });
 
-  /// Açık oturumun parolasını değiştirir.
-  Future<void> updatePassword(String password);
+  /// Açık oturumun **mevcut** parolasını sunucuda doğrular (P4).
+  ///
+  /// Yanlışsa [AuthFailure] ("Mevcut parola hatalı.") ve hiçbir şey değişmez.
+  /// Parolayı değiştirmeden önce çağrılır: oturumu açık bırakılmış bir
+  /// cihazda başkası parolayı değiştiremesin.
+  Future<void> verifyCurrentPassword(String password);
+
+  /// Açık oturumun e-postasına yeniden doğrulama kodu gönderir — mevcut
+  /// parolayı hatırlamayan ya da hiç parolası olmayan (Google) hesap için.
+  Future<void> sendReauthCode();
+
+  /// Açık oturumun parolasını değiştirir. [code], [sendReauthCode] ile gelen
+  /// kod; [current], az önce doğrulanan mevcut parola (sunucu isterse).
+  Future<void> updatePassword(String password, {String? code, String? current});
+
+  /// Bu cihaz dışındaki bütün oturumları kapatır. Parola sızdı diye
+  /// değiştiren kişinin asıl istediği budur.
+  Future<void> signOutOtherSessions();
 }
+
+/// Kurtarma kodu doğrulandı, yeni parola henüz belirlenmedi.
+///
+/// Kodla açılan oturum gerçek bir oturum; kapı bunu görünce takvimi açardı ve
+/// kurtarma "parolanı sonra Hesap'tan değiştir" diye yarım kalırdı. Bayrak
+/// bellekte: uygulama bu arada kapanırsa kullanıcı içeride uyanır, parolasını
+/// Hesap ekranından yine değiştirebilir.
+final passwordResetPendingProvider = StateProvider<bool>((ref) => false);
 
 /// Backend yapılandırılmamışken bağlanan uygulama.
 ///
@@ -137,7 +190,23 @@ class NoopAuthService implements AuthService {
   }
 
   @override
-  Future<void> signUp({required String email, required String password}) async {
+  Future<SignUpOutcome> signUp({
+    required String email,
+    required String password,
+  }) async {
+    throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
+  }
+
+  @override
+  Future<void> verifySignupCode({
+    required String email,
+    required String code,
+  }) async {
+    throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
+  }
+
+  @override
+  Future<void> resendSignupCode(String email) async {
     throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
   }
 
@@ -164,9 +233,26 @@ class NoopAuthService implements AuthService {
   }
 
   @override
-  Future<void> updatePassword(String password) async {
+  Future<void> verifyCurrentPassword(String password) async {
     throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
   }
+
+  @override
+  Future<void> sendReauthCode() async {
+    throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
+  }
+
+  @override
+  Future<void> updatePassword(
+    String password, {
+    String? code,
+    String? current,
+  }) async {
+    throw const AuthFailure('Sunucu bu sürümde yapılandırılmadı.');
+  }
+
+  @override
+  Future<void> signOutOtherSessions() async {}
 }
 
 /// Bu cihazda **daha önce** oturum açılmış mı?

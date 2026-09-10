@@ -54,6 +54,7 @@ void main() {
 
       expect(_googleButton, findsOneWidget);
 
+      await tester.ensureVisible(_googleButton);
       await tester.tap(_googleButton);
       await tester.pumpAndSettle();
 
@@ -78,6 +79,7 @@ void main() {
         ],
       );
 
+      await tester.ensureVisible(_googleButton);
       await tester.tap(_googleButton);
       await tester.pumpAndSettle();
 
@@ -100,6 +102,7 @@ void main() {
         ],
       );
 
+      await tester.ensureVisible(_googleButton);
       await tester.tap(_googleButton);
       await tester.pumpAndSettle();
 
@@ -125,6 +128,7 @@ void main() {
         ],
       );
 
+      await tester.ensureVisible(_googleButton);
       await tester.tap(_googleButton);
       await tester.pumpAndSettle();
 
@@ -203,6 +207,7 @@ void main() {
 
       expect(find.byType(WelcomeScreen), findsOneWidget);
 
+      await tester.ensureVisible(_googleButton);
       await tester.tap(_googleButton);
       await tester.pumpAndSettle();
 

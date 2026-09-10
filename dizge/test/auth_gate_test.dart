@@ -6,6 +6,7 @@ import 'package:dizge/data/local_store.dart';
 import 'package:dizge/data/persistence_providers.dart';
 import 'package:dizge/screens/app_shell.dart';
 import 'package:dizge/screens/auth_gate.dart';
+import 'package:dizge/screens/password_screens.dart';
 import 'package:dizge/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -251,6 +252,22 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Doğrula ve gir'));
       await tester.pumpAndSettle();
 
+      // P3: kodla oturum açıldı ama takvim değil, önce yeni parola.
+      expect(find.byType(SetNewPasswordScreen), findsOneWidget);
+      expect(find.byType(AppShell), findsNothing);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Yeni parola'),
+        'yeniParola9',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Parola (tekrar)'),
+        'yeniParola9',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Parolayı kaydet'));
+      await tester.pumpAndSettle();
+
+      expect(auth.lastPasswordUpdate, 'yeniParola9');
       expect(find.byType(AppShell), findsOneWidget);
       expect(find.byType(WelcomeScreen), findsNothing);
     });
@@ -362,6 +379,10 @@ void main() {
         find.widgetWithText(TextField, 'Parola'),
         'parola123',
       );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Parola (tekrar)'),
+        'parola123',
+      );
       await tester.tap(find.widgetWithText(FilledButton, 'Hesap oluştur'));
       await tester.pumpAndSettle();
 
@@ -394,6 +415,10 @@ void main() {
       );
       await tester.enterText(
         find.widgetWithText(TextField, 'Parola'),
+        'parola123',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Parola (tekrar)'),
         'parola123',
       );
       await tester.tap(find.widgetWithText(FilledButton, 'Hesap oluştur'));

@@ -114,6 +114,21 @@ class FakeAuthService implements AuthService {
 
   String? lastPasswordUpdate;
 
+  /// Son parola güncellemesinde kullanılan doğrulama kodu (varsa).
+  String? lastPasswordCode;
+
+  /// Kayıt e-posta doğrulaması istesin mi? (Sunucuda "Confirm email" açık.)
+  bool requireConfirmation = false;
+
+  /// Kayıt doğrulama kodunun yeniden gönderildiği adresler.
+  final List<String> signupCodesResentTo = [];
+
+  /// Doğru kabul edilen mevcut parola ([verifyCurrentPassword]).
+  String currentPassword = 'eski-parola1';
+
+  int reauthCodesSent = 0;
+  int otherSessionsClosed = 0;
+
   @override
   AuthUser? get currentUser => _user;
 
@@ -142,13 +157,42 @@ class FakeAuthService implements AuthService {
   }
 
   @override
-  Future<void> signUp({required String email, required String password}) async {
+  Future<SignUpOutcome> signUp({
+    required String email,
+    required String password,
+  }) async {
     final failure = nextFailure;
     if (failure != null) {
       nextFailure = null;
       throw failure;
     }
+    if (requireConfirmation) return SignUpOutcome.needsConfirmation;
     _emit(AuthUser(id: 'kullanici-1', email: email));
+    return SignUpOutcome.signedIn;
+  }
+
+  @override
+  Future<void> verifySignupCode({
+    required String email,
+    required String code,
+  }) async {
+    if (code != validRecoveryCode) {
+      throw const AuthFailure(
+        'Kod geçersiz ya da süresi dolmuş. '
+        'Yeni bir kod iste.',
+      );
+    }
+    _emit(AuthUser(id: 'kullanici-1', email: email));
+  }
+
+  @override
+  Future<void> resendSignupCode(String email) async {
+    final failure = nextFailure;
+    if (failure != null) {
+      nextFailure = null;
+      throw failure;
+    }
+    signupCodesResentTo.add(email);
   }
 
   @override
@@ -207,14 +251,44 @@ class FakeAuthService implements AuthService {
   }
 
   @override
-  Future<void> updatePassword(String password) async {
+  Future<void> verifyCurrentPassword(String password) async {
+    if (password != currentPassword) {
+      throw const AuthFailure('Mevcut parola hatalı.');
+    }
+  }
+
+  @override
+  Future<void> sendReauthCode() async {
     final failure = nextFailure;
     if (failure != null) {
       nextFailure = null;
       throw failure;
     }
-    lastPasswordUpdate = password;
+    reauthCodesSent++;
   }
+
+  @override
+  Future<void> updatePassword(
+    String password, {
+    String? code,
+    String? current,
+  }) async {
+    final failure = nextFailure;
+    if (failure != null) {
+      nextFailure = null;
+      throw failure;
+    }
+    if (code != null && code != validRecoveryCode) {
+      throw const AuthFailure(
+        'Doğrulama kodu geçersiz ya da süresi dolmuş. Yeni kod iste.',
+      );
+    }
+    lastPasswordUpdate = password;
+    lastPasswordCode = code;
+  }
+
+  @override
+  Future<void> signOutOtherSessions() async => otherSessionsClosed++;
 
   void dispose() => _controller.close();
 }

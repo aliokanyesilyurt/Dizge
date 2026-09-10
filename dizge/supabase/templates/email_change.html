@@ -1,0 +1,20 @@
+<!-- Supabase → Authentication → Email Templates → "Change Email Address"
+     Konu: Dizge — e-posta değişikliği kodun
+     (Uygulamada bugün e-posta değiştirme ekranı yok; şablon, panodan ya da
+     ileride eklenecek ekrandan yapılan değişiklik İngilizce gitmesin diye.) -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f5;padding:32px 0;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;">
+  <tr><td align="center">
+    <table role="presentation" width="440" cellpadding="0" cellspacing="0" style="max-width:440px;background:#ffffff;border-radius:16px;padding:36px 32px;text-align:center;">
+      <tr><td style="font-size:20px;font-weight:700;color:#1c1c1a;padding-bottom:8px;">E-posta adresini değiştir</td></tr>
+      <tr><td style="font-size:15px;line-height:1.5;color:#6b6b66;padding-bottom:24px;">
+        Hesabının e-postasını <b>{{ .NewEmail }}</b> olarak değiştirmek için bu kodu kullan.
+      </td></tr>
+      <tr><td style="padding-bottom:24px;">
+        <div style="display:inline-block;font-size:34px;font-weight:700;letter-spacing:8px;color:#1c1c1a;background:#f0f0ec;border-radius:12px;padding:14px 22px;font-family:'SFMono-Regular',Consolas,monospace;">{{ .Token }}</div>
+      </td></tr>
+      <tr><td style="font-size:13px;line-height:1.5;color:#8a8a84;">
+        Bu değişikliği sen istemediysen e-postayı yok say ve parolanı değiştir.
+      </td></tr>
+    </table>
+  </td></tr>
+</table>

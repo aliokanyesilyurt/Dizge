@@ -9,6 +9,7 @@ import '../../data/app_store.dart';
 import '../../data/persistence_providers.dart';
 import '../../theme.dart';
 import '../auth_gate.dart';
+import '../password_screens.dart';
 import 'account_tiles.dart';
 
 /// Oturum bilgisi ve çıkış.
@@ -47,15 +48,16 @@ class AccountSection extends ConsumerWidget {
 
     return Column(
       children: [
-        // Kurtarma yolunun son adımı: kodla giren kullanıcı parolasını
-        // burada değiştirir. Kodu doğrudan "yeni parola belirle" ekranına
-        // bağlamak, oturum açmadan parola değiştirmek olurdu.
+        // Ayrı sayfa (P4): mevcut parola ya da e-postaya giden kodla
+        // doğrulama, yeni parola + tekrar, kural listesi.
         ActionTile(
           icon: Icons.password_rounded,
           iconColor: c.inkDim,
-          title: 'Parolanı değiştir',
-          subtitle: 'Bu hesabın parolası',
-          onTap: () => _changePassword(context, ref),
+          title: user.hasPassword ? 'Parolanı değiştir' : 'Parola belirle',
+          subtitle: user.hasPassword
+              ? 'Mevcut parolanla ya da e-postana gelen kodla'
+              : 'Google hesabına bir de e-posta parolası ekle',
+          onTap: () => showChangePasswordScreen(context),
         ),
         // "Hesap değiştir" ayrı bir mekanizma değil, çıkışın kısayolu
         // (Karar B). Hive kutusu tek ve kullanıcıdan bağımsız; iki hesabın
@@ -83,58 +85,6 @@ class AccountSection extends ConsumerWidget {
         ),
       ],
     );
-  }
-}
-
-/// Yeni parola sorar ve yazar.
-///
-/// Eski parola sorulmuyor: oturum zaten açık ve sağlayıcı onu istemiyor.
-/// İstemek, kurtarma yolundan gelen kullanıcıyı — yani parolasını **bilmeyen**
-/// kişiyi — kapıda bırakırdı.
-Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
-  final controller = TextEditingController();
-  final auth = ref.read(authServiceProvider);
-  final messenger = ScaffoldMessenger.of(context);
-
-  final password = await showDialog<String>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Parolanı değiştir'),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        obscureText: true,
-        decoration: const InputDecoration(hintText: 'Yeni parola'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Vazgeç'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, controller.text),
-          child: const Text('Kaydet'),
-        ),
-      ],
-    ),
-  );
-  controller.dispose();
-
-  if (password == null) return;
-  if (password.length < 6) {
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Parola en az 6 karakter olmalı.')),
-    );
-    return;
-  }
-
-  try {
-    await auth.updatePassword(password);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Parolan değiştirildi.')),
-    );
-  } on AuthFailure catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(e.message)));
   }
 }
 

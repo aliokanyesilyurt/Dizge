@@ -68,9 +68,36 @@ class SupabaseAuthService implements AuthService {
         () => _auth.signInWithPassword(email: email.trim(), password: password),
       );
 
+  /// Sunucuda "Confirm email" açıksa kayıt oturum **açmaz**; yanıtta oturum
+  /// yoksa doğrulama bekleniyor demektir (P2).
   @override
-  Future<void> signUp({required String email, required String password}) =>
-      _guard(() => _auth.signUp(email: email.trim(), password: password));
+  Future<SignUpOutcome> signUp({
+    required String email,
+    required String password,
+  }) async {
+    final res = await _guardValue(
+      () => _auth.signUp(email: email.trim(), password: password),
+    );
+    return res.session == null
+        ? SignUpOutcome.needsConfirmation
+        : SignUpOutcome.signedIn;
+  }
+
+  @override
+  Future<void> verifySignupCode({
+    required String email,
+    required String code,
+  }) => _guard(
+    () => _auth.verifyOTP(
+      email: email.trim(),
+      token: code.trim(),
+      type: OtpType.signup,
+    ),
+  );
+
+  @override
+  Future<void> resendSignupCode(String email) =>
+      _guard(() => _auth.resend(type: OtpType.signup, email: email.trim()));
 
   @override
   Future<void> signOut() => _guard(_auth.signOut);
@@ -153,13 +180,13 @@ class SupabaseAuthService implements AuthService {
     }
   }
 
-  /// `shouldCreateUser: false` bilinçli: varsayılan `true` olsaydı yanlış
-  /// yazılmış bir e-posta sessizce yeni bir hesap açar, kullanıcı da kodu girip
-  /// bomboş bir takvimle karşılaşırdı — "verilerim gitti" diye okunan bir hata.
+  /// Sağlayıcının "parola sıfırlama" akışı: "Reset password" şablonu gider
+  /// ve kod `recovery` türüyle doğrulanır. Eskiden sihirli bağlantı (OTP
+  /// giriş) kullanılıyordu; o yol kayıtsız adres için "hesap bulunamadı"
+  /// diyerek adresin burada kayıtlı olup olmadığını ele veriyordu.
   @override
-  Future<void> sendRecoveryCode(String email) => _guard(
-    () => _auth.signInWithOtp(email: email.trim(), shouldCreateUser: false),
-  );
+  Future<void> sendRecoveryCode(String email) =>
+      _guard(() => _auth.resetPasswordForEmail(email.trim()));
 
   @override
   Future<void> verifyRecoveryCode({
@@ -169,22 +196,86 @@ class SupabaseAuthService implements AuthService {
     () => _auth.verifyOTP(
       email: email.trim(),
       token: code.trim(),
-      type: OtpType.email,
+      type: OtpType.recovery,
+    ),
+  );
+
+  /// Mevcut parolayı yeniden girişle doğrular. Doğruysa oturum tazelenir
+  /// (zararsız, hatta "yakın zamanda giriş" şartını da karşılar); yanlışsa
+  /// sağlayıcının "invalid credentials" hatası bu bağlama çevrilir.
+  @override
+  Future<void> verifyCurrentPassword(String password) async {
+    final email = _auth.currentUser?.email;
+    if (email == null || email.isEmpty) {
+      throw const AuthFailure('Oturum bulunamadı. Yeniden giriş yap.');
+    }
+    try {
+      await _auth.signInWithPassword(email: email, password: password);
+    } on AuthException catch (e) {
+      final m = e.message.toLowerCase();
+      if (e.code == 'invalid_credentials' ||
+          m.contains('invalid login credentials')) {
+        throw const AuthFailure('Mevcut parola hatalı.');
+      }
+      throw _translate(e);
+    } catch (_) {
+      throw const AuthFailure(
+        'Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.',
+      );
+    }
+  }
+
+  @override
+  Future<void> sendReauthCode() => _guard(_auth.reauthenticate);
+
+  @override
+  Future<void> updatePassword(
+    String password, {
+    String? code,
+    String? current,
+  }) => _guard(
+    () => _auth.updateUser(
+      UserAttributes(
+        password: password,
+        nonce: code?.trim(),
+        // Sunucuda "mevcut parola şart" ayarı açıksa gerekli; kapalıysa
+        // sunucu yok sayıyor.
+        currentPassword: current,
+      ),
     ),
   );
 
   @override
-  Future<void> updatePassword(String password) =>
-      _guard(() => _auth.updateUser(UserAttributes(password: password)));
+  Future<void> signOutOtherSessions() =>
+      _guard(() => _auth.signOut(scope: SignOutScope.others));
 
   static AuthUser? _toUser(User? user) {
     if (user == null) return null;
-    return AuthUser(id: user.id, email: user.email ?? '');
+    return AuthUser(
+      id: user.id,
+      email: user.email ?? '',
+      hasPassword: _hasEmailIdentity(user),
+    );
   }
 
-  Future<void> _guard(Future<void> Function() body) async {
+  /// Hesabın e-posta/parola kimliği var mı? Sağlayıcı listesi
+  /// `app_metadata.providers`'ta; eski hesaplarda yalnız `provider` alanı
+  /// dolu olabiliyor. İkisi de yoksa "var" varsayılıyor: parola sayfası
+  /// mevcut parolayı sorar, hatırlamayan kullanıcı yine kodla değiştirebilir.
+  static bool _hasEmailIdentity(User user) {
+    final meta = user.appMetadata;
+    final providers = meta['providers'];
+    if (providers is List) return providers.contains('email');
+    final provider = meta['provider'];
+    if (provider is String) return provider == 'email';
+    return true;
+  }
+
+  Future<void> _guard(Future<void> Function() body) => _guardValue(body);
+
+  Future<T> _guardValue<T>(Future<T> Function() body) async {
     try {
-      await body();
+      return await body();
     } on AuthException catch (e) {
       throw _translate(e);
     } catch (e) {
@@ -203,6 +294,40 @@ class SupabaseAuthService implements AuthService {
   static AuthFailure _translate(AuthException e) {
     final m = e.message.toLowerCase();
 
+    // Önce sağlayıcının kodları: metinden daha kararlılar.
+    switch (e.code) {
+      case 'weak_password':
+        return const AuthFailure(
+          'Parola kurala uymuyor: en az 8 karakter, harf ve rakam içermeli.',
+        );
+      case 'same_password':
+        return const AuthFailure('Yeni parola eskisiyle aynı olamaz.');
+      case 'reauthentication_needed':
+        return const AuthFailure(
+          'Güvenlik için doğrulama gerekiyor: e-postana gelecek kodu kullan.',
+        );
+      case 'reauthentication_not_valid':
+        return const AuthFailure(
+          'Doğrulama kodu geçersiz ya da süresi dolmuş. Yeni kod iste.',
+        );
+      case 'otp_expired':
+        return const AuthFailure(
+          'Kod geçersiz ya da süresi dolmuş. Yeni bir kod iste.',
+        );
+      case 'over_email_send_rate_limit':
+      case 'over_request_rate_limit':
+        return const AuthFailure(
+          'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.',
+        );
+      case 'email_address_invalid':
+        return const AuthFailure('E-posta adresi geçersiz görünüyor.');
+      case 'user_already_exists':
+      case 'email_exists':
+        return const AuthFailure(
+          'Bu e-posta zaten kayıtlı. Giriş yapmayı dene.',
+        );
+    }
+
     if (m.contains('invalid login credentials')) {
       return const AuthFailure('E-posta veya parola hatalı.');
     }
@@ -214,8 +339,14 @@ class SupabaseAuthService implements AuthService {
         'E-postanı doğrulaman gerekiyor. Gelen kutuna bak.',
       );
     }
-    if (m.contains('password') && m.contains('6')) {
-      return const AuthFailure('Parola en az 6 karakter olmalı.');
+    if (m.contains('password should')) {
+      return const AuthFailure(
+        'Parola kurala uymuyor: en az 8 karakter, harf ve rakam içermeli.',
+      );
+    }
+    // "For security purposes, you can only request this after 45 seconds."
+    if (m.contains('for security purposes')) {
+      return const AuthFailure('Yeni kod istemeden önce biraz bekle.');
     }
     // `shouldCreateUser: false` ile kayıtsız bir adrese kod istendiğinde gelen
     // hata. Sağlayıcının metni ("signups not allowed for otp") kullanıcının

@@ -1,0 +1,20 @@
+<!-- Supabase → Authentication → Email Templates → "Reset Password"
+     Konu: Dizge — parola sıfırlama kodun -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f5;padding:32px 0;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;">
+  <tr><td align="center">
+    <table role="presentation" width="440" cellpadding="0" cellspacing="0" style="max-width:440px;background:#ffffff;border-radius:16px;padding:36px 32px;text-align:center;">
+      <tr><td style="font-size:20px;font-weight:700;color:#1c1c1a;padding-bottom:8px;">Parolanı sıfırla</td></tr>
+      <tr><td style="font-size:15px;line-height:1.5;color:#6b6b66;padding-bottom:24px;">
+        Bu kodu uygulamadaki <b>“Kodu gir”</b> ekranına yaz; ardından yeni parolanı belirleyeceksin.
+      </td></tr>
+      <tr><td style="padding-bottom:24px;">
+        <div style="display:inline-block;font-size:34px;font-weight:700;letter-spacing:8px;color:#1c1c1a;background:#f0f0ec;border-radius:12px;padding:14px 22px;font-family:'SFMono-Regular',Consolas,monospace;">{{ .Token }}</div>
+      </td></tr>
+      <tr><td style="font-size:13px;line-height:1.5;color:#8a8a84;">
+        Kod birkaç dakika geçerli ve tek kullanımlık.<br>
+        Parola sıfırlamayı sen istemediysen bu e-postayı yok say — parolan değişmez.
+        Tekrar tekrar geliyorsa parolanı değiştirmeni öneririz.
+      </td></tr>
+    </table>
+  </td></tr>
+</table>

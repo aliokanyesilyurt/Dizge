@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,23 +11,32 @@ import '../data/persistence_providers.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/google_mark.dart';
+import '../widgets/password_fields.dart';
 import 'account/profile_section.dart';
 import 'auth_gate.dart';
+import 'password_screens.dart';
 
-/// Karşılama ekranının dört hâli.
+/// Karşılama ekranının beş hâli.
 ///
-/// Dördü tek ekranda çünkü hepsi aynı soruyu soruyor: "sen kimsin?". Ayrı
+/// Hepsi tek ekranda çünkü hepsi aynı soruyu soruyor: "sen kimsin?". Ayrı
 /// sayfalara bölmek, kullanıcıyı kurtarma yolunda üç kez geri tuşu arar hâle
 /// getirirdi.
 enum _Mode {
   signIn,
   signUp,
 
+  /// Kayıt yapıldı, e-posta doğrulama kodu bekleniyor (P2).
+  verifySignup,
+
   /// Parola unutuldu: e-posta alınır, kod gönderilir.
   recoverRequest,
 
-  /// Kod bekleniyor.
-  recoverVerify,
+  /// Kurtarma kodu bekleniyor; doğrulanınca kapı yeni parolayı sorar (P3).
+  recoverVerify;
+
+  /// E-postaya giden bir kodun beklendiği adımlar. E-posta alanı gizli,
+  /// Google ve misafir düğmeleri yok, "yeniden gönder" var.
+  bool get awaitsCode => this == verifySignup || this == recoverVerify;
 }
 
 /// Oturum açılmamışken görülen tek ekran.
@@ -47,6 +58,7 @@ class WelcomeScreen extends ConsumerStatefulWidget {
 class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _repeat = TextEditingController();
   final _code = TextEditingController();
   final _passwordFocus = FocusNode();
 
@@ -63,6 +75,22 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   /// açık bırakmak, kullanıcıyı iki yerde birden giriş yapıyor sanmaya
   /// bırakırdı.
   bool get _locked => _busy || _googleBusy;
+
+  /// "Kodu yeniden gönder" beklemesi, saniye. Sağlayıcı zaten ~60 sn'den sık
+  /// kod göndermiyor; düğmeyi o süre kapalı tutmak "bastım ama gelmedi"yi
+  /// "sunucu reddetti"den ayırmayı kullanıcıya bırakmıyor.
+  int _cooldown = 0;
+  Timer? _cooldownTimer;
+
+  void _startCooldown() {
+    _cooldownTimer?.cancel();
+    _cooldown = 60;
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return t.cancel();
+      setState(() => _cooldown--);
+      if (_cooldown <= 0) t.cancel();
+    });
+  }
 
   @override
   void initState() {
@@ -83,8 +111,10 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _email.dispose();
     _password.dispose();
+    _repeat.dispose();
     _code.dispose();
     _passwordFocus.dispose();
     super.dispose();
@@ -94,6 +124,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     _mode = mode;
     _error = null;
     _info = null;
+    _code.clear();
   });
 
   Future<void> _submit() async {
@@ -105,13 +136,20 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       setState(() => _error = 'Geçerli bir e-posta gir.');
       return;
     }
-    if (_mode == _Mode.signIn || _mode == _Mode.signUp) {
-      if (_password.text.length < 6) {
-        setState(() => _error = 'Parola en az 6 karakter olmalı.');
-        return;
-      }
+    // Girişte kural uygulanmıyor: kural sonradan sıkılaştı ve eski hesabın
+    // 6 karakterlik parolası hâlâ geçerli. Yalnız boş olmasın.
+    if (_mode == _Mode.signIn && _password.text.isEmpty) {
+      setState(() => _error = 'Parolanı yaz.');
+      return;
     }
-    if (_mode == _Mode.recoverVerify && _code.text.trim().length < 6) {
+    if (_mode == _Mode.signUp &&
+        !newPasswordReady(_password.text, _repeat.text)) {
+      setState(
+        () => _error = passwordAcceptableMessage(_password.text, _repeat.text),
+      );
+      return;
+    }
+    if (_mode.awaitsCode && _code.text.trim().length < 6) {
       setState(() => _error = 'Kod 6 haneli.');
       return;
     }
@@ -133,20 +171,66 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           // Gönderim ve başarı ayrı ölçülüyor: aradaki fark "denedi ama
           // olmadı" demek ve huninin en çok şey öğreten adımı orası.
           telemetry.capture(Ev.signupSubmitted);
-          await auth.signUp(email: email, password: _password.text);
+          final outcome = await auth.signUp(
+            email: email,
+            password: _password.text,
+          );
           telemetry.capture(Ev.signupSucceeded);
+          // Sunucuda e-posta onayı açık: oturum açılmadı, kod bekleniyor.
+          if (outcome == SignUpOutcome.needsConfirmation && mounted) {
+            setState(() {
+              _mode = _Mode.verifySignup;
+              _code.clear();
+            });
+            _startCooldown();
+          }
+        case _Mode.verifySignup:
+          await auth.verifySignupCode(email: email, code: _code.text);
         case _Mode.recoverRequest:
           await auth.sendRecoveryCode(email);
           if (mounted) {
             setState(() {
               _mode = _Mode.recoverVerify;
-              _info = '$email adresine bir kod gönderdik.';
+              _code.clear();
             });
+            _startCooldown();
           }
         case _Mode.recoverVerify:
-          await auth.verifyRecoveryCode(email: email, code: _code.text);
+          // Bayrak kodu doğrulamadan **önce** yanıyor: oturum açıldığı kare
+          // kapı karar veriyor ve bayrak o anda yanık olmalı, yoksa takvim
+          // bir kare görünüp parola ekranına atlardı.
+          ref.read(passwordResetPendingProvider.notifier).state = true;
+          try {
+            await auth.verifyRecoveryCode(email: email, code: _code.text);
+          } on AuthFailure {
+            ref.read(passwordResetPendingProvider.notifier).state = false;
+            rethrow;
+          }
       }
       // Başarı hâlinde ekranı değiştirmiyoruz — AuthGate yapıyor.
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Kod adımında kodu yeniden ister.
+  Future<void> _resend() async {
+    final email = _email.text.trim();
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final auth = ref.read(authServiceProvider);
+      if (_mode == _Mode.verifySignup) {
+        await auth.resendSignupCode(email);
+      } else {
+        await auth.sendRecoveryCode(email);
+      }
+      if (mounted) setState(() => _info = 'Yeni bir kod gönderdik.');
+      _startCooldown();
     } on AuthFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -273,23 +357,35 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
   String get _title => switch (_mode) {
     _Mode.signIn || _Mode.signUp => 'Programın, her cihazında.',
+    _Mode.verifySignup => 'E-postanı doğrula',
     _Mode.recoverRequest => 'Parolanı mı unuttun?',
     _Mode.recoverVerify => 'Kodu gir',
   };
 
-  String get _subtitle => switch (_mode) {
-    _Mode.signIn || _Mode.signUp =>
-      'Planların bu cihazda şifreli durur; hesabın onları cihazların arasında '
-          'taşır ve yedekler.',
-    _Mode.recoverRequest =>
-      'E-postana tek kullanımlık bir kod göndereceğiz. Kodla girdikten sonra '
-          'parolanı Hesap ekranından değiştirebilirsin.',
-    _Mode.recoverVerify => 'Kod birkaç dakika geçerli.',
-  };
+  String get _subtitle {
+    final email = _email.text.trim();
+    return switch (_mode) {
+      _Mode.signIn || _Mode.signUp =>
+        'Planların bu cihazda şifreli durur; hesabın onları cihazların '
+            'arasında taşır ve yedekler.',
+      _Mode.verifySignup =>
+        '$email adresine 6 haneli bir kod gönderdik. Kodu girince hesabın '
+            'açılır.',
+      _Mode.recoverRequest =>
+        'E-postana 6 haneli bir kod göndereceğiz. Kodu girince yeni '
+            'parolanı belirleyeceksin.',
+      // Adres kayıtlı değilse de aynı cümle (P3): "böyle bir hesap yok"
+      // demek, adresin burada kayıtlı olup olmadığını ele verirdi.
+      _Mode.recoverVerify =>
+        'Bu adres kayıtlıysa $email adresine 6 haneli bir kod gönderdik. '
+            'Kod birkaç dakika geçerli.',
+    };
+  }
 
   String get _action => switch (_mode) {
     _Mode.signIn => 'Giriş yap',
     _Mode.signUp => 'Hesap oluştur',
+    _Mode.verifySignup => 'Doğrula ve başla',
     _Mode.recoverRequest => 'Kod gönder',
     _Mode.recoverVerify => 'Doğrula ve gir',
   };
@@ -297,14 +393,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   IconData get _actionIcon => switch (_mode) {
     _Mode.signIn || _Mode.signUp => Icons.mail_outline_rounded,
     _Mode.recoverRequest => Icons.send_rounded,
-    _Mode.recoverVerify => Icons.verified_outlined,
+    _Mode.verifySignup || _Mode.recoverVerify => Icons.verified_outlined,
   };
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final recovering =
-        _mode == _Mode.recoverRequest || _mode == _Mode.recoverVerify;
+    // Kurtarma ve kod adımlarında Google/misafir yok: orada soru "sen kimsin"
+    // değil, "bu adrese gelen kodu girebiliyor musun".
+    final recovering = _mode == _Mode.recoverRequest || _mode.awaitsCode;
     final offline =
         ref.watch(networkStatusProvider).valueOrNull == NetworkStatus.offline;
 
@@ -371,7 +468,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
                     // Kod adımında e-posta alanı gizli: kullanıcı onu az önce
                     // yazdı ve değiştirmesi kodu geçersiz kılardı.
-                    if (_mode != _Mode.recoverVerify)
+                    if (!_mode.awaitsCode)
                       TextField(
                         controller: _email,
                         enabled: !_locked,
@@ -385,21 +482,30 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         decoration: const InputDecoration(hintText: 'E-posta'),
                       ),
 
-                    if (_mode == _Mode.signIn || _mode == _Mode.signUp) ...[
+                    if (_mode == _Mode.signIn) ...[
                       const SizedBox(height: S.sm),
-                      TextField(
+                      PasswordField(
                         controller: _password,
                         focusNode: _passwordFocus,
+                        hint: 'Parola',
                         enabled: !_locked,
-                        obscureText: true,
-                        autofillHints: const [AutofillHints.password],
-                        textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _locked ? null : _submit(),
-                        decoration: const InputDecoration(hintText: 'Parola'),
                       ),
                     ],
 
-                    if (_mode == _Mode.recoverVerify)
+                    // Kayıtta parola iki kez ve kural gözünün önünde (P1/P2).
+                    if (_mode == _Mode.signUp) ...[
+                      const SizedBox(height: S.sm),
+                      NewPasswordFields(
+                        password: _password,
+                        repeat: _repeat,
+                        enabled: !_locked,
+                        passwordHint: 'Parola',
+                        onSubmitted: _locked ? null : _submit,
+                      ),
+                    ],
+
+                    if (_mode.awaitsCode)
                       TextField(
                         controller: _code,
                         enabled: !_locked,
@@ -415,6 +521,31 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                         decoration: const InputDecoration(
                           hintText: '6 haneli kod',
                         ),
+                      ),
+
+                    if (_mode.awaitsCode)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Gelmediyse gereksiz (spam) klasörüne de bak.',
+                              style: TextStyle(
+                                color: c.inkFaint,
+                                fontSize: T.caption,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _locked || _cooldown > 0
+                                ? null
+                                : _resend,
+                            child: Text(
+                              _cooldown > 0
+                                  ? 'Yeniden gönder ($_cooldown)'
+                                  : 'Kodu yeniden gönder',
+                            ),
+                          ),
+                        ],
                       ),
 
                     if (_info != null) ...[
@@ -555,7 +686,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ],
 
                     const SizedBox(height: S.xs),
-                    if (recovering)
+                    if (_mode == _Mode.verifySignup)
+                      TextButton(
+                        onPressed: _locked ? null : () => _goTo(_Mode.signUp),
+                        child: const Text('E-postayı değiştir'),
+                      )
+                    else if (recovering)
                       TextButton(
                         onPressed: _locked ? null : () => _goTo(_Mode.signIn),
                         child: const Text('Girişe dön'),

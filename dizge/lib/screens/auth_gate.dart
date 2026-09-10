@@ -12,6 +12,7 @@ import '../data/sync/remote_gateway.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
 import 'app_shell.dart';
+import 'password_screens.dart';
 import 'welcome_screen.dart';
 
 /// Uygulamanın kapısı: oturum açılmadan takvime girilmez.
@@ -49,6 +50,7 @@ class AuthGate extends ConsumerWidget {
 
     final auth = ref.watch(authUserProvider);
     final isGuest = ref.watch(guestModeProvider);
+    final resetPending = ref.watch(passwordResetPendingProvider);
 
     // Karar A: **gerçek oturum misafir kipini yener.** Misafirlik bir tercih
     // değil, oturum yokken verilen bir izin; oturum açıldığı anda konusu
@@ -63,6 +65,11 @@ class AuthGate extends ConsumerWidget {
       // onu dışarı atmak sebepsiz bir ceza olurdu.
       AsyncError() => isGuest ? const AppShell() : const WelcomeScreen(),
 
+      // Kurtarma kodu doğrulandı ama yeni parola henüz yok: takvimden önce
+      // parola (P3). Yoksa kurtarma "sonra Hesap'tan değiştir" diye yarım
+      // kalırdı.
+      AsyncValue(:final value) when value != null && resetPending =>
+        const SetNewPasswordScreen(),
       AsyncValue(:final value) =>
         value != null || isGuest ? const AppShell() : const WelcomeScreen(),
     };
