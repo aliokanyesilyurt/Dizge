@@ -274,31 +274,21 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                   _dateRow(),
                   TimeRow(
                     start: _start,
-                    duration: _duration,
                     open: _open == 'time',
                     onTap: () => _toggle('time'),
                     onChanged: (v) => setState(() {
                       _start = v;
-                      if (_start != null &&
-                          _windowStart != null &&
-                          _windowEnd != null) {
-                        if (_start! < _windowStart!) {
-                          _windowStart = _start;
-                        }
-                        if (_start! + _duration > _windowEnd!) {
-                          _windowEnd = _start! + _duration;
-                        }
-                      }
+                      _fitWindowToTask();
                     }),
-                    onDurationChanged: (v) => setState(() {
+                  ),
+                  DurationRow(
+                    duration: _duration,
+                    start: _start,
+                    open: _open == 'duration',
+                    onTap: () => _toggle('duration'),
+                    onChanged: (v) => setState(() {
                       _duration = v;
-                      if (_start != null &&
-                          _windowStart != null &&
-                          _windowEnd != null) {
-                        if (_start! + _duration > _windowEnd!) {
-                          _windowEnd = _start! + _duration;
-                        }
-                      }
+                      _fitWindowToTask();
                     }),
                   ),
                   // Çoklu saat yalnız saatli işte anlamlı: saatsiz bir işin
@@ -715,13 +705,25 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     );
   }
 
+  /// Saat ya da süre değişince aralık işi içine alacak kadar genişler.
+  void _fitWindowToTask() {
+    final start = _start;
+    final ws = _windowStart;
+    final we = _windowEnd;
+    if (start == null || ws == null || we == null) return;
+    if (start < ws) _windowStart = start;
+    if (start + _duration > we) _windowEnd = start + _duration;
+  }
+
   String _summary() {
     final parts = <String>[
       _isRoutine
           ? Repeat(_repeatType, weekdays: _weekdays).describe(_date)
           : fmtDate(_date),
       if (_start != null)
-        '${Task.formatTime(_start!)} · ${Task.formatDuration(_duration)}',
+        _duration > 0
+            ? '${Task.formatTime(_start!)} · ${Task.formatDuration(_duration)}'
+            : Task.formatTime(_start!),
       if (_place.text.trim().isNotEmpty) _place.text.trim(),
     ];
     return parts.join('  ·  ');

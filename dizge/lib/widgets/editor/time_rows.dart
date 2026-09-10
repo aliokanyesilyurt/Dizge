@@ -48,52 +48,40 @@ Future<double?> askHour(
 }
 
 /// Başlangıç saati — null "saatsiz" demek.
+///
+/// Süreden **bağımsız** (Z1). Bir ara ikisi tek "Saat ve Süre" satırında
+/// birleşmişti ve süre hep bir değer taşıyordu; "saati var, süresi yok" diye
+/// bir iş yazılamıyordu.
 class TimeRow extends StatelessWidget {
   const TimeRow({
     super.key,
     required this.start,
-    required this.duration,
     required this.open,
     required this.onTap,
     required this.onChanged,
-    required this.onDurationChanged,
   });
 
   final double? start;
-  final double duration;
   final bool open;
   final VoidCallback onTap;
   final ValueChanged<double?> onChanged;
-  final ValueChanged<double> onDurationChanged;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return PropertyRow(
       icon: Icons.schedule_rounded,
-      label: 'Saat ve Süre',
-      value: start == null
-          ? 'Saatsiz · ${Task.formatDuration(duration)}'
-          : '${Task.formatTime(start!)} · ${Task.formatDuration(duration)}',
+      label: 'Saat',
+      value: start == null ? 'Saatsiz' : Task.formatTime(start!),
       valueColor: start == null ? c.inkFaint : null,
       open: open,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Başlangıç Saati
-          Text(
-            'Başlangıç',
-            style: TextStyle(
-              color: c.inkFaint,
-              fontSize: T.caption,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: S.xs),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: S.sm,
+            runSpacing: S.sm,
             children: [
               ChoiceChipTile(
                 text: 'Saatsiz',
@@ -110,63 +98,118 @@ class TimeRow extends StatelessWidget {
                 text: 'Seç…',
                 selected: start != null && !_hourPresets.contains(start),
                 onTap: () async {
-                  final s = start;
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: s == null
-                        ? const TimeOfDay(hour: 9, minute: 0)
-                        : TimeOfDay(
-                            hour: s.floor() % 24,
-                            minute: ((s % 1) * 60).round() % 60,
-                          ),
-                    builder: (ctx, child) => MediaQuery(
-                      data: MediaQuery.of(
-                        ctx,
-                      ).copyWith(alwaysUse24HourFormat: true),
-                      child: child!,
-                    ),
+                  final picked = await askHour(
+                    context,
+                    helpText: 'Başlangıç saati',
+                    initial: start ?? 9,
                   );
-                  if (picked != null) {
-                    onChanged(picked.hour + picked.minute / 60);
-                  }
+                  if (picked != null) onChanged(picked);
                 },
               ),
             ],
           ),
           const SizedBox(height: S.md),
-          // Süre Seçimi
           Text(
-            'Süre',
-            style: TextStyle(
-              color: c.inkFaint,
-              fontSize: T.caption,
-              fontWeight: FontWeight.bold,
-            ),
+            start == null
+                ? 'Saatsiz işler günün listesinde en altta durur.'
+                : 'Saat, işin başladığı an. Ne kadar süreceği ayrı: Süre.',
+            style: TextStyle(color: c.inkFaint, fontSize: T.caption),
           ),
-          const SizedBox(height: S.xs),
-          Row(
+        ],
+      ),
+    );
+  }
+}
+
+/// İşin ne kadar süreceği — 0 "süresiz" demek.
+///
+/// Dört durumun dördü de yazılabiliyor: saatli + süreli (blok), saatli +
+/// süresiz (an), saatsiz + süreli ("bugün bir yerde 2 saat"), saatsiz +
+/// süresiz (yalnız "bugün").
+class DurationRow extends StatelessWidget {
+  const DurationRow({
+    super.key,
+    required this.duration,
+    required this.start,
+    required this.open,
+    required this.onTap,
+    required this.onChanged,
+  });
+
+  final double duration;
+
+  /// Yalnız alt yazıda bitiş saatini söylemek için.
+  final double? start;
+  final bool open;
+  final VoidCallback onTap;
+  final ValueChanged<double> onChanged;
+
+  static const _presets = [0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0];
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final none = duration <= 0;
+    final s = start;
+
+    return PropertyRow(
+      icon: Icons.timelapse_rounded,
+      label: 'Süre',
+      value: Task.formatDuration(duration),
+      valueColor: none ? c.inkFaint : null,
+      open: open,
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: S.sm,
+            runSpacing: S.sm,
             children: [
-              Text(
-                Task.formatDuration(duration),
-                style: TextStyle(
-                  color: c.ink,
-                  fontSize: T.body,
-                  fontWeight: FontWeight.w600,
-                ),
+              ChoiceChipTile(
+                text: 'Süresiz',
+                selected: none,
+                onTap: () => onChanged(0),
               ),
-              const SizedBox(width: S.sm),
-              Expanded(
-                child: Slider(
-                  value: duration.clamp(0.25, 12.0),
-                  min: 0.25,
-                  max: 12,
-                  divisions: 47, // 15 dakikalık adımlar
-                  label: Task.formatDuration(duration),
-                  onChanged: onDurationChanged,
+              for (final d in _presets)
+                ChoiceChipTile(
+                  text: Task.formatDuration(d),
+                  selected: duration == d,
+                  onTap: () => onChanged(d),
                 ),
-              ),
             ],
           ),
+          if (!none) ...[
+            const SizedBox(height: S.xs),
+            Row(
+              children: [
+                Text(
+                  'İnce ayar',
+                  style: TextStyle(color: c.inkFaint, fontSize: T.caption),
+                ),
+                Expanded(
+                  child: Slider(
+                    value: duration.clamp(0.25, 12.0),
+                    min: 0.25,
+                    max: 12,
+                    divisions: 47, // 15 dakikalık adımlar
+                    label: Task.formatDuration(duration),
+                    onChanged: onChanged,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: S.sm),
+          Text(switch ((none, s)) {
+            (true, null) => 'Ne saati ne süresi var: yalnız "bugün".',
+            (true, final double at) =>
+              'Takvimde ${Task.formatTime(at)}\'te bir an olarak görünür.',
+            (false, null) =>
+              'Saatsiz ama ${Task.formatDuration(duration)} sürer.',
+            (false, final double at) =>
+              'Bitiş: ${Task.formatTime((at + duration).clamp(0.0, 24.0))}',
+          }, style: TextStyle(color: c.inkFaint, fontSize: T.caption)),
         ],
       ),
     );
@@ -228,8 +271,8 @@ class TimesRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: S.sm,
+            runSpacing: S.sm,
             children: [
               ChoiceChipTile(
                 text: 'Tek sefer',
@@ -328,8 +371,8 @@ class WindowRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: S.sm,
+            runSpacing: S.sm,
             children: [
               ChoiceChipTile(
                 text: 'Yok',
@@ -353,7 +396,7 @@ class WindowRow extends StatelessWidget {
           Text(
             has
                 ? 'İş bu aralıkta kalır; "Günü kurtar" dışına taşıyamaz. '
-                      'Süre ayrı: ${Task.formatDuration(duration)}.'
+                      'Süre ayrı: ${Task.formatDuration(duration).toLowerCase()}.'
                 : 'Aralık seçilirse iş yalnız o saatler arasında yer alır.',
             style: TextStyle(color: c.inkFaint, fontSize: T.caption),
           ),

@@ -338,6 +338,14 @@ class Task implements Node {
   /// Saati belirlenmiş mi (saat dilimi olarak çizilebilir mi)?
   bool get scheduled => startHour != null;
 
+  /// Süresi var mı? Saat ile süre birbirinden bağımsız (Z1): "15:00'te
+  /// annemi ara" saatli ama süresiz, "bugün bir yerde 2 saat" süreli ama
+  /// saatsiz. Süresiz iş depoda `durationHours = 0`.
+  bool get hasDuration => durationHours > 0;
+
+  /// Saatli ama süresiz: takvimde bir blok değil, bir **an**.
+  bool get isPointInTime => scheduled && !hasDuration;
+
   double? get endHour =>
       startHour == null ? null : (startHour! + durationHours).clamp(0.0, 24.0);
 
@@ -449,9 +457,10 @@ class Task implements Node {
     return '${(hour % 24).toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
   }
 
-  /// "1 sa 30 dk" gibi süre metni.
+  /// "1 sa 30 dk" gibi süre metni; sıfır "Süresiz".
   static String formatDuration(double hours) {
     final total = (hours * 60).round();
+    if (total <= 0) return 'Süresiz';
     final h = total ~/ 60;
     final m = total % 60;
     if (h == 0) return '$m dk';
@@ -462,7 +471,12 @@ class Task implements Node {
   String get startString => startHour == null ? '' : formatTime(startHour!);
   String get endString => endHour == null ? '' : formatTime(endHour!);
   String get durationString => formatDuration(durationHours);
-  String get timeString => scheduled ? '$startString – $endString' : 'Saatsiz';
+  String get timeString => !scheduled
+      ? 'Saatsiz'
+      // Süresiz işte "14:00 – 14:00" yazmak bir aralık varmış gibi okunurdu.
+      : hasDuration
+      ? '$startString – $endString'
+      : startString;
 
   /// Sıralama anahtarı: saatliler önce (başlangıca göre), saatsizler sonda.
   static int compare(Task a, Task b) {

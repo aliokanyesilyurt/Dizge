@@ -203,6 +203,14 @@ class _EventBlockState extends State<EventBlock> {
           size: compact ? 9.5 : 10,
           color: style.ink.withValues(alpha: 0.85),
         ),
+      // Süresiz iş (Z2): bir an. Blok 15 dakikalık yer kaplasa da işaret
+      // "bu bir aralık değil" diyor.
+      if (task.isPointInTime)
+        Icon(
+          Icons.adjust_rounded,
+          size: compact ? 10 : 11,
+          color: style.ink.withValues(alpha: 0.85),
+        ),
     ];
 
     // Sahiplik rozeti sağ üstte (Y4.4d). Kişisel bağlamda [OwnerAvatar]

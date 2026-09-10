@@ -566,7 +566,10 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
       final slots = layoutEvents<(Task, double)>(
         occurrences,
         startOf: (o) => o.$2,
-        endOf: (o) => o.$2 + o.$1.durationHours,
+        // Görünen yükseklik: süresiz iş (Z2) de en az 15 dakikalık yer
+        // kaplıyor; çakışma sıfır uzunlukla hesaplansaydı aynı saatteki iki
+        // an üst üste binerdi.
+        endOf: (o) => o.$2 + math.max(o.$1.durationHours, kMinDurationHours),
       );
 
       for (final slot in slots) {
@@ -656,6 +659,29 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
             ),
           ),
         );
+
+        // Süresiz iş bir blok değil bir **an** (Z2): kendi saatinde işin
+        // renginde ince bir çizgi. Blok çizginin altında kısa bir hap olarak
+        // duruyor ki başlık okunsun ve dokunulabilsin. Süre çekilince çizgi
+        // kalkıyor — iş artık bir aralık.
+        if (task.isPointInTime && _resize?.task.id != task.id) {
+          blocks.add(
+            Positioned(
+              left: left,
+              top: _m.yFor(slot.start) - 1,
+              width: width,
+              height: 2,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: task.color,
+                    borderRadius: R.radiusPill,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
       }
     }
     return blocks;

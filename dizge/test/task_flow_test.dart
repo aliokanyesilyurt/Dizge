@@ -70,8 +70,8 @@ void main() {
       'Fatura öde',
     );
 
-    // Saat + süre: saat satırını aç, 12:00 seç.
-    await tester.tap(find.text('Saat ve Süre'));
+    // Saat satırını aç, 12:00 seç. Süre ayrı satır; varsayılanı 1 sa.
+    await tester.tap(find.text('Saat'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('12:00'));
     await tester.pumpAndSettle();
@@ -124,7 +124,8 @@ void main() {
     // sınamak istediği şeyi sınamaz.
     for (final label in [
       'Başlangıç',
-      'Saat ve Süre',
+      'Saat',
+      'Süre',
       'Kategori',
       'Efor',
       'Sabit',
@@ -133,8 +134,8 @@ void main() {
     ]) {
       await tapRow(tester, label);
     }
-    // "Süre" artık "Saat ve Süre" içinde, slider olarak görünüyor, ayrı satır değil.
-    await tapRow(tester, 'Saat ve Süre');
+    // Saat ile süre bağımsız (Z1): ikisi de her zaman ayrı satır.
+    await tapRow(tester, 'Saat');
     await tester.tap(find.text('09:00'));
     await tester.pumpAndSettle();
 
