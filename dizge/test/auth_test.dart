@@ -40,7 +40,7 @@ void main() {
     /// test penceresinde "Hesap" bölümü hiç kurulmuyor. Gerçek kullanıcı
     /// kaydırıyor; test ise bölümü görünür kılmak için pencereyi uzatıyor.
     void useTallScreen(WidgetTester tester) =>
-        useScreenSize(tester, const Size(900, 1800));
+        useScreenSize(tester, const Size(900, 2600));
 
     testWidgets('oturum yokken hesap bölümü hiç görünmez', (tester) async {
       useTallScreen(tester);

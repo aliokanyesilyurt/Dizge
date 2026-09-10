@@ -3,6 +3,20 @@
          bunu kendisi ekler; release derlemede açıkça bildirilmesi şart. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Hatırlatmalar (N1). Bildirim izni (POST_NOTIFICATIONS) eklentinin kendi
+         manifestinde; burada zamanlayıcının ihtiyaçları var:
+           * RECEIVE_BOOT_COMPLETED — telefon yeniden açılınca kurulu
+             hatırlatmalar geri yüklensin, yoksa hepsi sessizce kaybolur.
+           * USE_EXACT_ALARM — takvim uygulamasına tanınan tam saatli alarm
+             hakkı (Android 13+); kullanıcıya ayrıca sorulmaz. Uygulama
+             mağazadan değil APK olarak dağıtılıyor, mağaza denetimi yok.
+           * SCHEDULE_EXACT_ALARM — aynı hak Android 12 ve altında. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32"/>
+
     <application
         android:label="Dizge"
         android:name="${applicationName}"
@@ -43,6 +57,22 @@
                 <data android:scheme="dizge" android:host="login-callback"/>
             </intent-filter>
         </activity>
+        <!-- Zamanlanan hatırlatmaların alıcıları: biri vakti gelince bildirimi
+             gösterir, diğeri yeniden başlatmadan sonra planı geri kurar. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
         <!-- PostHog'u manifest'ten otomatik başlatma. Kurulum Dart tarafında
              (core/telemetry.dart) yapılır: anahtar yoksa hiç açılmaz ve
              kullanıcı rıza vermeden tek olay gitmez. -->

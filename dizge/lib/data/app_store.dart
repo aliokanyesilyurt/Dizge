@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/app_config.dart';
 import '../core/day_rescue.dart';
 import '../core/group_context.dart';
-import '../core/notification_service.dart';
 import '../core/pool_labels.dart';
 import '../core/telemetry.dart';
 import '../core/time_grid.dart';
@@ -222,7 +221,6 @@ class AppStore extends ChangeNotifier {
     task.groupId ??= activeGroupId;
     TaskRepository.add(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
-    NotificationService().scheduleTaskNotification(task);
     _telemetry.capture(
       Ev.taskCreated,
       props: {
@@ -249,10 +247,6 @@ class AppStore extends ChangeNotifier {
     TaskRepository.update(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
 
-    // Var olanı iptal edip yeniden planla
-    NotificationService().cancelTaskNotification(task);
-    NotificationService().scheduleTaskNotification(task);
-
     _telemetry.capture(
       Ev.taskUpdated,
       props: {
@@ -267,7 +261,6 @@ class AppStore extends ChangeNotifier {
   void removeTask(Task task) {
     TaskRepository.remove(task);
     _record(EntityKind.task, MutationOp.delete, task.id, const {});
-    NotificationService().cancelTaskNotification(task);
     _telemetry.capture(Ev.taskDeleted, props: {'routine': task.isRoutine});
     _touched();
   }

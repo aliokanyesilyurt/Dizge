@@ -9,6 +9,7 @@ import '../data/sync/sync_engine.dart';
 import '../theme.dart';
 import 'account/account_tiles.dart';
 import 'account/appearance_section.dart';
+import 'account/notifications_section.dart';
 import 'account/privacy_section.dart';
 import 'account/profile_section.dart';
 import 'account/session_section.dart';
@@ -16,8 +17,7 @@ import 'account/session_section.dart';
 /// Hesap, görünüm, gizlilik ve veri ayarları.
 ///
 /// Oturum açma/kapama, tema tercihi, telemetri rızası, depolama durumu ve
-/// "cihazdaki verileri sil" burada gerçekten çalışır. Yalnız bildirimler hâlâ
-/// bekliyor ve o satır bilerek sönük duruyor ([AccountTile]).
+/// "cihazdaki verileri sil" ve hatırlatmalar burada gerçekten çalışır.
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
 
@@ -55,6 +55,11 @@ class AccountScreen extends ConsumerWidget {
                 const UsageModeCard(),
                 const SizedBox(height: S.xl),
 
+                // --- Bildirimler ---
+                const GroupLabel('Bildirimler'),
+                const NotificationsCard(),
+                const SizedBox(height: S.xl),
+
                 // --- Veri ve gizlilik (çalışıyor) ---
                 const GroupLabel('Veri ve gizlilik'),
                 StatusTile(
@@ -89,16 +94,6 @@ class AccountScreen extends ConsumerWidget {
                 // --- Hesap ---
                 const GroupLabel('Hesap'),
                 const AccountSection(),
-
-                // --- Henüz backend bekleyenler ---
-                const SizedBox(height: S.sm),
-                const Notice(),
-                const SizedBox(height: S.sm),
-                const AccountTile(
-                  icon: Icons.notifications_rounded,
-                  title: 'Bildirimler',
-                  subtitle: 'Hatırlatmalar',
-                ),
 
                 const SizedBox(height: S.xl),
                 Center(

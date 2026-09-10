@@ -10,7 +10,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
 
 /// Testlerin kök widget'ı — `DizgeApp`'in ağaç yapısını birebir yansıtır.
 ///
@@ -72,9 +71,6 @@ Future<ProviderContainer> pumpApp(
   addTearDown(container.dispose);
 
   seed?.call(container.read(appStoreProvider));
-
-  // Some tests trigger AppStore.addTask which schedules notifications and needs tz.local
-  tz.initializeTimeZones();
 
   await tester.pumpWidget(
     UncontrolledProviderScope(

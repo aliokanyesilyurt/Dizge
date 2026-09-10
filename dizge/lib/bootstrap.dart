@@ -12,11 +12,12 @@ import 'core/auth_service.dart';
 import 'core/connectivity.dart';
 import 'core/handwriting_recognizer.dart';
 import 'core/mlkit_recognizer.dart';
-import 'core/notification_service.dart';
+import 'core/reminders.dart';
 import 'core/secure_key_store.dart';
 import 'core/telemetry.dart';
 import 'core/windows_ink_recognizer.dart';
 import 'data/app_store.dart';
+import 'data/local_notifications_gateway.dart';
 import 'data/local_store.dart';
 import 'data/persistence_providers.dart';
 import 'data/supabase_auth_service.dart';
@@ -46,9 +47,6 @@ Future<ProviderContainer> bootstrap({
   AuthService? auth,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await NotificationService().init();
-  await NotificationService().requestPermissions();
 
   // Depo telemetriden **önce** açılıyor (T4): rıza tercihi orada saklanıyor ve
   // geçit doğru başlangıç değeriyle kurulmalı. Hata yakalayıcıların bir adım
@@ -85,6 +83,7 @@ Future<ProviderContainer> bootstrap({
   // depo zaten aynı kararı telemetri, depolama ve senkron için de burada
   // veriyor.
   final recognizer = _recognizerForPlatform();
+  final reminders = _remindersForPlatform();
 
   final container = ProviderContainer(
     overrides: [
@@ -95,6 +94,7 @@ Future<ProviderContainer> bootstrap({
       authServiceProvider.overrideWithValue(authService),
       syncEngineProvider.overrideWithValue(engine),
       handwritingRecognizerProvider.overrideWithValue(recognizer),
+      reminderGatewayProvider.overrideWithValue(reminders),
     ],
   );
 
@@ -118,6 +118,16 @@ Future<ProviderContainer> bootstrap({
       ..mergeHandler = appStore.mergeJson
       ..start();
   }
+
+  // Hatırlatmalar depo dolduktan **sonra**: boş depoyla kurulan ilk plan
+  // bekleyen bütün bildirimleri silerdi. Beklenmiyor — eklentinin açılışı
+  // (saat dilimi veritabanı) ilk kareyi geciktirmemeli.
+  unawaited(
+    reminders.init().then(
+      (_) => container.read(reminderSchedulerProvider).start(),
+      onError: (Object _) {},
+    ),
+  );
 
   telemetry.capture(
     Ev.appOpened,
@@ -150,6 +160,16 @@ HandwritingRecognizer _recognizerForPlatform() {
   if (Platform.isWindows) return WindowsInkRecognizer();
   if (Platform.isAndroid) return MlKitRecognizer();
   return const UnavailableRecognizer();
+}
+
+/// Bildirim kapısı: yalnız hatırlatmaların gerçekten kurulabildiği yerde
+/// gerçek eklenti. Masaüstünde Linux/macOS dağıtım hedefi değil.
+ReminderGateway _remindersForPlatform() {
+  if (kIsWeb) return NoopReminderGateway();
+  if (Platform.isWindows || Platform.isAndroid) {
+    return LocalNotificationsGateway();
+  }
+  return NoopReminderGateway();
 }
 
 /// [gatewayOverride] / [authOverride] testler ve özel derlemeler için.

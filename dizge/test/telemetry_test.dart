@@ -1,5 +1,6 @@
 import 'package:dizge/core/telemetry.dart';
 import 'package:dizge/data/local_store.dart';
+import 'package:dizge/screens/account/privacy_section.dart';
 import 'package:dizge/screens/account_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,7 +134,11 @@ void main() {
         overrides: [telemetryProvider.overrideWithValue(gate)],
       );
 
-      final anahtar = find.byType(Switch);
+      // Ekranda başka anahtarlar da var (bildirimler); bu, telemetri satırınınki.
+      final anahtar = find.descendant(
+        of: find.byType(TelemetryTile),
+        matching: find.byType(Switch),
+      );
       expect(anahtar, findsOneWidget);
       expect(
         tester.widget<Switch>(anahtar).onChanged,
@@ -145,7 +150,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(gate.enabled, isTrue);
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+      expect(tester.widget<Switch>(anahtar).value, isTrue);
     });
 
     testWidgets('anahtarı çevirmek tercihi depoya yazar', (tester) async {
@@ -165,7 +170,12 @@ void main() {
         overrides: [telemetryProvider.overrideWithValue(gate)],
       );
 
-      await tester.tap(find.byType(Switch));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(TelemetryTile),
+          matching: find.byType(Switch),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(disk.readString(kTelemetryConsentKey), 'on');

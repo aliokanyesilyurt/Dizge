@@ -149,8 +149,11 @@ servisin ücretsiz katmanı yeterli. Kod bunu çözemez; §10'da adım adım.
    (`ScheduledNotificationReceiver`, açılışta yeniden kurma). Üstüne tam
    saatli alarm izni istenmeden `exactAllowWhileIdle` kullanılıyor, bu da
    Android 14'te hata fırlatır.
-5. **Saat dilimi yanlış.** `tz.local` hiç ayarlanmıyor, varsayılanı UTC. Yani
-   14:00'lük iş Türkiye'de **17:00'de** hatırlatılır.
+5. **Saat dilimi ayarlanmıyor.** `tz.local` varsayılanı UTC'de kalıyordu.
+   *(Düzeltme, 10 Eylül: ilk yazımda "14:00'lük iş 17:00'de hatırlatılır"
+   demiştim — yanlış. Tek seferlik bildirimde an, dilimden bağımsız doğru
+   hesaplanıyordu. Kayma yalnız her gün aynı saatte tekrarlanan kurulumda
+   olurdu. Yine de dilim artık gerçek yerel dilime ayarlanıyor.)*
 6. **Yalnız tek günlük işler kuruluyor.** Rutinler, çoklu saatler ve başka
    cihazdan senkronla gelen işler hiç kurulmuyor. Tamamlanan ya da iptal
    edilen işin bildirimi de iptal edilmiyor.
