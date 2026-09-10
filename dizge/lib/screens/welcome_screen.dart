@@ -8,6 +8,7 @@ import '../core/telemetry.dart';
 import '../data/persistence_providers.dart';
 import '../theme.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/google_mark.dart';
 import 'account/profile_section.dart';
 import 'auth_gate.dart';
 
@@ -293,6 +294,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     _Mode.recoverVerify => 'Doğrula ve gir',
   };
 
+  IconData get _actionIcon => switch (_mode) {
+    _Mode.signIn || _Mode.signUp => Icons.mail_outline_rounded,
+    _Mode.recoverRequest => Icons.send_rounded,
+    _Mode.recoverVerify => Icons.verified_outlined,
+  };
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -451,18 +458,24 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ],
 
                     const SizedBox(height: S.lg),
+                    // E-posta yolu zarfla, Google yolu G ile, misafir kişiyle:
+                    // üç kapı aynı dili konuşuyor, hangisinin ne olduğu
+                    // yazıyı okumadan da seçiliyor.
                     FilledButton(
                       onPressed: _locked ? null : _submit,
-                      child: _busy
-                          ? SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: c.onAccent,
-                              ),
-                            )
-                          : Text(_action),
+                      child: IconLabel(
+                        icon: _busy
+                            ? SizedBox(
+                                width: I.sm,
+                                height: I.sm,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: c.onAccent,
+                                ),
+                              )
+                            : Icon(_actionIcon, size: I.sm),
+                        text: _action,
+                      ),
                     ),
 
                     // Kurtarma adımlarında yok: orada soru "sen kimsin" değil,
@@ -499,25 +512,23 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       // yapılandırma bayrağı, tek kişilik bir projede
                       // unutulacak ikinci bir anahtar olurdu. Kapalıysa
                       // kullanıcı sebebini yukarıdaki hata satırında okur.
-                      //
-                      // Resmî Google "G" işareti paketlenmiyor: marka varlığı
-                      // Google'ın kendi kılavuzundan alınıp `assets/brand/`
-                      // içine konmadan, elle çizilmiş bir yaklaşığı koymak
-                      // logoyu yanlış göstermek olurdu.
                       OutlinedButton(
                         onPressed: _locked || offline
                             ? null
                             : _signInWithGoogle,
-                        child: _googleBusy
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: c.inkDim,
-                                ),
-                              )
-                            : const Text('Google ile devam et'),
+                        child: IconLabel(
+                          icon: _googleBusy
+                              ? SizedBox(
+                                  width: I.sm,
+                                  height: I.sm,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: c.inkDim,
+                                  ),
+                                )
+                              : const GoogleMark(size: I.sm),
+                          text: 'Google ile devam et',
+                        ),
                       ),
                       if (offline) ...[
                         const SizedBox(height: S.sm),
@@ -536,7 +547,10 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       const SizedBox(height: S.sm),
                       OutlinedButton(
                         onPressed: _locked ? null : _continueAsGuest,
-                        child: const Text('Misafir olarak devam et'),
+                        child: const IconLabel(
+                          icon: Icon(Icons.person_outline_rounded, size: I.sm),
+                          text: 'Misafir olarak devam et',
+                        ),
                       ),
                     ],
 
@@ -595,4 +609,26 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       ),
     );
   }
+}
+
+/// Düğme etiketi: simge + metin.
+///
+/// `FilledButton.icon` yerine düz düğmenin çocuğu: `.icon` yapıcıları başka
+/// bir alt tür üretiyor ve düğmeyi türüyle arayan her şey (testler,
+/// erişilebilirlik denetimleri) onu kaçırıyordu.
+class IconLabel extends StatelessWidget {
+  const IconLabel({super.key, required this.icon, required this.text});
+
+  final Widget icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      icon,
+      const SizedBox(width: S.sm),
+      Flexible(child: Text(text, overflow: TextOverflow.ellipsis)),
+    ],
+  );
 }
