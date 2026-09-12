@@ -761,13 +761,7 @@ class TaskCategory {
 /// kendi ayarı (Tek Günlük / Rutin). "Rutin" bilerek kullanılmadı — işin
 /// türüyle çakışırdı. Kullanıcı her birini Kategoriler sayfasından yeniden
 /// adlandırabiliyor.
-const Map<String, String> kCategoryLabels = {
-  'Kalıcı iş': 'Mesai',
-  'Günlük rutin': 'Gündelik',
-  'Haftalık / ara sıra': 'Seyrek',
-  'Önemli / acil': 'Acil',
-  'Hobi / keyfi': 'Hobi',
-};
+const Map<String, String> kCategoryLabels = {};
 
 /// Depolanan kategori adının ekranda görüneceği hâli.
 ///

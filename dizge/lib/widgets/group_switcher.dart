@@ -77,6 +77,12 @@ class GroupSwitcher extends ConsumerWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(R.md)),
       onSelected: (value) => _onSelected(context, ref, value),
       itemBuilder: (_) => [
+_context(
+          context,
+          id: '*all*',
+          label: 'Tüm İşler',
+          active: ctx.activeId == '*all*',
+        ),
         _context(
           context,
           id: _kisisel,

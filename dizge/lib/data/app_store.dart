@@ -218,7 +218,7 @@ class AppStore extends ChangeNotifier {
   // --- Görev mutasyonları (TaskRepository'ye köprü + bildirim) ---------------
 
   void addTask(Task task) {
-    task.groupId ??= activeGroupId;
+    task.groupId ??= activeGroupId == '*all*' ? null : activeGroupId;
     TaskRepository.add(task);
     _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
     _telemetry.capture(
@@ -593,7 +593,7 @@ class AppStore extends ChangeNotifier {
   // --- Not mutasyonları ------------------------------------------------------
 
   void addNote(Note note) {
-    note.groupId ??= activeGroupId;
+    note.groupId ??= activeGroupId == '*all*' ? null : activeGroupId;
     _notes.add(note);
     _record(EntityKind.note, MutationOp.upsert, note.id, note.toJson());
     _telemetry.capture(Ev.noteCreated);
@@ -637,7 +637,7 @@ class AppStore extends ChangeNotifier {
   // --- Alışkanlık mutasyonları ----------------------------------------------
 
   void addHabit(Habit habit) {
-    habit.groupId ??= activeGroupId;
+    habit.groupId ??= activeGroupId == '*all*' ? null : activeGroupId;
     _habits.add(habit);
     _record(EntityKind.habit, MutationOp.upsert, habit.id, habit.toJson());
     _telemetry.capture(
@@ -918,10 +918,13 @@ List<T> _inContext<T>(
   List<T> items,
   String? activeGroupId,
   String? Function(T) groupOf,
-) => [
-  for (final item in items)
-    if (groupOf(item) == activeGroupId) item,
-];
+) {
+  if (activeGroupId == '*all*') return items;
+  return [
+    for (final item in items)
+      if (groupOf(item) == activeGroupId) item,
+  ];
+}
 
 /// Belirli bir günün görevleri (saat sırasına göre). Takvim/gün ekranları için.
 final tasksForDateProvider = Provider.family<List<Task>, DateTime>((ref, day) {
@@ -954,7 +957,7 @@ final poolProvider = Provider<List<Task>>((ref) {
   return ref
       .watch(appStoreProvider)
       .tasks
-      .where((t) => t.inPool && t.groupId == active)
+      .where((t) => t.inPool && (active == '*all*' || t.groupId == active))
       .toList()
     ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
 });
@@ -971,7 +974,7 @@ final todosProvider = Provider<List<Task>>((ref) {
       ref
           .watch(appStoreProvider)
           .tasks
-          .where((t) => !t.isRoutine && t.groupId == active)
+          .where((t) => !t.isRoutine && (active == '*all*' || t.groupId == active))
           .toList()
         ..sort((a, b) {
           final byDate = a.date.compareTo(b.date);
@@ -986,7 +989,7 @@ final routinesProvider = Provider<List<Task>>((ref) {
   return ref
       .watch(appStoreProvider)
       .tasks
-      .where((t) => t.isRoutine && t.groupId == active)
+      .where((t) => t.isRoutine && (active == '*all*' || t.groupId == active))
       .toList()
     ..sort(Task.compare);
 });

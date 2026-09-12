@@ -40,8 +40,10 @@ class GroupContext {
 
   bool get isPersonal => activeId == null;
 
-  /// Seçicide ve boş ekranlarda görünen ad.
-  String get label => active?.name ?? 'Kişisel';
+  String get label {
+    if (activeId == '*all*') return 'Tüm İşler';
+    return active?.name ?? 'Kişisel';
+  }
 }
 
 /// Hangi bağlamda çalışıldığını tutar ve **anında** diske yazar.

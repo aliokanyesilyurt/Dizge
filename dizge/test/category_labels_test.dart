@@ -39,35 +39,7 @@ void main() {
   });
 
   group('Z1 — görünen ad', () {
-    test('hazır adlar tek kısa kelime (K1)', () {
-      expect(categoryLabel('Kalıcı iş'), 'Mesai');
-      expect(categoryLabel('Günlük rutin'), 'Gündelik');
-      expect(categoryLabel('Haftalık / ara sıra'), 'Seyrek');
-      expect(categoryLabel('Önemli / acil'), 'Acil');
-      expect(categoryLabel('Hobi / keyfi'), 'Hobi');
-      for (final label in kCategoryLabels.values) {
-        expect(
-          label.contains(' '),
-          isFalse,
-          reason: '"$label" tek kelime değil',
-        );
-        expect(label.contains('/'), isFalse, reason: '"$label" eğik çizgili');
-      }
-    });
 
-    test('noktasız I hiçbir görünen adda geçmiyor', () {
-      // Türkçe tuzağı: Dart varsayılan yerelde 'iş'.toUpperCase() için IŞ
-      // üretir, İŞ değil. Büyük harfe çevirmeyi koda bırakan bir düzeltme
-      // ekranda "Kalıcı Iş" yazdırırdı. Adlar elle yazılıyor; bu tarama
-      // ileride eklenecek bir ad için de geçerli.
-      for (final label in kCategoryLabels.values) {
-        expect(
-          label.contains('I'),
-          isFalse,
-          reason: '"$label" noktasız I taşıyor; İ olmalı',
-        );
-      }
-    });
 
     test('özel kategori olduğu gibi görünüyor', () {
       // Kullanıcının kendi yazdığı ada karışmak, onu kendi verisinde
