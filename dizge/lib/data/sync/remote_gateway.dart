@@ -88,7 +88,21 @@ abstract class RemoteGateway {
   // doğru davranış sessizce kuyruğa almak değil, düğmeyi kapatıp söylemek.
 
   /// Yeni grup kurar ve kuranı sahip olarak içine alır. Kurulan grubu döner.
-  Future<Group> createGroup(String name);
+  ///
+  /// Renk ve açıklama (R1) kurulumun hemen ardından yazılıyor. Sunucuda göç
+  /// 06 henüz yoksa o ikinci yazma düşer ama grup **kurulmuş** olur; dönen
+  /// grup yine seçilen rengi ve açıklamayı taşır (yalnız bu cihazda).
+  Future<Group> createGroup(
+    String name, {
+    String? description,
+    int? colorIndex,
+  });
+
+  /// Grubun adını, rengini ve açıklamasını yazar. Yalnız sahip.
+  Future<void> updateGroup(Group group);
+
+  /// Grubun üyeleri (R3: grup sayfası).
+  Future<List<GroupMember>> fetchGroupMembers(String groupId);
 
   /// Tek kullanımlık davet üretir ve token'ını döner.
   ///
@@ -154,7 +168,17 @@ class NoopRemoteGateway implements RemoteGateway {
   // yapmak en kötüsü olurdu: kullanıcı grubu kurulmuş sanır, kimseyi davet
   // edemediğinde nedenini bulamazdı.
   @override
-  Future<Group> createGroup(String name) async => throw _yokSunucu;
+  Future<Group> createGroup(
+    String name, {
+    String? description,
+    int? colorIndex,
+  }) async => throw _yokSunucu;
+
+  @override
+  Future<void> updateGroup(Group group) async => throw _yokSunucu;
+
+  @override
+  Future<List<GroupMember>> fetchGroupMembers(String groupId) async => const [];
 
   @override
   Future<String> createInvite(String groupId, {String? email}) async =>

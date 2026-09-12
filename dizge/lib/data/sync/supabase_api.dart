@@ -67,6 +67,21 @@ abstract class SupabaseApi {
   /// verirdi.
   Future<void> leaveGroup(String groupId);
 
+  /// Grubun adını, rengini ve açıklamasını yazar (R1). Yalnız sahip yazabilir
+  /// — `groups_access` politikasının `with check` koşulu; burada ayrıca
+  /// denetlenmiyor. Üç alan birlikte yazılıyor: düzenleme formu üçünü birden
+  /// gösteriyor, açıklamayı silmek de bir değişiklik.
+  Future<void> updateGroup(
+    String groupId, {
+    required String name,
+    String? description,
+    int? color,
+  });
+
+  /// Grubun üyelik satırları (R3). Üyeler birbirinin satırını görebiliyor
+  /// (`group_members_read`); süzgeç yine istemcide değil.
+  Future<List<Map<String, dynamic>>> fetchGroupMembers(String groupId);
+
   /// Kullanıcının kendi profil satırını yazar (Y4.4: görünen ad).
   ///
   /// `upsert`: satır normalde kayıt trigger'ıyla doğmuş oluyor ama doğmamış
@@ -132,6 +147,30 @@ class LiveSupabaseApi implements SupabaseApi {
   Future<void> leaveGroup(String groupId) => _guard(
     () => _client.from('group_members').delete().eq('group_id', groupId),
   );
+
+  @override
+  Future<void> updateGroup(
+    String groupId, {
+    required String name,
+    String? description,
+    int? color,
+  }) => _guard(
+    () => _client
+        .from('groups')
+        .update({'name': name, 'description': description, 'color': color})
+        .eq('id', groupId),
+  );
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchGroupMembers(String groupId) async {
+    final rows = await _guard(
+      () => _client
+          .from('group_members')
+          .select('user_id, role')
+          .eq('group_id', groupId),
+    );
+    return [for (final r in rows as List) (r as Map).cast<String, dynamic>()];
+  }
 
   @override
   Future<void> upsertProfile({String? displayName, int? avatarColor}) async {

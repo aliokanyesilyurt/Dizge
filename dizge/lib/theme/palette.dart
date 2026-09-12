@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../models/group.dart';
 import '../models/profile.dart';
 
 @immutable
@@ -653,6 +654,16 @@ Color avatarColorOf(Profile? profile, String? userId) {
   final chosen = profile?.avatarColor;
   if (chosen != null) return kAvatarColors[chosen.abs() % kAvatarColors.length];
   return avatarColorFor(userId ?? '');
+}
+
+/// Grubun rengi: seçildiyse o, yoksa kimlikten türeyen kararlı renk (R1).
+///
+/// Rozetlerle aynı palet: grup şeridi ve rozet yan yana durduğunda aynı
+/// dilden konuşsunlar; üstündeki yazı rengi de aynı `inkOn` ile hesaplanıyor.
+Color groupColorOf(Group group) {
+  final chosen = group.colorIndex;
+  if (chosen != null) return kAvatarColors[chosen.abs() % kAvatarColors.length];
+  return avatarColorFor(group.id);
 }
 
 /// WCAG 2.1 kontrast oranı (1:1 – 21:1).

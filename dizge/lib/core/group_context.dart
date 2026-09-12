@@ -111,6 +111,17 @@ class GroupContextController extends StateNotifier<GroupContext> {
     await _store.writeString(kActiveGroupKey, group.id);
   }
 
+  /// Listedeki bir grubu (düzenleme sonrası) yenisiyle değiştirir; bağlama
+  /// dokunmaz — başka bir grubun sayfasından düzenlemek oraya geçmek demek
+  /// değil.
+  Future<void> replace(Group group) async {
+    final groups = [
+      for (final g in state.groups) g.id == group.id ? group : g,
+    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    state = GroupContext(groups: groups, activeId: state.activeId);
+    await _writeCache(groups);
+  }
+
   /// Grup listesini sunucudan tazeler.
   ///
   /// Hata **yutuluyor**: çevrimdışı açılışta liste tazelenemiyorsa doğru
@@ -167,11 +178,32 @@ class GroupActions {
   ///
   /// Kurduğu grubun içine düşmek, kullanıcının bir sonraki hamlesinin
   /// (birini davet etmek, ilk işi yazmak) zaten orada olması demek.
-  Future<Group> create(String name) async {
-    final group = await _gateway.createGroup(name);
+  Future<Group> create(
+    String name, {
+    String? description,
+    int? colorIndex,
+  }) async {
+    final group = await _gateway.createGroup(
+      name,
+      description: description,
+      colorIndex: colorIndex,
+    );
     await _context.adopt(group);
     return group;
   }
+
+  /// Grubun adını, rengini ve açıklamasını yazar (yalnız sahip).
+  ///
+  /// Önce sunucu: yerelde değiştirip sunucu düşseydi ekran, kimsenin
+  /// görmediği bir adı gösterirdi.
+  Future<void> update(Group group) async {
+    await _gateway.updateGroup(group);
+    await _context.replace(group);
+  }
+
+  /// Grubun üyeleri — grup sayfası için; hata çağırana düşer.
+  Future<List<GroupMember>> members(String groupId) =>
+      _gateway.fetchGroupMembers(groupId);
 
   /// Davet üretir; token'ı çağıran panoya kopyalar (Y4g).
   Future<String> invite(String groupId, {String? email}) =>

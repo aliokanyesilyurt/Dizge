@@ -57,6 +57,38 @@ class _FakeApi implements SupabaseApi {
   @override
   Future<void> leaveGroup(String groupId) async => left.add(groupId);
 
+  /// `updateGroup` ile yazılan alanlar, sırasıyla.
+  final List<Map<String, dynamic>> groupWrites = [];
+
+  /// Bir sonraki grup yazmasının fırlatacağı hata (göç 06 yokken sütun hatası).
+  RemoteException? nextGroupWriteFailure;
+
+  @override
+  Future<void> updateGroup(
+    String groupId, {
+    required String name,
+    String? description,
+    int? color,
+  }) async {
+    final f = nextGroupWriteFailure;
+    if (f != null) {
+      nextGroupWriteFailure = null;
+      throw f;
+    }
+    groupWrites.add({
+      'id': groupId,
+      'name': name,
+      'description': description,
+      'color': color,
+    });
+  }
+
+  List<Map<String, dynamic>> memberRows = const [];
+
+  @override
+  Future<List<Map<String, dynamic>>> fetchGroupMembers(String groupId) async =>
+      memberRows;
+
   /// Yazılan görünen adlar, sırasıyla.
   final List<String> profileWrites = [];
 

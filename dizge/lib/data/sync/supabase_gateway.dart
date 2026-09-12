@@ -117,13 +117,46 @@ class SupabaseGateway implements RemoteGateway {
   /// Sunucu yalnız kimliği döndürüyor; adı ve sahibi burada biliniyor, ikinci
   /// bir çekim turu için sebep yok.
   @override
-  Future<Group> createGroup(String name) async {
+  Future<Group> createGroup(
+    String name, {
+    String? description,
+    int? colorIndex,
+  }) async {
     final id = await _api.rpc('create_group', {'group_name': name});
-    return Group(
+    final group = Group(
       id: id as String,
       name: name.trim(),
       ownerId: _api.currentUserId,
-    );
+    ).copyWith(description: description ?? '', colorIndex: colorIndex);
+
+    if (group.description != null || group.colorIndex != null) {
+      try {
+        await updateGroup(group);
+      } on RemoteException {
+        // Göç 06 çalışmamış olabilir (sütun yok). Grup kuruldu; kurulumu bu
+        // yüzden başarısız saymak, kullanıcıyı "kurulmadı" sanıp ikinci bir
+        // grup kurmaya iterdi.
+      }
+    }
+    return group;
+  }
+
+  @override
+  Future<void> updateGroup(Group group) => _api.updateGroup(
+    group.id,
+    name: group.name.trim(),
+    description: group.description,
+    color: group.colorIndex,
+  );
+
+  @override
+  Future<List<GroupMember>> fetchGroupMembers(String groupId) async {
+    if (!isConfigured) return const [];
+    final rows = await _api.fetchGroupMembers(groupId);
+    return [
+      for (final r in rows)
+        if (r['user_id'] != null) GroupMember.fromRow(r),
+    ]..sort((a, b) => (b.isOwner ? 1 : 0) - (a.isOwner ? 1 : 0));
   }
 
   @override

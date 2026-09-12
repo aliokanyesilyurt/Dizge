@@ -95,12 +95,41 @@ class _FakeGateway implements RemoteGateway {
   }
 
   @override
-  Future<Group> createGroup(String name) async {
+  Future<Group> createGroup(
+    String name, {
+    String? description,
+    int? colorIndex,
+  }) async {
     _maybeFail();
     created.add(name);
-    final group = Group(id: 'yeni-${created.length}', name: name.trim());
+    final group = Group(
+      id: 'yeni-${created.length}',
+      name: name.trim(),
+      ownerId: 'ben',
+      description: description,
+      colorIndex: colorIndex,
+    );
     groups = [...groups, group];
     return group;
+  }
+
+  /// Sahibin yazdığı düzenlemeler, sırasıyla.
+  final List<Group> updated = [];
+
+  @override
+  Future<void> updateGroup(Group group) async {
+    _maybeFail();
+    updated.add(group);
+    groups = [for (final g in groups) g.id == group.id ? group : g];
+  }
+
+  /// Grup başına üyeler; testler doldurur.
+  Map<String, List<GroupMember>> membersOf = {};
+
+  @override
+  Future<List<GroupMember>> fetchGroupMembers(String groupId) async {
+    _maybeFail();
+    return membersOf[groupId] ?? const [];
   }
 
   @override
