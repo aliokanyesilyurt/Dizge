@@ -57,7 +57,7 @@ void main() {
     expect(find.text('Yeni grup…'), findsOneWidget);
     expect(find.text('Daveti kabul et…'), findsOneWidget);
     // Yönetim yalnız bir grubun içindeyken anlamlı.
-    expect(find.text('Grubu yönet…'), findsNothing);
+    expect(find.text('Grup sayfası'), findsNothing);
   });
 
   testWidgets('grup bağlamında yönetim yolu açılır', (tester) async {
@@ -72,7 +72,7 @@ void main() {
     await tester.tap(find.byType(GroupSwitcher));
     await tester.pumpAndSettle();
 
-    expect(find.text('Grubu yönet…'), findsOneWidget);
+    expect(find.text('Grup sayfası'), findsOneWidget);
   });
 
   testWidgets('"Yeni grup" diyaloğu açılır', (tester) async {

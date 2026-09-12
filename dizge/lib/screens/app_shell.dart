@@ -203,7 +203,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 SizedBox(width: S.xs),
               ],
             ),
-      body: Row(
+      body: Column(children: [const _GroupRibbon(), Expanded(child: Row(
         children: [
           if (wide)
             _Sidebar(
@@ -221,7 +221,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             ),
           ),
         ],
-      ),
+      ))]),
       bottomNavigationBar: wide
           ? null
           : NavigationBar(
@@ -884,5 +884,34 @@ class _ProfileTile extends ConsumerWidget {
     );
 
     return collapsed ? Tooltip(message: 'Hesap ayarları', child: tile) : tile;
+  }
+}
+
+
+class _GroupRibbon extends ConsumerWidget {
+  const _GroupRibbon();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(groupContextProvider).active;
+    if (active == null) return const SizedBox.shrink();
+
+    final color = groupColorOf(active);
+
+    return Container(
+      width: double.infinity,
+      color: color,
+      padding: const EdgeInsets.symmetric(horizontal: S.md, vertical: S.xs),
+      child: Center(
+        child: Text(
+          'Şu an ' + active.name + ' grubundasın',
+          style: TextStyle(
+            color: inkOn(color),
+            fontSize: T.micro,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
   }
 }

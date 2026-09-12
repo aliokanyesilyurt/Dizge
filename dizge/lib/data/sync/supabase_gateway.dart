@@ -341,6 +341,7 @@ class SupabaseGateway implements RemoteGateway {
           {
             'name': r['name'] as String,
             'colorHex': (r['color_hex'] as String?) ?? '',
+            if (r['label'] != null) 'label': r['label'] as String,
           },
     ];
   }

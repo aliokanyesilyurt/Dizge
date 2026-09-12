@@ -686,8 +686,22 @@ class AppStore extends ChangeNotifier {
     _record(EntityKind.category, MutationOp.upsert, category.name, {
       'name': category.name,
       'colorHex': colorToHex(category.color),
+      if (category.customLabel != null) 'label': category.customLabel,
     });
     _touched();
+  }
+
+  void updateCategory(TaskCategory category) {
+    final i = AppData.categories.indexWhere((c) => c.name == category.name);
+    if (i != -1) {
+      AppData.categories[i] = category;
+      _record(EntityKind.category, MutationOp.upsert, category.name, {
+        'name': category.name,
+        'colorHex': colorToHex(category.color),
+        if (category.customLabel != null) 'label': category.customLabel,
+      });
+      _touched();
+    }
   }
 
   /// Dış dünyada (ör. eski ekranlarda TaskRepository doğrudan) bir değişiklik
@@ -739,7 +753,11 @@ class AppStore extends ChangeNotifier {
     'agendaPages': [for (final p in _agendaPages.values) p.toJson()],
     'categories': [
       for (final c in AppData.categories)
-        {'name': c.name, 'colorHex': colorToHex(c.color)},
+        {
+          'name': c.name,
+          'colorHex': colorToHex(c.color),
+          if (c.customLabel != null) 'label': c.customLabel,
+        },
     ],
   };
 
@@ -820,6 +838,7 @@ class AppStore extends ChangeNotifier {
           TaskCategory(
             ((raw as Map)['name'] as String?) ?? 'Diğer',
             colorFromHex(raw['colorHex'] as String?),
+            customLabel: raw['label'] as String?,
           ),
       ];
       changed = true;
@@ -861,6 +880,7 @@ class AppStore extends ChangeNotifier {
           TaskCategory(
             ((raw as Map)['name'] as String?) ?? 'Diğer',
             colorFromHex(raw['colorHex'] as String?),
+            customLabel: raw['label'] as String?,
           ),
       ];
     }

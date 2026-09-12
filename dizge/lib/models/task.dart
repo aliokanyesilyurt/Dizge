@@ -720,10 +720,27 @@ class TaskCategory {
   /// **Depolanan** ad. Kaydın kimliği; değişmez (bkz. [categoryLabel]).
   final String name;
   final Color color;
-  const TaskCategory(this.name, this.color);
+  
+  /// Kullanıcının bu kategori için belirlediği özel ad (varsa).
+  final String? customLabel;
+  
+  const TaskCategory(this.name, this.color, {this.customLabel});
 
-  /// Ekranda görünecek hâli. Depoya giden [name] değil, bu gösterilir.
-  String get label => categoryLabel(name);
+  /// Ekranda görünecek hâli. Kullanıcı özel bir ad verdiyse o görünür, yoksa
+  /// varsayılan ad gösterilir.
+  String get label => customLabel ?? categoryLabel(name);
+  
+  TaskCategory copyWith({
+    String? name,
+    Color? color,
+    String? customLabel,
+  }) {
+    return TaskCategory(
+      name ?? this.name,
+      color ?? this.color,
+      customLabel: customLabel ?? this.customLabel,
+    );
+  }
 }
 
 /// Hazır kategorilerin görünen adları: depolanan ad → ekrandaki ad.

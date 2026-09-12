@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme_mode_controller.dart';
 import '../../core/usage_mode_controller.dart';
 import '../../theme.dart';
+import '../../models/task.dart';
+import '../../data/app_store.dart';
 import 'account_tiles.dart';
 
 /// Tema seçici: üç büyük, dokunulası kart. Anahtar yerine kart tercih edildi
@@ -147,8 +149,249 @@ class UsageModeCard extends ConsumerWidget {
               ],
             ],
           ),
+          const SizedBox(height: S.xl),
+          ActionTile(
+            icon: Icons.label_outline_rounded,
+            title: 'Kategoriler',
+            subtitle: 'Kategori adlarını ve renklerini düzenle',
+            onTap: () => _showCategories(context),
+          ),
         ],
       ),
+    );
+  }
+
+  void _showCategories(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const _CategoriesSheet(),
+    );
+  }
+}
+
+class _CategoriesSheet extends ConsumerWidget {
+  const _CategoriesSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    // AppStore güncellendiğinde bu sheet de yenilenecek.
+    ref.watch(appStoreProvider);
+    final cats = AppData.categories;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        left: S.xl,
+        right: S.xl,
+        top: S.md,
+        bottom: S.xxl + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: S.xl),
+              decoration: BoxDecoration(
+                color: c.line,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text(
+            'Kategoriler',
+            style: TextStyle(
+              color: c.ink,
+              fontSize: T.headline,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: S.md),
+          Text(
+            'Kategori adlarını ve renklerini buradan değiştirebilirsin. '
+            'Değişiklikler tüm işlerine yansır.',
+            style: TextStyle(color: c.inkFaint, fontSize: T.body, height: 1.4),
+          ),
+          const SizedBox(height: S.xl),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: cats.length,
+              separatorBuilder: (ctx, i) => const SizedBox(height: S.sm),
+              itemBuilder: (ctx, i) {
+                final cat = cats[i];
+                return _CategoryRow(
+                  category: cat,
+                  onUpdate: (updated) {
+                    ref.read(appStoreProvider).updateCategory(updated);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryRow extends StatelessWidget {
+  const _CategoryRow({required this.category, required this.onUpdate});
+
+  final TaskCategory category;
+  final ValueChanged<TaskCategory> onUpdate;
+
+  Future<void> _edit(BuildContext context) async {
+    final updated = await showDialog<TaskCategory>(
+      context: context,
+      builder: (ctx) => _CategoryEditDialog(category: category),
+    );
+    if (updated != null) onUpdate(updated);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: R.radiusMd,
+        onTap: () => _edit(context),
+        child: Container(
+          padding: const EdgeInsets.all(S.md),
+          decoration: BoxDecoration(
+            border: Border.all(color: c.line),
+            borderRadius: R.radiusMd,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: category.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: S.md),
+              Expanded(
+                child: Text(
+                  category.label,
+                  style: TextStyle(
+                    color: c.ink,
+                    fontSize: T.strong,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(Icons.edit_rounded, size: I.sm, color: c.inkFaint),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryEditDialog extends StatefulWidget {
+  const _CategoryEditDialog({required this.category});
+  final TaskCategory category;
+
+  @override
+  State<_CategoryEditDialog> createState() => _CategoryEditDialogState();
+}
+
+class _CategoryEditDialogState extends State<_CategoryEditDialog> {
+  late TextEditingController _ctrl;
+  late Color _picked;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.category.label);
+    _picked = widget.category.color;
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return AlertDialog(
+      title: const Text('Kategori düzenle'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            style: TextStyle(color: c.ink),
+            decoration: const InputDecoration(hintText: 'Görünen ad'),
+          ),
+          const SizedBox(height: S.lg),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: kTaskColors.map((color) {
+              final sel = color == _picked;
+              return GestureDetector(
+                onTap: () => setState(() => _picked = color),
+                child: AnimatedContainer(
+                  duration: Motion.fast,
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: sel ? c.ink : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: sel
+                      ? Icon(
+                          Icons.check_rounded,
+                          size: I.sm,
+                          color: inkOn(color),
+                        )
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('İptal'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final t = _ctrl.text.trim();
+            if (t.isEmpty) return;
+            final customLabel = t == categoryLabel(widget.category.name) ? null : t;
+            Navigator.pop(context, widget.category.copyWith(color: _picked, customLabel: customLabel));
+          },
+          child: const Text('Kaydet'),
+        ),
+      ],
     );
   }
 }

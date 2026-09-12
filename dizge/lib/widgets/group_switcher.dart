@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/group_context.dart';
 import '../screens/auth_gate.dart';
+import '../screens/group_create_sheet.dart';
+import '../screens/group_screen.dart';
 import '../theme.dart';
 import 'group_dialogs.dart';
 
@@ -35,12 +37,20 @@ class GroupSwitcher extends ConsumerWidget {
   void _onSelected(BuildContext context, WidgetRef ref, String value) {
     switch (value) {
       case _yeni:
-        showCreateGroupDialog(context);
+        showModalBottomSheet(
+          context: context,
+          builder: (_) => const GroupCreateSheet(),
+          isScrollControlled: true,
+        );
       case _katil:
         showAcceptInviteDialog(context);
       case _yonet:
         final active = ref.read(groupContextProvider).active;
-        if (active != null) showManageGroupDialog(context, active);
+        if (active != null) {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => GroupScreen(group: active),
+          ));
+        }
       default:
         ref
             .read(groupContextProvider.notifier)
@@ -99,8 +109,8 @@ class GroupSwitcher extends ConsumerWidget {
           _action(
             context,
             value: _yonet,
-            icon: Icons.tune_rounded,
-            label: 'Grubu yönet…',
+            icon: Icons.group_rounded,
+            label: 'Grup sayfası',
           ),
       ],
       child: AnimatedContainer(

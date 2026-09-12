@@ -1,37 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/auth_service.dart';
 import '../core/connectivity.dart';
 import '../core/group_context.dart';
 import '../data/sync/supabase_api.dart';
-import '../models/group.dart';
 import '../theme.dart';
 
-/// Grup işlemlerinin arayüzü (Y4.3): kur, davet et, daveti kabul et, çık.
-///
-/// Dördü de birer diyalog — ayrı bir ekran değil. Grup yönetimi arada bir
-/// yapılan, başladığı yerde biten bir iş; kullanıcıyı takvimden koparıp
-/// başka bir sayfaya götürmek, dönüş yolunu da ona bırakmak olurdu.
-///
-/// Hepsi **çevrimiçi ister** (Y4f). Düğme çevrimdışıyken pasif ve sebebini
-/// yazıyor: sessizce kuyruğa alınsalardı "kurduğum grup nerede?" sorusunun
-/// cevabı hiçbir yerde olmazdı.
-
-Future<void> showCreateGroupDialog(BuildContext context) => showDialog(
-  context: context,
-  builder: (_) => const _GroupDialog(
-    title: 'Yeni grup',
-    description:
-        'Grup, takvimini paylaştığın kişilerle ortak alanın. Kurduğunda '
-        'içine düşersin; sonra davet edersin.',
-    label: 'Grup adı',
-    hint: 'Ev, Ekip, Proje…',
-    action: 'Kur',
-    mode: _Mode.create,
-  ),
-);
+/// Grup işlemlerinin arayüzü (Y4.3).
 
 Future<void> showAcceptInviteDialog(BuildContext context) => showDialog(
   context: context,
@@ -43,21 +18,12 @@ Future<void> showAcceptInviteDialog(BuildContext context) => showDialog(
     label: 'Davet kodu',
     hint: 'Uzun harf-rakam dizisi',
     action: 'Katıl',
-    mode: _Mode.accept,
   ),
 );
 
-Future<void> showManageGroupDialog(BuildContext context, Group group) =>
-    showDialog(context: context, builder: (_) => _ManageGroupDialog(group));
-
-enum _Mode { create, accept }
-
-/// Diyalogların açıklama metni — tek yerde, üç diyalogda aynı ton.
 TextStyle _faint(BuildContext context) =>
     TextStyle(color: context.colors.inkFaint, fontSize: T.caption, height: 1.4);
 
-/// Tek alanlı iki diyalog (kur / kabul et) aynı iskeleti paylaşıyor: metin
-/// alanı, çevrimdışı uyarısı, hata satırı, bekleme durumu.
 class _GroupDialog extends ConsumerStatefulWidget {
   const _GroupDialog({
     required this.title,
@@ -65,7 +31,6 @@ class _GroupDialog extends ConsumerStatefulWidget {
     required this.label,
     required this.hint,
     required this.action,
-    required this.mode,
   });
 
   final String title;
@@ -73,7 +38,6 @@ class _GroupDialog extends ConsumerStatefulWidget {
   final String label;
   final String hint;
   final String action;
-  final _Mode mode;
 
   @override
   ConsumerState<_GroupDialog> createState() => _GroupDialogState();
@@ -103,16 +67,9 @@ class _GroupDialogState extends ConsumerState<_GroupDialog> {
     });
 
     try {
-      final actions = ref.read(groupActionsProvider);
-      if (widget.mode == _Mode.create) {
-        await actions.create(value);
-      } else {
-        await actions.accept(value);
-      }
+      await ref.read(groupActionsProvider).accept(value);
       if (mounted) Navigator.of(context).pop();
     } on RemoteException catch (e) {
-      // Sunucunun kendi cümlesi burada kullanıcıya en yakın olanı: "davet
-      // zaten kullanılmış", "süresi dolmuş" gibi.
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       if (mounted) setState(() => _error = 'İşlem tamamlanamadı. $e');
@@ -158,208 +115,6 @@ class _GroupDialogState extends ConsumerState<_GroupDialog> {
           child: _busy ? const _Spinner() : Text(widget.action),
         ),
       ],
-    );
-  }
-}
-
-/// Grup yönetimi: davet üret ve gruptan çık.
-class _ManageGroupDialog extends ConsumerStatefulWidget {
-  const _ManageGroupDialog(this.group);
-
-  final Group group;
-
-  @override
-  ConsumerState<_ManageGroupDialog> createState() => _ManageGroupDialogState();
-}
-
-class _ManageGroupDialogState extends ConsumerState<_ManageGroupDialog> {
-  final _email = TextEditingController();
-  bool _busy = false;
-  String? _error;
-  String? _token;
-
-  @override
-  void dispose() {
-    _email.dispose();
-    super.dispose();
-  }
-
-  Future<void> _run(Future<void> Function() body) async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await body();
-    } on RemoteException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (e) {
-      if (mounted) setState(() => _error = 'İşlem tamamlanamadı. $e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _invite() => _run(() async {
-    final token = await ref
-        .read(groupActionsProvider)
-        .invite(widget.group.id, email: _email.text);
-    await Clipboard.setData(ClipboardData(text: token));
-    if (mounted) setState(() => _token = token);
-  });
-
-  Future<void> _leave() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Gruptan çık'),
-        content: Text(
-          '"${widget.group.name}" grubunun işleri bu cihazdan kaldırılacak. '
-          'Gruptaki diğer kişilerde durmaya devam eder — silinmiyorlar, '
-          'yalnız senin görüşünden çıkıyorlar.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Vazgeç'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Çık'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    await _run(() async {
-      await ref.read(groupActionsProvider).leave(widget.group.id);
-      if (mounted) Navigator.of(context).pop();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final offline =
-        ref.watch(networkStatusProvider).valueOrNull == NetworkStatus.offline;
-    // Davet etme hakkı yalnız sahipte (Y3f). Sunucu da reddediyor; düğmeyi
-    // burada göstermemek, reddedilecek bir yolu hiç açmamak için.
-    final isOwner = widget.group.isOwnedBy(
-      ref.watch(authUserProvider).valueOrNull?.id,
-    );
-
-    return AlertDialog(
-      title: Text(widget.group.name),
-      content: SizedBox(
-        width: 380,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isOwner) ...[
-              Text(
-                'Davet kodu üret ve karşı tarafa ilet. Kod tek kullanımlık; '
-                'bir adres yazarsan yalnız o hesapta çalışır.',
-                style: _faint(context),
-              ),
-              const SizedBox(height: S.md),
-              TextField(
-                controller: _email,
-                enabled: !_busy && !offline,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'E-posta (isteğe bağlı)',
-                  hintText: 'ornek@posta.com',
-                ),
-              ),
-              const SizedBox(height: S.sm),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  onPressed: (_busy || offline) ? null : _invite,
-                  icon: const Icon(Icons.link_rounded, size: I.sm),
-                  label: const Text('Davet kodu üret'),
-                ),
-              ),
-              if (_token != null) _TokenBox(_token!),
-              const SizedBox(height: S.sm),
-              Divider(color: c.lineSoft),
-            ],
-            const SizedBox(height: S.xs),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: (_busy || offline) ? null : _leave,
-                icon: Icon(Icons.logout_rounded, size: I.sm, color: c.danger),
-                label: Text('Gruptan çık', style: TextStyle(color: c.danger)),
-              ),
-            ),
-            if (offline) const _OfflineNote(),
-            if (_error != null) _ErrorNote(_error!),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: const Text('Kapat'),
-        ),
-      ],
-    );
-  }
-}
-
-/// Üretilen davet kodu. Panoya zaten kopyalandı; burada görünmesi, kopyalanın
-/// gerçekten bir şey olduğunu göstermek için.
-class _TokenBox extends StatelessWidget {
-  const _TokenBox(this.token);
-
-  final String token;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: S.md),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(S.md),
-        decoration: BoxDecoration(
-          color: c.surfaceAlt,
-          borderRadius: BorderRadius.circular(R.sm),
-          border: Border.all(color: c.lineSoft),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.check_rounded, size: I.sm, color: c.accent),
-                const SizedBox(width: S.xs),
-                Text(
-                  'Panoya kopyalandı',
-                  style: TextStyle(
-                    color: c.accent,
-                    fontSize: T.micro,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: S.sm),
-            SelectableText(
-              token,
-              style: TextStyle(
-                color: c.inkDim,
-                fontSize: T.micro,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
