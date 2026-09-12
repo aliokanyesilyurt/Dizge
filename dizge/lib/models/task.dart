@@ -738,12 +738,18 @@ class TaskCategory {
 /// Adlar **elle** yazıldı; `toUpperCase()` kullanılmıyor. Dart varsayılan
 /// yerelde `'iş'.toUpperCase()` için `IŞ` üretir, `İŞ` değil — büyük harfe
 /// çevirmeyi koda bırakmak ekranda "Kalıcı Iş" yazdırırdı.
+///
+/// K1 (10 Eylül): her biri **tek kısa kelime**. "Hobi / keyfi" gibi eğik
+/// çizgili adlar iki ekseni (tür ve sıklık) karıştırıyordu; sıklık zaten işin
+/// kendi ayarı (Tek Günlük / Rutin). "Rutin" bilerek kullanılmadı — işin
+/// türüyle çakışırdı. Kullanıcı her birini Kategoriler sayfasından yeniden
+/// adlandırabiliyor.
 const Map<String, String> kCategoryLabels = {
-  'Kalıcı iş': 'Kalıcı İş',
-  'Günlük rutin': 'Günlük Rutin',
-  'Haftalık / ara sıra': 'Haftalık / Ara Sıra',
-  'Önemli / acil': 'Önemli / Acil',
-  'Hobi / keyfi': 'Hobi / Keyfi',
+  'Kalıcı iş': 'Mesai',
+  'Günlük rutin': 'Gündelik',
+  'Haftalık / ara sıra': 'Seyrek',
+  'Önemli / acil': 'Acil',
+  'Hobi / keyfi': 'Hobi',
 };
 
 /// Depolanan kategori adının ekranda görüneceği hâli.
