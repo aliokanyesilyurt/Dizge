@@ -327,14 +327,14 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// kalıyordu).
   TagStyle tag(Color color, {bool selected = false}) {
     if (isDark) {
-      return TagStyle(color.withValues(alpha: selected ? 0.26 : 0.15), color);
+      return TagStyle(color.withValues(alpha: selected ? 0.26 : 0.15), ink);
     }
     return TagStyle(
       Color.alphaBlend(
         color.withValues(alpha: selected ? 0.26 : 0.15),
         surface,
       ),
-      Color.lerp(color, Colors.black, 0.55)!,
+      ink,
     );
   }
 
@@ -364,7 +364,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
     return EventStyle(
       fill: fill,
-      ink: readableOn(color, fill),
+      ink: ink,
       stripe: color,
       // Aynı renkli komşu bloklar birbirine akmasın diye ince ayrım: aynı
       // tonun bir kademe koyusu.

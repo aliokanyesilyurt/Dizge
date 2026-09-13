@@ -217,8 +217,24 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
 
   void _pullFromPool(Task task, DateTime day, double hour) {
     final store = ref.read(appStoreProvider);
-    store.pullFromPool(task, toDay: day, startHour: hour);
-    _offerUndo('Takvime kondu', () => store.moveToPool(task));
+    if (task.inPool) {
+      store.pullFromPool(task, toDay: day, startHour: hour);
+      _offerUndo('Takvime kondu', () => store.moveToPool(task));
+    } else {
+      final oldDate = task.date;
+      final oldStart = task.startHour;
+      final copy = task.copy();
+      copy.date = Task.dayKey(day);
+      if (copy.durationHours == 0) copy.durationHours = 1.0;
+      copy.startHour = clampStartWithin(hour, copy.durationHours);
+      store.updateTask(copy);
+      _offerUndo('Saat eklendi', () {
+        final restore = copy.copy();
+        restore.date = oldDate;
+        restore.startHour = oldStart;
+        store.updateTask(restore);
+      });
+    }
   }
 
   /// Panelden "takvime geri koy": gün seçilmediği için iş eski gününe döner.
@@ -237,7 +253,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
   /// Önbelleğe alınsaydı sabah açılan uygulamada akşam hâlâ sabahki sayı
   /// yazardı.
   DayRescuePlan _rescuePlan(AppStore store, DateTime today) => planDayRescue(
-    store.tasksForDate(today),
+    ref.read(tasksForDateProvider(today)),
     day: today,
     afterHour: hourOf(DateTime.now()),
   );
@@ -474,13 +490,19 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
           onRescue: () => _rescueDay(store, today),
           isEmptyWeek: store
               .tasksForDays(_startDate, visibleDays)
-              .every((day) => day.isEmpty),
-          isFirstRun: store.tasks.isEmpty,
+              .every((day) =>
+                  (store.activeGroupId == '*all*'
+                      ? day
+                      : day.where((t) => t.groupId == store.activeGroupId))
+                  .isEmpty),
+          isFirstRun: store.activeGroupId == '*all*'
+              ? store.tasks.isEmpty
+              : store.tasks.where((t) => t.groupId == store.activeGroupId).isEmpty,
         ),
         // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
         // her zaman bugüne yazılır (bkz. [DailyHabitStrip]).
         DailyHabitStrip(
-          habits: store.habits,
+          habits: ref.watch(habitsProvider),
           day: today,
           onToggle: (habit) =>
               store.toggleHabit(habit, today, source: 'week_strip'),
@@ -499,7 +521,14 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
             },
             itemBuilder: (context, page) {
               final startDay = _getStartDate(page, visibleDays);
-              final tasksByDay = store.tasksForDays(startDay, visibleDays);
+              final rawTasksByDay = store.tasksForDays(startDay, visibleDays);
+              final activeGroupId = store.activeGroupId;
+              final tasksByDay = [
+                for (final dayTasks in rawTasksByDay)
+                  activeGroupId == '*all*'
+                      ? dayTasks
+                      : dayTasks.where((t) => t.groupId == activeGroupId).toList()
+              ];
               final currentLabels = [
                 for (var i = 0; i < visibleDays; i++)
                   _weekDays[(startDay.add(Duration(days: i)).weekday - 1) % 7],

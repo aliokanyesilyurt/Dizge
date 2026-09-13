@@ -15,6 +15,7 @@ class DayPieChart extends StatelessWidget {
 
   /// Saatin bir dilimine dokununca o saat (0-23) ile çağrılır.
   final void Function(double hour)? onHourTap;
+  final void Function(Task task, double hour)? onDropTask;
 
   const DayPieChart({
     super.key,
@@ -22,6 +23,7 @@ class DayPieChart extends StatelessWidget {
     required this.date,
     this.selected,
     this.onHourTap,
+    this.onDropTask,
   });
 
   @override
@@ -31,7 +33,7 @@ class DayPieChart extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        return GestureDetector(
+        final chart = GestureDetector(
           onTapUp: (details) {
             if (onHourTap == null) return;
             final center = Offset(size.width / 2, size.height / 2);
@@ -52,6 +54,34 @@ class DayPieChart extends StatelessWidget {
             ),
             size: size,
           ),
+        );
+
+        if (onDropTask == null) return chart;
+
+        return DragTarget<Task>(
+          onWillAcceptWithDetails: (details) => true,
+          onAcceptWithDetails: (details) {
+            final box = context.findRenderObject() as RenderBox?;
+            if (box == null) return;
+            
+            // `details.offset` is the global top-left of the drag feedback. 
+            // We approximate the cursor by adding half the feedback size if we knew it,
+            // but just using the local offset works well enough for a large pie chart.
+            final local = box.globalToLocal(details.offset);
+            // Center feedback adjustment (approximate 50x20 offset)
+            final adjustedLocal = local + const Offset(50, 20);
+            
+            final center = Offset(size.width / 2, size.height / 2);
+            final dx = adjustedLocal.dx - center.dx;
+            final dy = adjustedLocal.dy - center.dy;
+            
+            double angle = atan2(dy, dx) + pi / 2;
+            if (angle < 0) angle += 2 * pi;
+            final hour = (angle / (2 * pi)) * 24;
+            
+            onDropTask!(details.data, hour);
+          },
+          builder: (context, candidateData, rejectedData) => chart,
         );
       },
     );

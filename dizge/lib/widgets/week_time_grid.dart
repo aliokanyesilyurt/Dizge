@@ -400,7 +400,7 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
                     // blokları ayrı bir jest sistemiyle taşınıyor; ikisi
                     // karışırsa aynı hareket iki kez işlenir.
                     onWillAcceptWithDetails: (details) =>
-                        widget.onPullFromPool != null && details.data.inPool,
+                        widget.onPullFromPool != null && (details.data.inPool || !details.data.scheduled),
                     onMove: (details) => _onPoolDragOver(details.offset, width),
                     onLeave: (_) => _clearPoolDrop(),
                     onAcceptWithDetails: (details) =>

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../widgets/undo_toast.dart';
+import '../core/time_grid.dart';
 import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
@@ -71,10 +73,38 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
   void _onClockTap(double hour) =>
       showQuickAdd(context, date: _day, startHour: hour.floorToDouble());
 
+  void _offerUndo(
+    String label,
+    VoidCallback undo, {
+    Duration duration = const Duration(seconds: 5),
+  }) => offerUndo(context, label, undo, duration: duration);
+
+  void _pullFromPool(Task task, DateTime day, double hour) {
+    final store = ref.read(appStoreProvider);
+    if (task.inPool) {
+      store.pullFromPool(task, toDay: day, startHour: hour);
+      _offerUndo('Takvime kondu', () => store.moveToPool(task));
+    } else {
+      final oldDate = task.date;
+      final oldStart = task.startHour;
+      final copy = task.copy();
+      copy.date = Task.dayKey(day);
+      if (copy.durationHours == 0) copy.durationHours = 1.0;
+      copy.startHour = clampStartWithin(hour, copy.durationHours);
+      store.updateTask(copy);
+      _offerUndo('Saat eklendi', () {
+        final restore = copy.copy();
+        restore.date = oldDate;
+        restore.startHour = oldStart;
+        store.updateTask(restore);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final tasks = ref.watch(appStoreProvider).tasksForDate(_day);
+    final tasks = ref.watch(tasksForDateProvider(_day));
     final routines = tasks.where((t) => t.isRoutine).toList();
     final singles = tasks.where((t) => !t.isRoutine).toList();
     final d = _day;
@@ -175,6 +205,7 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
                             date: d,
                             selected: _selected,
                             onHourTap: _onClockTap,
+                            onDropTask: (task, hour) => _pullFromPool(task, d, hour),
                           ),
                         ),
                       ),
@@ -278,9 +309,8 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
     return [for (final hour in task.occurrenceHours) _card(task, hour: hour)];
   }
 
-  Widget _card(Task task, {double? hour}) => Padding(
-    padding: const EdgeInsets.only(bottom: S.sm),
-    child: _TaskCard(
+  Widget _card(Task task, {double? hour}) {
+    final card = _TaskCard(
       key: hour == null ? null : ValueKey('${task.id}@$hour'),
       task: task,
       date: widget.date,
@@ -302,8 +332,27 @@ class _DayViewScreenState extends ConsumerState<DayViewScreen> {
           );
         }
       },
-    ),
-  );
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: S.sm),
+      child: Draggable<Task>(
+        data: task,
+        feedback: Material(
+          color: Colors.transparent,
+          child: Opacity(
+            opacity: 0.8,
+            child: SizedBox(width: 250, child: card),
+          ),
+        ),
+        childWhenDragging: Opacity(
+          opacity: 0.3,
+          child: card,
+        ),
+        child: card,
+      ),
+    );
+  }
 }
 
 class _TaskCard extends StatelessWidget {

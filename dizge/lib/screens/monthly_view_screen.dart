@@ -418,7 +418,10 @@ class _Cell extends StatelessWidget {
     if (dayNum == null) return const SizedBox.shrink();
 
     final c = context.colors;
-    final tasks = store.tasksForDate(date!);
+    var tasks = store.tasksForDate(date!);
+    if (store.activeGroupId != '*all*') {
+      tasks = tasks.where((t) => t.groupId == store.activeGroupId).toList();
+    }
 
     // Seçili gün en baskın; sonra bugün; sonra hafta içi/sonu tonu.
     final Color fill = isSelected
@@ -614,6 +617,16 @@ class _TaskBoxState extends State<_TaskBox> {
             ),
             child: Row(
               children: [
+                if (!done && !cancelled && !_hovered)
+                  Container(
+                    width: 3,
+                    height: 12,
+                    margin: const EdgeInsets.only(right: S.xs),
+                    decoration: BoxDecoration(
+                      color: widget.task.color,
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
                 // Bitmiş/iptal işte işaret hep görünüyor: bilgi yalnız
                 // üstü çizili yazıya bağlı kalmasın (WCAG 1.4.1). Açık işte
                 // yalnız fare üstündeyken — satırın bir onay kutusu olduğunu

@@ -168,12 +168,14 @@ class _MiniMonthState extends State<_MiniMonth> {
     final isCurrentMonth =
         today.year == widget.year && today.month == widget.month;
 
-    // Görevi olan günler (renkli nokta için)
     final Map<int, Color> markedDays = {};
     for (int d = 1; d <= daysInMonth; d++) {
-      final list = widget.store.tasksForDate(
+      var list = widget.store.tasksForDate(
         DateTime(widget.year, widget.month, d),
       );
+      if (widget.store.activeGroupId != '*all*') {
+        list = list.where((t) => t.groupId == widget.store.activeGroupId).toList();
+      }
       if (list.isNotEmpty) markedDays[d] = list.first.color;
     }
 

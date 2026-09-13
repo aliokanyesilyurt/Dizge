@@ -127,45 +127,101 @@ class _UntimedChip extends StatelessWidget {
       onLongPress: () => onToggle(task, day),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        child: Opacity(
-          opacity: (dimmed || skipped) ? 0.4 : 1,
-          child: AnimatedContainer(
-            duration: Motion.fast,
-            height: UntimedRow._chipHeight,
-            margin: const EdgeInsets.only(bottom: S.xs),
-            padding: const EdgeInsets.symmetric(horizontal: S.sm),
-            decoration: BoxDecoration(
-              color: style.fill.withValues(alpha: done ? 0.45 : 1),
-              borderRadius: R.radiusXs,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  done
-                      ? Icons.check_circle_rounded
-                      : (skipped ? Icons.redo_rounded : Icons.circle_outlined),
-                  size: I.xs,
-                  color: style.text.withValues(alpha: 0.85),
-                ),
-                const SizedBox(width: S.xs),
-                Expanded(
-                  child: Text(
-                    task.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: style.text,
-                      fontSize: T.micro,
-                      fontWeight: FontWeight.w600,
-                      decoration: (done || skipped)
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
+        child: Draggable<Task>(
+          data: task,
+          feedback: Material(
+            color: Colors.transparent,
+            child: Opacity(
+              opacity: 0.8,
+              child: SizedBox(
+                width: 120, // Arbitrary width for drag feedback
+                child: AnimatedContainer(
+                  duration: Motion.fast,
+                  height: UntimedRow._chipHeight,
+                  padding: const EdgeInsets.symmetric(horizontal: S.sm),
+                  decoration: BoxDecoration(
+                    color: style.fill.withValues(alpha: done ? 0.45 : 1),
+                    borderRadius: R.radiusXs,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        done
+                            ? Icons.check_circle_rounded
+                            : (skipped ? Icons.redo_rounded : Icons.circle_outlined),
+                        size: I.xs,
+                        color: style.text.withValues(alpha: 0.85),
+                      ),
+                      const SizedBox(width: S.xs),
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: style.text,
+                            fontSize: T.micro,
+                            fontWeight: FontWeight.w600,
+                            decoration: (done || skipped)
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
+          childWhenDragging: Opacity(
+            opacity: 0.3,
+            child: _chip(done, skipped, style, dimmed),
+          ),
+          child: _chip(done, skipped, style, dimmed),
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(bool done, bool skipped, TagStyle style, bool dimmed) {
+    return Opacity(
+      opacity: (dimmed || skipped) ? 0.4 : 1,
+      child: AnimatedContainer(
+        duration: Motion.fast,
+        height: UntimedRow._chipHeight,
+        margin: const EdgeInsets.only(bottom: S.xs),
+        padding: const EdgeInsets.symmetric(horizontal: S.sm),
+        decoration: BoxDecoration(
+          color: style.fill.withValues(alpha: done ? 0.45 : 1),
+          borderRadius: R.radiusXs,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              done
+                  ? Icons.check_circle_rounded
+                  : (skipped ? Icons.redo_rounded : Icons.circle_outlined),
+              size: I.xs,
+              color: style.text.withValues(alpha: 0.85),
+            ),
+            const SizedBox(width: S.xs),
+            Expanded(
+              child: Text(
+                task.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: style.text,
+                  fontSize: T.micro,
+                  fontWeight: FontWeight.w600,
+                  decoration: (done || skipped)
+                      ? TextDecoration.lineThrough
+                      : null,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

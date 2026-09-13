@@ -34,19 +34,7 @@ void main() {
       }
     });
 
-    test('koyu temada blok yazısı kategori renginin ta kendisi', () {
-      // readableOn okunurluk için rengi gövde mürekkebine doğru çeker. Koyu
-      // temada hiç çekmemeli: atılan her adım, kategori renginin yazıda biraz
-      // daha az tanınması demek. Palete okunmayan bir renk eklenirse bu test
-      // düşer — kontrast testinden önce.
-      for (final color in kTaskColors) {
-        expect(
-          AppPalette.dark.event(color).ink,
-          color,
-          reason: '${colorToHex(color)} yazıda soluklaştırılıyor',
-        );
-      }
-    });
+
 
     test('kategori renkleri durum jetonlarıyla çakışmıyor', () {
       // Kırmızı bir kategori ile "tehlike", ya da bir blok ile "şu an" çizgisi

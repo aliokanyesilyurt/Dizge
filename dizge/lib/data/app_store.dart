@@ -75,8 +75,13 @@ class AppStore extends ChangeNotifier {
   ///
   /// Alanı provider katmanı yazıyor ([appStoreProvider]); depo bağlamı
   /// **izlemiyor**, yalnız son değeri tutuyor.
-  String? activeGroupId;
-
+  String? _activeGroupId;
+  String? get activeGroupId => _activeGroupId;
+  set activeGroupId(String? value) {
+    if (_activeGroupId == value) return;
+    _activeGroupId = value;
+    notifyListeners();
+  }
   /// Depoyu bağlar ve varsa kayıtlı durumu yükler. Bootstrap'ta bir kez çağrılır.
   Future<void> attachPersistence(LocalStore store, {Outbox? outbox}) async {
     _store = store;
@@ -374,6 +379,7 @@ class AppStore extends ChangeNotifier {
     task.inPool = false;
     task.date = target;
     if (startHour != null) {
+      if (task.durationHours == 0) task.durationHours = 1.0;
       task.startHour = clampStartWithin(startHour, task.durationHours);
     }
     task.updatedAt = DateTime.now();
