@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +10,7 @@ import '../widgets/cancel_action.dart';
 import '../widgets/owner_avatar.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
+import '../widgets/undo_toast.dart';
 
 class MonthlyViewScreen extends ConsumerStatefulWidget {
   /// Açılışta gösterilecek ay (o ayın herhangi bir günü). Boşsa içinde
@@ -118,6 +120,22 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
     source: 'month',
   );
 
+  /// Bir iş başka bir günün hücresine bırakıldı (plan H2).
+  ///
+  /// Havuzdan gelen iş takvime iner; takvimdeki iş yalnız gününü değiştirir,
+  /// saati olduğu gibi kalır.
+  void _dropOnDay(Task task, DateTime day) {
+    final store = ref.read(appStoreProvider);
+    if (task.inPool) {
+      store.pullFromPool(task, toDay: day);
+      offerUndo(context, 'Takvime kondu', () => store.moveToPool(task));
+      return;
+    }
+    final from = task.date;
+    store.moveTaskToDay(task, day);
+    offerUndo(context, 'İş taşındı', () => store.moveTaskToDay(task, from));
+  }
+
   Future<void> _openRoutines() => showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -171,6 +189,7 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
                       onTapDay: _tapDay,
                       onToggleTask: _toggleTask,
                       onCancelTask: _cancelTask,
+                      onDropTask: _dropOnDay,
                     ),
                   );
                 },
@@ -335,6 +354,9 @@ class _Grid extends StatelessWidget {
   /// Aynı satıra uzun basıldı: o günü iptal et / iptali geri al.
   final void Function(Task task, DateTime day) onCancelTask;
 
+  /// Bir iş bu ızgaradaki bir güne bırakıldı.
+  final void Function(Task task, DateTime day) onDropTask;
+
   const _Grid({
     required this.weeks,
     required this.leading,
@@ -347,6 +369,7 @@ class _Grid extends StatelessWidget {
     required this.onTapDay,
     required this.onToggleTask,
     required this.onCancelTask,
+    required this.onDropTask,
   });
 
   @override
@@ -373,6 +396,7 @@ class _Grid extends StatelessWidget {
                   onTap: date == null ? null : () => onTapDay(date),
                   onToggleTask: onToggleTask,
                   onCancelTask: onCancelTask,
+                  onDropTask: onDropTask,
                 ),
               );
             }),
@@ -400,6 +424,8 @@ class _Cell extends StatelessWidget {
   /// Is satirina uzun basilinca cagrilir.
   final void Function(Task task, DateTime day) onCancelTask;
 
+  final void Function(Task task, DateTime day) onDropTask;
+
   const _Cell({
     required this.dayNum,
     required this.date,
@@ -410,7 +436,21 @@ class _Cell extends StatelessWidget {
     required this.onTap,
     required this.onToggleTask,
     required this.onCancelTask,
+    required this.onDropTask,
   });
+
+  /// Bu hücre sürüklenen işi kabul eder mi?
+  ///
+  /// Rutin buraya hiç gelmez (sürüklenemiyor); yine de denetim burada da var
+  /// ki başka bir kaynaktan gelen rutin sessizce bir güne çakılmasın. Kendi
+  /// gününe bırakılan iş reddedilir: satır yerinde bırakıldığında dokunmatikte
+  /// hızlı menü açılıyor ve bunun için bırakmanın "kabul edilmemiş" olması
+  /// gerekiyor.
+  bool _accepts(Task task) {
+    if (task.isRoutine) return false;
+    if (task.inPool) return true;
+    return !DateUtils.isSameDay(task.date, date);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -434,6 +474,23 @@ class _Cell extends StatelessWidget {
         ? c.accent.withValues(alpha: 0.5)
         : c.lineSoft;
 
+    return DragTarget<Task>(
+      onWillAcceptWithDetails: (details) => _accepts(details.data),
+      onAcceptWithDetails: (details) => onDropTask(details.data, date!),
+      builder: (context, candidates, _) {
+        final hovered = candidates.isNotEmpty;
+        return _body(c, tasks, fill, borderColor, hovered);
+      },
+    );
+  }
+
+  Widget _body(
+    AppPalette c,
+    List<Task> tasks,
+    Color fill,
+    Color borderColor,
+    bool hovered,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: MouseRegion(
@@ -443,9 +500,14 @@ class _Cell extends StatelessWidget {
           curve: Motion.curve,
           margin: const EdgeInsets.all(S.xs),
           decoration: BoxDecoration(
-            color: fill,
+            // Bırakma hedefi haftalık ızgaradakiyle aynı tonda: kullanıcı
+            // "buraya düşecek" rengini bir kez öğreniyor.
+            color: hovered ? c.dropTarget : fill,
             borderRadius: R.radiusSm,
-            border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
+            border: Border.all(
+              color: hovered ? c.accent : borderColor,
+              width: (isSelected || hovered) ? 1.5 : 1,
+            ),
             boxShadow: isSelected || isToday ? c.shadowSm : null,
           ),
           padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.xs),
@@ -525,6 +587,34 @@ class _TaskBox extends StatefulWidget {
 class _TaskBoxState extends State<_TaskBox> {
   bool _hovered = false;
 
+  /// Sürüklemenin başladığı andaki küresel köşe. Dokunmatikte "uzun bas,
+  /// kıpırdamadan bırak" hızlı menüyü açıyor (plan H3); bırakılan yerin buna
+  /// yakın olup olmadığı o kararı veriyor.
+  Offset? _dragOrigin;
+
+  /// Bu kadar pikselden az kayan bırakma "kıpırdamadı" sayılır.
+  static const double _stillSlop = 12;
+
+  /// Dokunmatik mi? Fare varken sürükleme anında başlıyor; parmakta düz
+  /// sürükleme ay kaydırmasıyla çakışacağı için uzun basma bekleniyor.
+  static bool get _touch =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
+  void _onDragStarted() {
+    final box = context.findRenderObject() as RenderBox?;
+    _dragOrigin = box?.localToGlobal(Offset.zero);
+  }
+
+  void _onDragEnd(DraggableDetails details) {
+    final origin = _dragOrigin;
+    _dragOrigin = null;
+    if (!_touch || details.wasAccepted || origin == null || !mounted) return;
+    if ((details.offset - origin).distance < _stillSlop) {
+      _showQuickActions(context);
+    }
+  }
+
   /// Uzun basış (masaüstünde sağ tık): satırın bütün eylemleri.
   ///
   /// Kısa dokunuş en sık istenen şeyi — tamamlamayı — yapıyor; iptal ve
@@ -589,8 +679,10 @@ class _TaskBoxState extends State<_TaskBox> {
     final done = widget.task.isDoneOn(widget.day);
     final cancelled = widget.task.isSkippedOn(widget.day);
     final tag = c.tag(widget.task.color);
+    // Rutin aylıkta sürüklenmez (plan H2); uzun basması hızlı menüde kalır.
+    final draggable = !widget.task.isRoutine;
 
-    return Semantics(
+    final row = Semantics(
       checked: done,
       label: widget.task.title,
       child: MouseRegion(
@@ -600,7 +692,11 @@ class _TaskBoxState extends State<_TaskBox> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => widget.onToggleTask(widget.task, widget.day),
-          onLongPress: () => _showQuickActions(context),
+          // Dokunmatikte sürüklenebilen satırın uzun basması sürüklemenin;
+          // menü orada "kıpırdamadan bırak"la açılıyor ([_onDragEnd]).
+          onLongPress: (draggable && _touch)
+              ? null
+              : () => _showQuickActions(context),
           onSecondaryTap: () => _showQuickActions(context),
           child: Container(
             margin: const EdgeInsets.only(bottom: S.hair),
@@ -676,6 +772,64 @@ class _TaskBoxState extends State<_TaskBox> {
                 ],
               ],
             ),
+          ),
+        ),
+      ),
+    );
+
+    if (!draggable) return row;
+
+    final feedback = _MonthDragFeedback(task: widget.task);
+    final ghost = Opacity(opacity: 0.3, child: row);
+    if (_touch) {
+      return LongPressDraggable<Task>(
+        data: widget.task,
+        feedback: feedback,
+        childWhenDragging: ghost,
+        onDragStarted: _onDragStarted,
+        onDragEnd: _onDragEnd,
+        child: row,
+      );
+    }
+    return Draggable<Task>(
+      data: widget.task,
+      feedback: feedback,
+      childWhenDragging: ghost,
+      child: row,
+    );
+  }
+}
+
+/// Aylıkta sürüklenen satırın imlecin altındaki hâli.
+class _MonthDragFeedback extends StatelessWidget {
+  const _MonthDragFeedback({required this.task});
+
+  final Task task;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final tag = c.tag(task.color);
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 140,
+        padding: const EdgeInsets.symmetric(horizontal: S.sm, vertical: S.xs),
+        decoration: BoxDecoration(
+          color: tag.fill,
+          borderRadius: R.radiusXs,
+          border: Border.all(color: task.color, width: 1.2),
+          boxShadow: c.shadowMd,
+        ),
+        child: Text(
+          task.title.isEmpty ? 'Başlıksız' : task.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: tag.text,
+            fontSize: T.dense,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

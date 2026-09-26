@@ -82,6 +82,7 @@ class AppStore extends ChangeNotifier {
     _activeGroupId = value;
     notifyListeners();
   }
+
   /// Depoyu bağlar ve varsa kayıtlı durumu yükler. Bootstrap'ta bir kez çağrılır.
   Future<void> attachPersistence(LocalStore store, {Outbox? outbox}) async {
     _store = store;
@@ -568,6 +569,39 @@ class AppStore extends ChangeNotifier {
     _touched();
   }
 
+  /// Tek günlük işi başka bir güne taşır; saat (varsa) **olduğu gibi kalır**.
+  ///
+  /// [moveTask]'tan ayrı çünkü o saati zorunlu yazıyor: aylık hücreden
+  /// sürüklenen saatsiz bir iş 00:00'a çakılırdı. [clearTime] doluysa iş
+  /// saatsiz olur — haftalıkta gün başlığına / saatsiz şeride bırakma.
+  ///
+  /// Rutinler buradan geçmez: aylık ızgarada bir rutini sürüklemek "bütün
+  /// salıları perşembe yap" demek ve bu o ekranda görünmüyor (plan H2).
+  void moveTaskToDay(Task task, DateTime toDay, {bool clearTime = false}) {
+    if (task.isRoutine) return;
+    final target = Task.dayKey(toDay);
+    if (target == Task.dayKey(task.date) && !(clearTime && task.scheduled)) {
+      return;
+    }
+
+    final fromDay = task.date;
+    task.date = target;
+    if (clearTime) task.startHour = null;
+    task.updatedAt = DateTime.now();
+    TaskRepository.update(task);
+    _record(EntityKind.task, MutationOp.upsert, task.id, task.toJson());
+
+    _telemetry.capture(
+      Ev.taskMoved,
+      props: {
+        'routine': false,
+        'day_delta': target.difference(Task.dayKey(fromDay)).inDays,
+        'hour': task.startHour?.round() ?? -1,
+      },
+    );
+    _touched();
+  }
+
   /// Haftalık rutinde sürüklenen tekrarın kaynak haftagünü. Hedef gün zaten
   /// kümede varsa (aynı güne bırakma) değişiklik gerekmez.
   int _weekdayBeingDragged(Task task, DateTime targetDay, Set<int> weekdays) {
@@ -980,7 +1014,9 @@ final todosProvider = Provider<List<Task>>((ref) {
       ref
           .watch(appStoreProvider)
           .tasks
-          .where((t) => !t.isRoutine && (active == '*all*' || t.groupId == active))
+          .where(
+            (t) => !t.isRoutine && (active == '*all*' || t.groupId == active),
+          )
           .toList()
         ..sort((a, b) {
           final byDate = a.date.compareTo(b.date);
