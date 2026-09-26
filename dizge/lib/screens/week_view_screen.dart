@@ -237,6 +237,25 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     }
   }
 
+  /// Gün başlığına ya da saatsiz şeride bir iş bırakıldı: iş o güne **saatsiz**
+  /// iner (plan H5). Havuzdan gelen de, başka günün saatsiz işi de.
+  void _dropOnDay(Task task, DateTime day) {
+    final store = ref.read(appStoreProvider);
+    final oldStart = task.startHour;
+    if (task.inPool) {
+      store.pullFromPool(task, toDay: day, untimed: true);
+      _offerUndo('Güne kondu', () {
+        // Saat havuza geri dönerken korunmalı: "geri koy" ona yaslanıyor.
+        task.startHour = oldStart;
+        store.moveToPool(task);
+      });
+      return;
+    }
+    final undo = _snapshot(task);
+    store.moveTaskToDay(task, day, clearTime: true);
+    _offerUndo('İş taşındı', undo);
+  }
+
   /// Panelden "takvime geri koy": gün seçilmediği için iş eski gününe döner.
   void _restoreFromPool(Task task) {
     final store = ref.read(appStoreProvider);
@@ -554,6 +573,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                           labels: currentLabels,
                           tasksByDay: tasksByDay,
                           onTapDay: (day) => _quickAdd(day, null),
+                          onDropTask: _dropOnDay,
                         ),
                         UntimedRow(
                           monday: startDay,
@@ -563,6 +583,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                               _openEditor(day, existing: task),
                           onToggle: (task, day) =>
                               store.setTaskDone(task, day, !task.isDoneOn(day)),
+                          onDropTask: _dropOnDay,
                         ),
                       ],
                     ),

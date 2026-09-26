@@ -6,6 +6,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../models/task.dart';
 import '../../theme.dart';
+import 'day_drop_target.dart';
 
 class DayHeaderRow extends StatelessWidget {
   const DayHeaderRow({
@@ -15,6 +16,7 @@ class DayHeaderRow extends StatelessWidget {
     required this.labels,
     required this.tasksByDay,
     required this.onTapDay,
+    this.onDropTask,
   });
 
   final DateTime monday;
@@ -26,6 +28,10 @@ class DayHeaderRow extends StatelessWidget {
   final List<List<Task>> tasksByDay;
 
   final ValueChanged<DateTime> onTapDay;
+
+  /// Başlığa bir iş bırakıldı: iş o güne **saatsiz** iner (plan H5).
+  /// null ise başlık bırakma hedefi değil.
+  final void Function(Task task, DateTime day)? onDropTask;
 
   /// Bu genişliğin altında sayaç rozeti düşer. 390px'te bir gün sütunu ~47px;
   /// rozet oraya sığmıyor ve sığdırmaya çalışmak gün sayısını kırpardı.
@@ -59,19 +65,25 @@ class DayHeaderRow extends StatelessWidget {
             ),
           ),
           for (var i = 0; i < tasksByDay.length; i++)
-            Expanded(
-              child: _DayHeaderCell(
-                day: monday.add(Duration(days: i)),
-                label: labels[i],
-                isToday: monday.add(Duration(days: i)) == today,
-                isWeekend: monday.add(Duration(days: i)).weekday >= 6,
-                taskCount: showBadges ? tasksByDay[i].length : 0,
-                onTap: () => onTapDay(monday.add(Duration(days: i))),
-              ),
-            ),
+            Expanded(child: _cell(i, showBadges)),
         ],
       ),
     );
+  }
+
+  Widget _cell(int i, bool showBadges) {
+    final day = monday.add(Duration(days: i));
+    final cell = _DayHeaderCell(
+      day: day,
+      label: labels[i],
+      isToday: day == today,
+      isWeekend: day.weekday >= 6,
+      taskCount: showBadges ? tasksByDay[i].length : 0,
+      onTap: () => onTapDay(day),
+    );
+    final drop = onDropTask;
+    if (drop == null) return cell;
+    return DayDropTarget(day: day, onDrop: drop, child: cell);
   }
 
   /// "GMT+3" — Google Takvim'in sol üst köşesindeki küçük bilgi.

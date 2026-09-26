@@ -383,8 +383,14 @@ class AppStore extends ChangeNotifier {
   /// İşi havuzdan çıkarıp takvime koyar.
   ///
   /// [toDay] verilmezse iş **eski gününe** döner: havuza atılırken korunan
-  /// tarih tam bu an için saklanıyordu.
-  void pullFromPool(Task task, {DateTime? toDay, double? startHour}) {
+  /// tarih tam bu an için saklanıyordu. [untimed] doluysa iş eski saatini
+  /// almadan **saatsiz** iner — gün başlığına bırakma (plan H5).
+  void pullFromPool(
+    Task task, {
+    DateTime? toDay,
+    double? startHour,
+    bool untimed = false,
+  }) {
     if (!task.inPool) return;
 
     // Ölçüm için: havuza atıldığından beri geçen gün. Ayrı bir `pooledAt`
@@ -398,7 +404,9 @@ class AppStore extends ChangeNotifier {
     final target = Task.dayKey(toDay ?? task.date);
     task.inPool = false;
     task.date = target;
-    if (startHour != null) {
+    if (untimed) {
+      task.startHour = null;
+    } else if (startHour != null) {
       if (task.durationHours == 0) task.durationHours = 1.0;
       task.startHour = clampStartWithin(startHour, task.durationHours);
     }

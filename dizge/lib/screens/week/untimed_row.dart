@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/task.dart';
 import '../../theme.dart';
+import 'day_drop_target.dart';
 
 /// Google Takvim'deki "tüm gün" şeridinin karşılığı. Saati olmayan işler
 /// ızgarada bir yere konamaz; burada gün sütununun tepesinde durur.
@@ -19,6 +20,7 @@ class UntimedRow extends StatelessWidget {
     required this.energyLimit,
     required this.onTapTask,
     required this.onToggle,
+    this.onDropTask,
   });
 
   final DateTime monday;
@@ -29,6 +31,9 @@ class UntimedRow extends StatelessWidget {
   final Energy? energyLimit;
   final void Function(Task, DateTime) onTapTask;
   final void Function(Task, DateTime) onToggle;
+
+  /// Şeridin bir gün sütununa iş bırakıldı: o güne saatsiz iner (plan H5).
+  final void Function(Task task, DateTime day)? onDropTask;
 
   static const double _chipHeight = 24.0;
   static const double _maxRows = 3;
@@ -76,24 +81,30 @@ class UntimedRow extends StatelessWidget {
             ),
           ),
           for (var i = 0; i < tasksByDay.length; i++)
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.xs),
-                children: [
-                  for (final task in untimed[i])
-                    _UntimedChip(
-                      task: task,
-                      day: monday.add(Duration(days: i)),
-                      dimmed: task.exceedsEnergy(energyLimit),
-                      onTap: onTapTask,
-                      onToggle: onToggle,
-                    ),
-                ],
-              ),
-            ),
+            Expanded(child: _column(i, untimed[i])),
         ],
       ),
     );
+  }
+
+  Widget _column(int i, List<Task> tasks) {
+    final day = monday.add(Duration(days: i));
+    final list = ListView(
+      padding: const EdgeInsets.fromLTRB(S.xs, S.xs, S.xs, S.xs),
+      children: [
+        for (final task in tasks)
+          _UntimedChip(
+            task: task,
+            day: day,
+            dimmed: task.exceedsEnergy(energyLimit),
+            onTap: onTapTask,
+            onToggle: onToggle,
+          ),
+      ],
+    );
+    final drop = onDropTask;
+    if (drop == null) return list;
+    return DayDropTarget(day: day, onDrop: drop, child: list);
   }
 }
 
@@ -148,7 +159,9 @@ class _UntimedChip extends StatelessWidget {
                       Icon(
                         done
                             ? Icons.check_circle_rounded
-                            : (skipped ? Icons.redo_rounded : Icons.circle_outlined),
+                            : (skipped
+                                  ? Icons.redo_rounded
+                                  : Icons.circle_outlined),
                         size: I.xs,
                         color: style.text.withValues(alpha: 0.85),
                       ),
