@@ -344,8 +344,9 @@ class _WeekTimeGridState extends State<WeekTimeGrid> {
     final resize = _resize;
     if (resize == null) return;
     final start = resize.task.startHour ?? 0;
+    resize.accumulatedDy += details.delta.dy;
     final next = snapHour(
-      resize.duration + details.delta.dy / _m.hourHeight,
+      resize.startDuration + resize.accumulatedDy / _m.hourHeight,
     ).clamp(kMinDurationHours, _m.dayEnd - start);
     if (next != resize.duration) {
       setState(() => resize.duration = next);

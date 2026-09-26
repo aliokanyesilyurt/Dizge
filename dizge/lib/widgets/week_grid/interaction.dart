@@ -39,8 +39,21 @@ class DragState {
 
 /// Alt kenardan süre değiştirme durumu.
 class ResizeState {
-  ResizeState({required this.task, required this.duration});
+  ResizeState({required this.task, required this.duration})
+    : startDuration = duration;
 
   final Task task;
+
+  /// Çekmenin başladığı andaki süre. Yuvarlama bunun üstüne eklenen
+  /// **toplam** harekete uygulanıyor, tek tek olaylara değil.
+  final double startDuration;
+
+  /// Çekme başından beri biriken ham dikey hareket (piksel).
+  ///
+  /// Neden birikiyor: fare her olayda 1–5 px ilerliyor. Her adım ayrı ayrı
+  /// 15 dakikaya yuvarlandığında 3 px (≈3 dk) sıfıra iniyor ve yavaş çekilen
+  /// tutamak süreyi hiç değiştirmiyordu.
+  double accumulatedDy = 0;
+
   double duration;
 }

@@ -258,6 +258,42 @@ void main() {
     expect(rec.resized!.$2, closeTo(2.0, 1e-9), reason: '1 sa → 2 sa');
   });
 
+  // Gerçek fare her olayda birkaç piksel ilerler. Tek hamlelik 60 px'lik
+  // çekme bu hatayı saklıyordu: her küçük adım ayrı ayrı 15 dakikaya
+  // yuvarlanınca sıfıra iniyor, süre hiç değişmiyordu.
+  Future<void> slowResize(WidgetTester tester, Task t, double dy) async {
+    final g = await tester.startGesture(
+      tester.getCenter(find.byKey(ValueKey('resize-${t.id}'))),
+    );
+    final steps = (dy.abs() / 3).round();
+    for (var i = 0; i < steps; i++) {
+      await g.moveBy(Offset(0, dy.sign * 3));
+      await tester.pump();
+    }
+    await g.up();
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('tutamak yavaş çekilince de süre uzar', (tester) async {
+    final t = task('Toplantı', start: 2.0, duration: 1.0);
+    final rec = await pumpGrid(tester, byDay: {0: [t]});
+
+    await slowResize(tester, t, hourHeight);
+
+    expect(rec.resized, isNotNull, reason: 'küçük adımlar birikmeli');
+    expect(rec.resized!.$2, closeTo(2.0, 1e-9));
+  });
+
+  testWidgets('tutamak yavaş yukarı çekilince süre kısalır', (tester) async {
+    final t = task('Toplantı', start: 2.0, duration: 2.0);
+    final rec = await pumpGrid(tester, byDay: {0: [t]});
+
+    await slowResize(tester, t, -hourHeight / 2);
+
+    expect(rec.resized, isNotNull);
+    expect(rec.resized!.$2, closeTo(1.5, 1e-9));
+  });
+
   testWidgets('tamamlanan blok yalnız renge dayanmaz: ✓ + üstü çizili', (
     tester,
   ) async {
