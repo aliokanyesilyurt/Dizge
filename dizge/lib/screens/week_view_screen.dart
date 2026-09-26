@@ -636,6 +636,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
             },
           ),
         ),
+        _poolDrawer(),
       ],
     );
     // Kayan düğme yok: başlıktaki "Yeni" ile aynı işi yapıyordu ve ekranda
@@ -671,6 +672,22 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
               onExpand: () =>
                   ref.read(poolPanelOpenProvider.notifier).set(true),
             ),
+    );
+  }
+
+  /// Dar ekranın havuzu (plan H6): yan panelin sığmadığı yerde haftanın
+  /// altında bir şerit. Geniş ekranda hiçbir şey — orada yan panel var.
+  Widget _poolDrawer() {
+    final wide = MediaQuery.sizeOf(context).width >= _poolColumnMinWidth;
+    if (wide) return const SizedBox.shrink();
+    final open = ref.watch(poolPanelOpenProvider);
+
+    return PoolDrawer(
+      tasks: ref.watch(poolProvider),
+      open: open,
+      onToggle: () => ref.read(poolPanelOpenProvider.notifier).set(!open),
+      onOpenTask: (task) => _openEditor(task.date, existing: task),
+      onAdd: () => showQuickAdd(context, date: DateTime.now(), toPool: true),
     );
   }
 

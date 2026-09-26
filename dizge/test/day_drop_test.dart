@@ -4,6 +4,7 @@ import 'package:dizge/data/app_store.dart';
 import 'package:dizge/data/local_store.dart';
 import 'package:dizge/models/task.dart';
 import 'package:dizge/screens/week/day_drop_target.dart';
+import 'package:dizge/screens/week/pool_panel.dart';
 import 'package:dizge/screens/week_view_screen.dart';
 import 'package:flutter/gestures.dart' show kLongPressTimeout;
 import 'package:flutter/material.dart';
@@ -133,6 +134,34 @@ void main() {
 
       expect(untimed.date, monday.add(const Duration(days: 4)));
       expect(untimed.startHour, isNull);
+    });
+
+    // D5 — telefonda havuz yan panel değil, alttaki şerit (plan H6).
+    testWidgets('dar ekranda şeritten gün başlığına sürüklemek işi koyar', (
+      tester,
+    ) async {
+      useScreenSize(tester, const Size(400, 800));
+      final pooled = task('Kira', inPool: true);
+      await pumpApp(
+        tester,
+        const WeekViewScreen(),
+        seed: (s) => s.addTask(pooled),
+      );
+
+      expect(find.byType(PoolPanel), findsNothing);
+      expect(find.text('Havuz · 1'), findsOneWidget);
+
+      await tester.tap(find.text('Havuz · 1'));
+      await tester.pumpAndSettle();
+
+      // Dar ekranda görünüm bugünden başlayan üç gün.
+      await dragTo(tester, find.text('Kira'), find.byType(DayDropTarget).at(1));
+
+      expect(pooled.inPool, isFalse);
+      expect(
+        pooled.date,
+        Task.dayKey(DateTime.now()).add(const Duration(days: 1)),
+      );
     });
   });
 }

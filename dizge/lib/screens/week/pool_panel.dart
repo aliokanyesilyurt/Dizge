@@ -460,6 +460,188 @@ class _PoolCard extends StatelessWidget {
   }
 }
 
+/// Dar ekranın havuzu: haftalık görünümün altında daraltılabilir şerit
+/// (plan H6).
+///
+/// Yan panel 900 px'in altında takvimi yutuyor; havuz ayrı bir sekmedeyken de
+/// sürükleyecek takvim yanında değil. Şerit ikisini aynı ekranda tutuyor:
+/// kartlar yatayda dizili, uzun bas + gün başlığına ya da saate sürükle.
+///
+/// Kapalıyken yalnız "Havuz · 4" yazan ince bir çubuk kalıyor — sayı göz
+/// ucunda, ızgaradan alınan yer bir satır.
+class PoolDrawer extends StatelessWidget {
+  const PoolDrawer({
+    super.key,
+    required this.tasks,
+    required this.open,
+    required this.onToggle,
+    required this.onOpenTask,
+    required this.onAdd,
+  });
+
+  final List<Task> tasks;
+  final bool open;
+  final VoidCallback onToggle;
+  final ValueChanged<Task> onOpenTask;
+
+  /// Havuza yeni iş yazar (hızlı ekleme, "Havuz" seçili açılır).
+  final VoidCallback onAdd;
+
+  static const double barHeight = 40;
+  static const double trayHeight = 64;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border(top: BorderSide(color: c.lineSoft)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: barHeight,
+            child: InkWell(
+              onTap: onToggle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: S.md),
+                child: Row(
+                  children: [
+                    Icon(Icons.inbox_rounded, size: I.sm, color: c.inkDim),
+                    const SizedBox(width: S.sm),
+                    Text(
+                      tasks.isEmpty
+                          ? kPoolName
+                          : '$kPoolName · ${tasks.length}',
+                      style: TextStyle(
+                        color: c.ink,
+                        fontSize: T.caption,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Spacer(),
+                    Tooltip(
+                      message: 'Havuza ekle',
+                      child: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onAdd,
+                        icon: Icon(
+                          Icons.add_rounded,
+                          size: I.md,
+                          color: c.inkDim,
+                          semanticLabel: 'Havuza ekle',
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      open
+                          ? Icons.keyboard_arrow_down_rounded
+                          : Icons.keyboard_arrow_up_rounded,
+                      size: I.md,
+                      color: c.inkDim,
+                      semanticLabel: open ? 'Havuzu kapat' : 'Havuzu aç',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (open)
+            SizedBox(
+              height: trayHeight,
+              child: tasks.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Havuz boş — + ile yaz, sonra günlere sürükle.',
+                        style: TextStyle(color: c.inkFaint, fontSize: T.micro),
+                      ),
+                    )
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.fromLTRB(S.md, 0, S.md, S.sm),
+                      itemCount: tasks.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: S.sm),
+                      itemBuilder: (context, i) => _DrawerChip(
+                        task: tasks[i],
+                        onTap: () => onOpenTask(tasks[i]),
+                      ),
+                    ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Şeritteki tek iş: başlık ve renk şeridi, uzun basınca sürüklenir.
+class _DrawerChip extends StatelessWidget {
+  const _DrawerChip({required this.task, required this.onTap});
+
+  final Task task;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final style = c.event(task.color);
+
+    final chip = Container(
+      width: 132,
+      decoration: BoxDecoration(
+        color: style.fill,
+        borderRadius: R.radiusSm,
+        border: Border.all(color: style.edge, width: 0.8),
+      ),
+      child: ClipRRect(
+        borderRadius: R.radiusSm,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(width: 3, child: ColoredBox(color: style.stripe)),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: S.sm),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    task.title.isEmpty ? 'Başlıksız' : task.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: style.ink,
+                      fontSize: T.micro,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Panel kartıyla aynı dil: uzun bas + sürükle. Şerit yatayda kaydığı
+    // için düz sürükleme her kaydırmada kartı kaldırırdı.
+    return Semantics(
+      button: true,
+      label: '${task.title}, havuzda',
+      excludeSemantics: true,
+      child: LongPressDraggable<Task>(
+        data: task,
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        feedback: _DragFeedback(task: task),
+        childWhenDragging: Opacity(opacity: 0.3, child: chip),
+        child: GestureDetector(onTap: onTap, child: chip),
+      ),
+    );
+  }
+}
+
 /// Panelden sürüklenen işin parmağın altındaki hâli.
 class _DragFeedback extends StatelessWidget {
   const _DragFeedback({required this.task});
