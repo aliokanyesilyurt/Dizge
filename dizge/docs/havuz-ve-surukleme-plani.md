@@ -1,6 +1,6 @@
 # Havuz ve Sürükleme Planı — Süre Tutamağı · Aylık Taşıma · Sorumluluk Havuzu
 
-**Durum:** onaylandı (26 Eylül) — açık sorularda varsayılanlar: elle sıralama yok, "Bu hafta/Sonra" yok, D6 en sona
+**Durum:** **tamamlandı** — D1–D6 indi (26 Eylül 2026). Açık sorularda varsayılanlar: elle sıralama yok, "Bu hafta/Sonra" ayrımı yok.
 **Tarih:** 26 Eylül 2026
 
 ---

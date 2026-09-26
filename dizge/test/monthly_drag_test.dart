@@ -1,4 +1,6 @@
+import 'package:dizge/core/pool_panel_controller.dart';
 import 'package:dizge/data/app_store.dart';
+import 'package:dizge/data/local_store.dart';
 import 'package:dizge/models/task.dart';
 import 'package:dizge/screens/monthly_view_screen.dart';
 import 'package:flutter/gestures.dart';
@@ -146,6 +148,43 @@ void main() {
       },
       variant: TargetPlatformVariant.only(TargetPlatform.android),
     );
+
+    // D6 — havuz aylıkta da yanda; ayın herhangi bir gününe bırakılabilir.
+    testWidgets('havuz kartını aylık hücreye bırakmak işi o güne koyar', (
+      tester,
+    ) async {
+      useScreenSize(tester, const Size(1400, 1000));
+      final pooled = Task(
+        title: 'Vergi',
+        color: const Color(0xFF38BDF8),
+        date: aug3,
+        inPool: true,
+      );
+      await pumpApp(
+        tester,
+        MonthlyViewScreen(initialMonth: aug3),
+        overrides: [
+          poolPanelOpenProvider.overrideWith(
+            (ref) => PoolPanelController(InMemoryStore())..set(true),
+          ),
+        ],
+        seed: (s) => s.addTask(pooled),
+      );
+
+      final start = tester.getCenter(find.text('Vergi'));
+      final target = dayCell(tester, 12) + const Offset(0, 30);
+      final g = await tester.startGesture(start);
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+      for (var i = 1; i <= 10; i++) {
+        await g.moveTo(Offset.lerp(start, target, i / 10)!);
+        await tester.pump();
+      }
+      await g.up();
+      await tester.pumpAndSettle();
+
+      expect(pooled.inPool, isFalse);
+      expect(pooled.date, DateTime(2026, 8, 12));
+    });
 
     testWidgets('rutin sürüklenmez, uzun basma menüyü açar', (tester) async {
       final routine = todo(repeat: const Repeat(RepeatType.weekly));

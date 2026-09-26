@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/navigation_controller.dart';
+import '../core/pool_panel_controller.dart';
 import '../data/app_store.dart';
 import '../models/task.dart';
 import '../theme.dart';
@@ -11,6 +12,7 @@ import '../widgets/owner_avatar.dart';
 import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
 import '../widgets/undo_toast.dart';
+import 'week/pool_panel.dart';
 
 class MonthlyViewScreen extends ConsumerStatefulWidget {
   /// Açılışta gösterilecek ay (o ayın herhangi bir günü). Boşsa içinde
@@ -152,49 +154,11 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
-        child: Column(
+        // Havuz ayın yanında (plan D6): ayın bütün günlerini görerek dağıtmak.
+        child: Row(
           children: [
-            // Başlık ve hafta satırı `PageView`'in **dışında**: içerideyken
-            // her ayın kendi kopyası vardı ve gün adları ayla birlikte
-            // yatayda sürükleniyordu.
-            _header(c, monthOfIndex(_page), today),
-            _weekHeader(c),
-            Expanded(
-              // Sayfa sayısı yok: takvimin ne sonu var ne başı. Sayfalar
-              // tembel kurulduğu için sınırsızlığın bedeli de sıfır.
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (page) => setState(() => _page = page),
-                itemBuilder: (context, index) {
-                  final shown = monthOfIndex(index);
-                  final daysInMonth = DateUtils.getDaysInMonth(
-                    shown.year,
-                    shown.month,
-                  );
-                  final leading =
-                      DateTime(shown.year, shown.month, 1).weekday - 1;
-                  final weeks = ((leading + daysInMonth) / 7).ceil();
-
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(S.lg, 0, S.lg, S.lg),
-                    child: _Grid(
-                      weeks: weeks,
-                      leading: leading,
-                      daysInMonth: daysInMonth,
-                      year: shown.year,
-                      month: shown.month,
-                      today: today,
-                      selectedDay: _selectedDay,
-                      store: store,
-                      onTapDay: _tapDay,
-                      onToggleTask: _toggleTask,
-                      onCancelTask: _cancelTask,
-                      onDropTask: _dropOnDay,
-                    ),
-                  );
-                },
-              ),
-            ),
+            Expanded(child: _monthColumn(c, today, store)),
+            _poolSide(),
           ],
         ),
       ),
@@ -206,6 +170,79 @@ class _MonthlyViewScreenState extends ConsumerState<MonthlyViewScreen> {
         tooltip: 'Hızlı ekle',
         child: const Icon(Icons.add_rounded, size: I.lg),
       ),
+    );
+  }
+
+  /// Genişte havuz paneli ya da şeridi; darda hiçbiri (haftalıktaki eşik).
+  Widget _poolSide() {
+    if (MediaQuery.sizeOf(context).width < 900) return const SizedBox.shrink();
+    final pooled = ref.watch(poolProvider);
+    final open = ref.watch(poolPanelOpenProvider);
+    final store = ref.read(appStoreProvider);
+
+    if (!open) {
+      return PoolRail(
+        count: pooled.length,
+        onExpand: () => ref.read(poolPanelOpenProvider.notifier).set(true),
+      );
+    }
+    return PoolPanel(
+      tasks: pooled,
+      onCollapse: () => ref.read(poolPanelOpenProvider.notifier).set(false),
+      onOpenTask: (task) =>
+          showTaskEditor(context, date: task.date, existing: task),
+      onRestore: (task) {
+        store.pullFromPool(task);
+        offerUndo(context, 'Takvime kondu', () => store.moveToPool(task));
+      },
+      onAdd: store.addToPool,
+    );
+  }
+
+  Widget _monthColumn(AppPalette c, DateTime today, AppStore store) {
+    return Column(
+      children: [
+        // Başlık ve hafta satırı `PageView`'in **dışında**: içerideyken
+        // her ayın kendi kopyası vardı ve gün adları ayla birlikte
+        // yatayda sürükleniyordu.
+        _header(c, monthOfIndex(_page), today),
+        _weekHeader(c),
+        Expanded(
+          // Sayfa sayısı yok: takvimin ne sonu var ne başı. Sayfalar
+          // tembel kurulduğu için sınırsızlığın bedeli de sıfır.
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (page) => setState(() => _page = page),
+            itemBuilder: (context, index) {
+              final shown = monthOfIndex(index);
+              final daysInMonth = DateUtils.getDaysInMonth(
+                shown.year,
+                shown.month,
+              );
+              final leading = DateTime(shown.year, shown.month, 1).weekday - 1;
+              final weeks = ((leading + daysInMonth) / 7).ceil();
+
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(S.lg, 0, S.lg, S.lg),
+                child: _Grid(
+                  weeks: weeks,
+                  leading: leading,
+                  daysInMonth: daysInMonth,
+                  year: shown.year,
+                  month: shown.month,
+                  today: today,
+                  selectedDay: _selectedDay,
+                  store: store,
+                  onTapDay: _tapDay,
+                  onToggleTask: _toggleTask,
+                  onCancelTask: _cancelTask,
+                  onDropTask: _dropOnDay,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
