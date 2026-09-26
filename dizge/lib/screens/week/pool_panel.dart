@@ -25,6 +25,7 @@ class PoolPanel extends StatelessWidget {
     required this.onCollapse,
     required this.onOpenTask,
     required this.onRestore,
+    this.onAdd,
     this.hover,
   });
 
@@ -34,6 +35,9 @@ class PoolPanel extends StatelessWidget {
 
   /// İşi takvime geri koyar (eski gününe).
   final ValueChanged<Task> onRestore;
+
+  /// Havuza doğrudan yeni iş yazar (plan H4). null ise giriş satırı çizilmez.
+  final ValueChanged<String>? onAdd;
 
   /// Izgaradan sürüklenen blok panelin üstünde mi? Sürükleme sırasında
   /// ızgara yazıyor, panel dinliyor — aradaki ekranı yeniden çizmeden.
@@ -59,6 +63,7 @@ class PoolPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _Header(count: tasks.length, onCollapse: onCollapse),
+              if (onAdd != null) PoolAddField(onAdd: onAdd!),
               Expanded(
                 child: tasks.isEmpty
                     ? const _EmptyPool()
@@ -251,7 +256,7 @@ class _EmptyPool extends StatelessWidget {
           ),
           const SizedBox(height: S.xs),
           Text(
-            'Bugün olmayacak bir işi buraya bırak; silinmeden havuzda bekler.',
+            'Bu hafta yapman gerekenleri yaz, sonra günlere sürükle.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: c.inkFaint,
@@ -260,6 +265,69 @@ class _EmptyPool extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Havuzun başındaki tek satırlık giriş: yaz, Enter → havuza düşer.
+///
+/// Düzenleyici açılmıyor: havuza yazmak bir beyin boşaltması, her işte
+/// kategori/saat sormak o hızı öldürürdü. Ayrıntı sonra, karta dokunarak.
+/// Alan Enter'dan sonra odağı koruyor ki beş işi art arda yazmak beş
+/// tıklama istemesin.
+class PoolAddField extends StatefulWidget {
+  const PoolAddField({super.key, required this.onAdd});
+
+  final ValueChanged<String> onAdd;
+
+  @override
+  State<PoolAddField> createState() => _PoolAddFieldState();
+}
+
+class _PoolAddFieldState extends State<PoolAddField> {
+  final _text = TextEditingController();
+  final _focus = FocusNode();
+
+  @override
+  void dispose() {
+    _text.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final title = _text.text.trim();
+    if (title.isEmpty) return;
+    widget.onAdd(title);
+    _text.clear();
+    _focus.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(S.sm, 0, S.sm, S.sm),
+      child: TextField(
+        controller: _text,
+        focusNode: _focus,
+        textInputAction: TextInputAction.done,
+        textCapitalization: TextCapitalization.sentences,
+        onSubmitted: (_) => _submit(),
+        style: TextStyle(color: c.ink, fontSize: T.caption),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'Havuza ekle…',
+          hintStyle: TextStyle(color: c.inkFaint, fontSize: T.caption),
+          prefixIcon: Icon(Icons.add_rounded, size: I.sm, color: c.inkDim),
+          prefixIconConstraints: const BoxConstraints(minWidth: 32),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: S.sm,
+            vertical: S.sm,
+          ),
+        ),
       ),
     );
   }

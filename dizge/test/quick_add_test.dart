@@ -57,6 +57,28 @@ void main() {
     expect(task.isRoutine, isFalse);
   });
 
+  testWidgets('Havuz seçiliyken iş havuza yazılır, gün/saat hapları kalkar', (
+    tester,
+  ) async {
+    final container = await openSheet(tester, startHour: 14.0);
+
+    await tester.tap(find.text('Havuz'));
+    await tester.pumpAndSettle();
+    expect(find.text('14:00'), findsNothing);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Ne yapacaksın?'),
+      'Kitap iadesi',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    final task = container.read(appStoreProvider).tasks.single;
+    expect(task.inPool, isTrue);
+    expect(task.startHour, isNull);
+    expect(container.read(poolProvider), [task]);
+  });
+
   testWidgets('ızgaradan gelen saat rozet olarak görünür', (tester) async {
     await openSheet(tester, startHour: 14.5);
     expect(find.text('14:30'), findsOneWidget);

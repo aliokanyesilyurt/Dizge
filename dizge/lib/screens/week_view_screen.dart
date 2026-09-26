@@ -490,14 +490,20 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
           onRescue: () => _rescueDay(store, today),
           isEmptyWeek: store
               .tasksForDays(_startDate, visibleDays)
-              .every((day) =>
-                  (store.activeGroupId == '*all*'
-                      ? day
-                      : day.where((t) => t.groupId == store.activeGroupId))
-                  .isEmpty),
+              .every(
+                (day) =>
+                    (store.activeGroupId == '*all*'
+                            ? day
+                            : day.where(
+                                (t) => t.groupId == store.activeGroupId,
+                              ))
+                        .isEmpty,
+              ),
           isFirstRun: store.activeGroupId == '*all*'
               ? store.tasks.isEmpty
-              : store.tasks.where((t) => t.groupId == store.activeGroupId).isEmpty,
+              : store.tasks
+                    .where((t) => t.groupId == store.activeGroupId)
+                    .isEmpty,
         ),
         // Şerit `PageView`'in dışında: hafta sayfaları kaysa da tik
         // her zaman bugüne yazılır (bkz. [DailyHabitStrip]).
@@ -527,7 +533,9 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                 for (final dayTasks in rawTasksByDay)
                   activeGroupId == '*all*'
                       ? dayTasks
-                      : dayTasks.where((t) => t.groupId == activeGroupId).toList()
+                      : dayTasks
+                            .where((t) => t.groupId == activeGroupId)
+                            .toList(),
               ];
               final currentLabels = [
                 for (var i = 0; i < visibleDays; i++)
@@ -621,9 +629,9 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
     final open = ref.watch(poolPanelOpenProvider);
     final wide = MediaQuery.sizeOf(context).width >= _poolColumnMinWidth;
 
-    // Boş havuz + kapalı panel = ekranda hiçbir iz yok. Havuzu hiç kullanmayan
-    // birinden 44 piksel almak, kullanan birinin bir tıklamasından pahalı.
-    if (!wide || (pooled.isEmpty && !open)) return const SizedBox.shrink();
+    // Boş havuz da şeridini koruyor (plan H4): havuz artık işin doğduğu
+    // yer, görünmezse ona yazmanın yolu da görünmez.
+    if (!wide) return const SizedBox.shrink();
 
     return KeyedSubtree(
       key: _poolKey,
@@ -635,6 +643,7 @@ class _WeekViewScreenState extends ConsumerState<WeekViewScreen> {
                   ref.read(poolPanelOpenProvider.notifier).set(false),
               onOpenTask: (task) => _openEditor(task.date, existing: task),
               onRestore: _restoreFromPool,
+              onAdd: (title) => ref.read(appStoreProvider).addToPool(title),
             )
           : PoolRail(
               count: pooled.length,

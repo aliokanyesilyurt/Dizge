@@ -59,14 +59,44 @@ void main() {
   });
 
   group('panel', () {
-    testWidgets('havuz boş ve panel kapalıyken ekranda iz bırakmaz', (
-      tester,
-    ) async {
+    // Eskiden boş havuz ekranda hiç iz bırakmıyordu. Havuz artık işin
+    // doğduğu yer (plan H4); görünmezse ona yazmanın yolu da görünmez.
+    testWidgets('havuz boşken de şerit görünür', (tester) async {
       wide(tester);
       await pumpApp(tester, const WeekViewScreen());
 
-      expect(find.byType(PoolRail), findsNothing);
+      expect(find.byType(PoolRail), findsOneWidget);
       expect(find.byType(PoolPanel), findsNothing);
+    });
+
+    testWidgets('panelde yazıp Enter demek işi havuza ekler, alan boşalır', (
+      tester,
+    ) async {
+      wide(tester);
+      final container = await pumpApp(
+        tester,
+        const WeekViewScreen(),
+        overrides: [
+          poolPanelOpenProvider.overrideWith(
+            (ref) => PoolPanelController(InMemoryStore())..set(true),
+          ),
+        ],
+      );
+
+      final field = find.widgetWithText(TextField, 'Havuza ekle…');
+      await tester.enterText(field, 'Vergi beyannamesi');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final pooled = container.read(poolProvider);
+      expect(pooled.map((t) => t.title), ['Vergi beyannamesi']);
+      expect(pooled.single.inPool, isTrue);
+      expect(pooled.single.startHour, isNull);
+      // Art arda yazılabilsin: alan temizlenir.
+      expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller!.text,
+        isEmpty,
+      );
     });
 
     testWidgets('havuzda iş varken şerit sayacı gösterir', (tester) async {

@@ -22,6 +22,7 @@ Future<bool?> showQuickAdd(
   BuildContext context, {
   required DateTime date,
   double? startHour,
+  bool toPool = false,
 }) {
   // Ajanda modunda görev yazmanın kapısı klavye değil, kalem: sheet hiç
   // açılmaz, o günün yaprağına gidilir (A2).
@@ -29,8 +30,9 @@ Future<bool?> showQuickAdd(
   // Yönlendirmenin burada olması bilinçli — on çağrı yeri bu tek fonksiyona
   // iniyor. Her ekranın kendi koşulunu yazması, on birinci çağrı yerinde
   // unutulacak bir kural demekti.
+  // Havuza yazmak ajandaya gitmez: havuzun bir yaprağı yok.
   final container = ProviderScope.containerOf(context, listen: false);
-  if (container.read(usageModeProvider).opensAgendaFirst) {
+  if (!toPool && container.read(usageModeProvider).opensAgendaFirst) {
     container.read(navigationProvider.notifier).openAgenda(date);
     return Future.value(false);
   }
@@ -40,15 +42,24 @@ Future<bool?> showQuickAdd(
     isScrollControlled: true,
     // Arkadaki takvim seçilebilir kalsın diye hafif karartma.
     barrierColor: Colors.black.withValues(alpha: 0.32),
-    builder: (_) => QuickAddSheet(date: date, startHour: startHour),
+    builder: (_) =>
+        QuickAddSheet(date: date, startHour: startHour, toPool: toPool),
   );
 }
 
 class QuickAddSheet extends ConsumerStatefulWidget {
-  const QuickAddSheet({super.key, required this.date, this.startHour});
+  const QuickAddSheet({
+    super.key,
+    required this.date,
+    this.startHour,
+    this.toPool = false,
+  });
 
   final DateTime date;
   final double? startHour;
+
+  /// Açılışta "Havuz" seçili mi (havuz ekranının "Yeni"si).
+  final bool toPool;
 
   @override
   ConsumerState<QuickAddSheet> createState() => _QuickAddSheetState();
@@ -62,6 +73,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   late double? _start = widget.startHour;
   double _duration = 1.0;
   late TaskCategory _category = AppData.categories.first;
+
+  /// İş bir güne değil havuza yazılacak (plan H4). Seçiliyken gün ve saat
+  /// hapları kalkar: havuzdaki işin günü yok, sonra sürüklenerek alacak.
+  late bool _toPool = widget.toPool;
 
   bool _saving = false;
 
@@ -95,15 +110,21 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     if (title.isEmpty || _saving) return;
     _saving = true;
 
-    final task = Task(
-      title: title,
-      color: _category.color,
-      categoryName: _category.name,
-      date: _date,
-      startHour: _start,
-      durationHours: _duration,
-    );
-    ref.read(appStoreProvider).addTask(task);
+    final store = ref.read(appStoreProvider);
+    if (_toPool) {
+      store.addToPool(title, category: _category);
+    } else {
+      store.addTask(
+        Task(
+          title: title,
+          color: _category.color,
+          categoryName: _category.name,
+          date: _date,
+          startHour: _start,
+          durationHours: _duration,
+        ),
+      );
+    }
     HapticFeedback.lightImpact();
     Navigator.pop(context, true);
   }
@@ -187,26 +208,37 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
               padding: const EdgeInsets.symmetric(horizontal: S.lg),
               children: [
                 _Pill(
-                  icon: Icons.calendar_today_rounded,
-                  label: _dateLabel,
-                  onTap: _pickDate,
+                  icon: Icons.inbox_rounded,
+                  label: 'Havuz',
+                  highlighted: _toPool,
+                  onTap: () => setState(() => _toPool = !_toPool),
                 ),
                 const SizedBox(width: S.sm),
-                _Pill(
-                  icon: Icons.schedule_rounded,
-                  label: _start == null ? 'Saatsiz' : Task.formatTime(_start!),
-                  highlighted: _start != null,
-                  onTap: _pickTime,
-                ),
-                if (_start != null) ...[
+                if (!_toPool) ...[
+                  _Pill(
+                    icon: Icons.calendar_today_rounded,
+                    label: _dateLabel,
+                    onTap: _pickDate,
+                  ),
                   const SizedBox(width: S.sm),
+                  _Pill(
+                    icon: Icons.schedule_rounded,
+                    label: _start == null
+                        ? 'Saatsiz'
+                        : Task.formatTime(_start!),
+                    highlighted: _start != null,
+                    onTap: _pickTime,
+                  ),
+                  const SizedBox(width: S.sm),
+                ],
+                if (!_toPool && _start != null) ...[
                   _Pill(
                     icon: Icons.timelapse_rounded,
                     label: Task.formatDuration(_duration),
                     onTap: _cycleDuration,
                   ),
+                  const SizedBox(width: S.sm),
                 ],
-                const SizedBox(width: S.sm),
                 _Pill(
                   icon: Icons.sell_rounded,
                   label: _category.name,

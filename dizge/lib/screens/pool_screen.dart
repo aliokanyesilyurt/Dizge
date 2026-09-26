@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/pool_labels.dart';
 import '../data/app_store.dart';
+import '../widgets/quick_add_sheet.dart';
 import '../widgets/task_editor_sheet.dart';
 import '../widgets/undo_toast.dart';
 import 'task_list_scaffold.dart';
@@ -43,7 +44,7 @@ class PoolScreen extends ConsumerWidget {
     return TaskListScaffold(
       title: kPoolName,
       subtitle: pooled.isEmpty
-          ? 'takvimden çekilen işler burada birikir'
+          ? 'önce yaz, sonra günlere dağıt'
           : '${pooled.length} iş bekliyor · en uzun bekleyen üstte',
       emptyIcon: Icons.inbox_rounded,
       // Boş durum bir kusur değil, bir tarif: kullanıcı buraya işin nasıl
@@ -67,8 +68,10 @@ class PoolScreen extends ConsumerWidget {
         },
       ),
       onTap: (t) => showTaskEditor(context, date: t.date, existing: t),
-      // Kayan "yeni" düğmesi yok: havuz yeni iş kurulan yer değil, var olan
-      // işin bekleme yeri. İş takvimde doğar, buraya çekilir.
+      // "Yeni" artık var (plan H4): havuz yalnız takvimden çekilenin bekleme
+      // yeri değil, işin doğduğu yer de. Önce buraya yazılır, sonra günlere
+      // dağıtılır.
+      onAdd: () => showQuickAdd(context, date: DateTime.now(), toPool: true),
     );
   }
 }

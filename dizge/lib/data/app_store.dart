@@ -361,6 +361,25 @@ class AppStore extends ChangeNotifier {
     _touched();
   }
 
+  /// Havuza doğrudan yeni bir iş yazar (plan H4).
+  ///
+  /// Havuz artık yalnız takvimden çekilenin beklediği yer değil, işin
+  /// **doğduğu** yer de: önce yazılır, sonra günlere sürüklenir. `date`
+  /// modelde zorunlu (esnek-plan K1) — bugün yazılıyor, ama `inPool`
+  /// bayrağı yüzünden hiçbir takvimde görünmüyor.
+  Task addToPool(String title, {TaskCategory? category}) {
+    final cat = category ?? AppData.categories.first;
+    final task = Task(
+      title: title.trim(),
+      color: cat.color,
+      categoryName: cat.name,
+      date: Task.dayKey(DateTime.now()),
+      inPool: true,
+    );
+    addTask(task);
+    return task;
+  }
+
   /// İşi havuzdan çıkarıp takvime koyar.
   ///
   /// [toDay] verilmezse iş **eski gününe** döner: havuza atılırken korunan
